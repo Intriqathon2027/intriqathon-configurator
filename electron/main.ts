@@ -93,6 +93,38 @@ ipcMain.handle('load-local-config', async () => {
   return {}
 })
 
+// IPC: Export config
+ipcMain.handle('export-config', async (_event, config: Record<string, string>) => {
+  const result = await dialog.showSaveDialog(win!, {
+    title: 'Exporter la configuration',
+    defaultPath: 'intriqathon-config.json',
+    filters: [{ name: 'JSON Files', extensions: ['json'] }],
+  })
+  if (!result.canceled && result.filePath) {
+    fs.writeFileSync(result.filePath, JSON.stringify(config, null, 2), 'utf-8')
+    return { success: true }
+  }
+  return { success: false }
+})
+
+// IPC: Import config
+ipcMain.handle('import-config', async () => {
+  const result = await dialog.showOpenDialog(win!, {
+    title: 'Importer la configuration',
+    properties: ['openFile'],
+    filters: [{ name: 'JSON Files', extensions: ['json'] }],
+  })
+  if (!result.canceled && result.filePaths.length > 0) {
+    const raw = fs.readFileSync(result.filePaths[0], 'utf-8')
+    try {
+      return JSON.parse(raw)
+    } catch (e) {
+      return null
+    }
+  }
+  return null
+})
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()

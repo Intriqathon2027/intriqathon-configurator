@@ -70,6 +70,7 @@ type Action =
   | { type: 'SET_LANGUAGE'; lang: Language }
   | { type: 'SET_STEP'; step: number }
   | { type: 'LOAD_SAVED'; config: Partial<Config> }
+  | { type: 'RESET_CONFIG' }
 
 // ============================================================
 // STATE
@@ -102,6 +103,8 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         config: { ...state.config, ...action.config },
       }
+    case 'RESET_CONFIG':
+      return { ...state, config: defaultConfig }
     default:
       return state
   }

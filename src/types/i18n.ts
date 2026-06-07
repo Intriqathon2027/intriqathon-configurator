@@ -17,6 +17,11 @@ export type TranslationKeys = {
   'lang.en': string
   'app.title': string
   'app.subtitle': string
+  'settings.title': string
+  'settings.import': string
+  'settings.export': string
+  'settings.reset': string
+  'settings.reset.confirm': string
 
   // Steps labels
   'step1.label': string

@@ -18,6 +18,11 @@ export const translations: Translations = {
     'lang.en': 'EN',
     'app.title': 'Intriqathon',
     'app.subtitle': 'Configurateur',
+    'settings.title': 'Paramètres',
+    'settings.import': 'Importer une configuration',
+    'settings.export': 'Exporter la configuration',
+    'settings.reset': 'Réinitialiser',
+    'settings.reset.confirm': 'Êtes-vous sûr de vouloir tout réinitialiser ? Cette action est irréversible.',
 
     // Steps labels
     'step1.label': 'Prérequis',
@@ -168,6 +173,11 @@ export const translations: Translations = {
     'lang.en': 'EN',
     'app.title': 'Intriqathon',
     'app.subtitle': 'Configurator',
+    'settings.title': 'Settings',
+    'settings.import': 'Import configuration',
+    'settings.export': 'Export configuration',
+    'settings.reset': 'Reset',
+    'settings.reset.confirm': 'Are you sure you want to reset everything? This action cannot be undone.',
 
     // Steps labels
     'step1.label': 'Prerequisites',

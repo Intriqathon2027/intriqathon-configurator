@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react'
 import {
   Server, Database, Shield, Mail, Bot,
   FileDown, Settings, Globe, Check,
-  ChevronLeft, ChevronRight, HelpCircle, Zap
+  ChevronLeft, ChevronRight, HelpCircle, Zap,
+  Download, Upload, Trash2
 } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 
@@ -39,7 +40,43 @@ export function WizardLayout({
 }: WizardLayoutProps) {
   const { state, dispatch, t, saveAndNext, goToStep } = useApp()
   const [helpOpen, setHelpOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const { currentStep, language } = state
+
+  const handleImport = async () => {
+    if (window.electronAPI) {
+      const data = await window.electronAPI.importConfig()
+      if (data) {
+        dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
+        await window.electronAPI.saveLocalConfig(data)
+        setSettingsOpen(false)
+      }
+    } else {
+      alert('Non supporté sur le web')
+    }
+  }
+
+  const handleExport = async () => {
+    if (window.electronAPI) {
+      await window.electronAPI.exportConfig(state.config as unknown as Record<string, string>)
+      setSettingsOpen(false)
+    } else {
+      alert('Non supporté sur le web')
+    }
+  }
+
+  const handleReset = async () => {
+    if (confirm(t('settings.reset.confirm'))) {
+      dispatch({ type: 'RESET_CONFIG' })
+      if (window.electronAPI) {
+        // Save an empty object to reset local config
+        await window.electronAPI.saveLocalConfig({})
+      } else {
+        localStorage.removeItem('intriqathon-config')
+      }
+      setSettingsOpen(false)
+    }
+  }
 
   const isFirst = currentStep === 0
   const isLast = currentStep === steps.length - 1
@@ -48,7 +85,10 @@ export function WizardLayout({
     <div className="app-container">
       {/* Sidebar */}
       <aside className="sidebar">
-        <div className="sidebar-logo">
+        <div 
+          className="sidebar-logo" 
+          style={{ marginTop: typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0 && typeof window !== 'undefined' && !!window.electronAPI ? '16px' : '0' }}
+        >
           <div className="sidebar-logo-icon">
             <Zap size={18} />
           </div>
@@ -84,6 +124,22 @@ export function WizardLayout({
             )
           })}
         </nav>
+
+        <div className="sidebar-bottom" style={{ marginTop: 'auto' }}>
+          <button
+            className="sidebar-step"
+            onClick={() => setSettingsOpen(true)}
+            style={{ width: '100%' }}
+            id="btn-settings"
+          >
+            <div className="step-indicator pending">
+              <Settings size={13} />
+            </div>
+            <div className="step-label">
+              <div className="step-label-title">{t('settings.title')}</div>
+            </div>
+          </button>
+        </div>
       </aside>
 
       {/* Main */}
@@ -186,6 +242,50 @@ export function WizardLayout({
             </div>
             <div className="modal-body">
               {helpContent}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {settingsOpen && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setSettingsOpen(false)}>
+          <div className="modal" style={{ width: '400px' }}>
+            <div className="modal-header">
+              <div className="modal-title">
+                <Settings size={18} color="var(--color-primary)" />
+                {t('settings.title')}
+              </div>
+              <button className="modal-close" onClick={() => setSettingsOpen(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                className="btn btn-secondary"
+                style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+                onClick={handleImport}
+              >
+                <Upload size={16} />
+                {t('settings.import')}
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+                onClick={handleExport}
+              >
+                <Download size={16} />
+                {t('settings.export')}
+              </button>
+              <div style={{ height: '1px', background: 'var(--color-border)', margin: '8px 0' }} />
+              <button
+                className="btn"
+                style={{ justifyContent: 'flex-start', padding: '12px 16px', color: '#ef4444', border: '1px solid #ef4444', background: 'transparent' }}
+                onClick={handleReset}
+              >
+                <Trash2 size={16} />
+                {t('settings.reset')}
+              </button>
             </div>
           </div>
         </div>

@@ -5,6 +5,8 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
 	openFolderDialog: () => electron.ipcRenderer.invoke("open-folder-dialog"),
 	saveEnvFile: (content) => electron.ipcRenderer.invoke("save-env-file", content),
 	saveLocalConfig: (config) => electron.ipcRenderer.invoke("save-local-config", config),
-	loadLocalConfig: () => electron.ipcRenderer.invoke("load-local-config")
+	loadLocalConfig: () => electron.ipcRenderer.invoke("load-local-config"),
+	exportConfig: (config) => electron.ipcRenderer.invoke("export-config", config),
+	importConfig: () => electron.ipcRenderer.invoke("import-config")
 });
 //#endregion

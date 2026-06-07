@@ -75,7 +75,7 @@ export function Step1Prerequis() {
       <div className="link-buttons-row">
         <ExternalLinkBtn url="https://console.scaleway.com" label={t('step1.scaleway')} />
         <ExternalLinkBtn
-          url="https://docs.scaleway.com/identity-and-access-management/organizations-and-projects/how-to/create-ssh-key/"
+          url="https://www.scaleway.com/en/docs/organizations-and-projects/how-to/create-ssh-key/"
           label={t('step1.ssh.info')}
           variant="secondary"
         />
