@@ -1,4 +1,5 @@
 import { AppProvider, useApp } from './context/AppContext'
+import { Toaster } from 'react-hot-toast'
 import { Step1Prerequis } from './steps/Step1Prerequis'
 import { Step2Supabase } from './steps/Step2Supabase'
 import { Step3OAuth2 } from './steps/Step3OAuth2'
@@ -28,6 +29,7 @@ function App() {
   return (
     <AppProvider>
       <StepRouter />
+      <Toaster />
     </AppProvider>
   )
 }

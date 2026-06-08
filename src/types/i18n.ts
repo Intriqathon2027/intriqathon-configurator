@@ -22,6 +22,7 @@ export type TranslationKeys = {
   'settings.export': string
   'settings.reset': string
   'settings.reset.confirm': string
+  'toast.saved': string
 
   // Steps labels
   'step1.label': string

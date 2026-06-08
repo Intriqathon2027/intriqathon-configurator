@@ -1,0 +1,91 @@
+import { Settings, Upload, Download, Trash2 } from 'lucide-react'
+import { useApp } from '../../context/AppContext'
+
+interface SettingsModalProps {
+  settingsOpen: boolean
+  setSettingsOpen: (open: boolean) => void
+}
+
+export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalProps) {
+  const { state, dispatch, t } = useApp()
+
+  if (!settingsOpen) return null
+
+  const handleImport = async () => {
+    if (window.electronAPI) {
+      const data = await window.electronAPI.importConfig()
+      if (data) {
+        dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
+        await window.electronAPI.saveLocalConfig(data)
+        setSettingsOpen(false)
+      }
+    } else {
+      alert('Non supporté sur le web')
+    }
+  }
+
+  const handleExport = async () => {
+    if (window.electronAPI) {
+      await window.electronAPI.exportConfig(state.config as unknown as Record<string, string>)
+      setSettingsOpen(false)
+    } else {
+      alert('Non supporté sur le web')
+    }
+  }
+
+  const handleReset = async () => {
+    if (confirm(t('settings.reset.confirm'))) {
+      dispatch({ type: 'RESET_CONFIG' })
+      if (window.electronAPI) {
+        // Save an empty object to reset local config
+        await window.electronAPI.saveLocalConfig({})
+      } else {
+        localStorage.removeItem('intriqathon-config')
+      }
+      setSettingsOpen(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setSettingsOpen(false)}>
+      <div className="modal" style={{ width: '400px' }}>
+        <div className="modal-header">
+          <div className="modal-title">
+            <Settings size={18} color="var(--color-primary)" />
+            {t('settings.title')}
+          </div>
+          <button className="modal-close" onClick={() => setSettingsOpen(false)}>
+            ✕
+          </button>
+        </div>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <button
+            className="btn btn-secondary"
+            style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+            onClick={handleImport}
+          >
+            <Upload size={16} />
+            {t('settings.import')}
+          </button>
+          <button
+            className="btn btn-secondary"
+            style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+            onClick={handleExport}
+          >
+            <Download size={16} />
+            {t('settings.export')}
+          </button>
+          <div style={{ height: '1px', background: 'var(--color-border)', margin: '8px 0' }} />
+          <button
+            className="btn"
+            style={{ justifyContent: 'flex-start', padding: '12px 16px', color: '#ef4444', border: '1px solid #ef4444', background: 'transparent' }}
+            onClick={handleReset}
+          >
+            <Trash2 size={16} />
+            {t('settings.reset')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
