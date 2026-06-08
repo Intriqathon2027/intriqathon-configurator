@@ -25,10 +25,17 @@ function StepRouter() {
   }
 }
 
+import { LandingPage } from './components/layout/LandingPage'
+
+function AppContent() {
+  const { state } = useApp()
+  return state.hasStarted ? <StepRouter /> : <LandingPage />
+}
+
 function App() {
   return (
     <AppProvider>
-      <StepRouter />
+      <AppContent />
       <Toaster />
     </AppProvider>
   )

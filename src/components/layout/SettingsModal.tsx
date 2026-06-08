@@ -1,5 +1,6 @@
 import { Settings, Upload, Download, Trash2 } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
+import toast from 'react-hot-toast'
 
 interface SettingsModalProps {
   settingsOpen: boolean
@@ -18,6 +19,13 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
         dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
         await window.electronAPI.saveLocalConfig(data)
         setSettingsOpen(false)
+        toast.success(t('toast.imported'), {
+          position: 'top-center',
+          style: {
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-light)',
+          },
+        })
       }
     } else {
       alert('Non supporté sur le web')
@@ -43,6 +51,13 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
         localStorage.removeItem('intriqathon-config')
       }
       setSettingsOpen(false)
+      toast.success(t('toast.reset'), {
+        position: 'top-center',
+        style: {
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border-light)',
+        },
+      })
     }
   }
 

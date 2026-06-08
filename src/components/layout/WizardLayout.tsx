@@ -28,7 +28,7 @@ const steps: Step[] = [
 
 interface WizardLayoutProps {
   title: string
-  stepBadge: string
+  stepBadge?: string
   description: string
   helpContent?: ReactNode
   children: ReactNode
@@ -36,12 +36,11 @@ interface WizardLayoutProps {
 
 export function WizardLayout({
   title,
-  stepBadge,
   description,
   helpContent,
   children,
 }: WizardLayoutProps) {
-  const { state, t, goToStep } = useApp()
+  const { state, t, goToStep, goHome } = useApp()
   const [helpOpen, setHelpOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { currentStep } = state
@@ -55,7 +54,11 @@ export function WizardLayout({
       <aside className="sidebar">
         <div
           className="sidebar-logo"
-          style={{ marginTop: typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0 && typeof window !== 'undefined' && !!window.electronAPI ? '16px' : '0' }}
+          style={{ 
+            marginTop: typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0 && typeof window !== 'undefined' && !!window.electronAPI ? '16px' : '0',
+            cursor: 'pointer'
+          }}
+          onClick={goHome}
         >
           <div className="sidebar-logo-icon">
             <Zap size={18} />

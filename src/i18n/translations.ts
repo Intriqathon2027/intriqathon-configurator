@@ -2,6 +2,19 @@ import type { Translations } from '../types/i18n'
 
 export const translations: Translations = {
   fr: {
+    // Landing
+    'landing.title': 'Intriqathon Configurator',
+    'landing.subtitle': 'Préparez votre environnement de hackathon en quelques minutes.',
+    'landing.team': 'Le groupe 8',
+    'landing.btn.new': 'Nouvelle configuration',
+    'landing.btn.resume': 'Continuer',
+    'landing.btn.import': 'Importer',
+    'landing.prompt.title': 'Configuration existante',
+    'landing.prompt.desc': 'Une configuration est déjà en cours. Voulez-vous l\'exporter avant de commencer une nouvelle configuration (qui écrasera l\'ancienne) ?',
+    'landing.prompt.export': 'Exporter et continuer',
+    'landing.prompt.discard': 'Écraser (sans exporter)',
+    'landing.prompt.cancel': 'Annuler',
+
     // Common
     'nav.saveAndNext': 'Sauvegarder & Suivant',
     'nav.previous': 'Précédent',
@@ -24,6 +37,8 @@ export const translations: Translations = {
     'settings.reset': 'Réinitialiser',
     'settings.reset.confirm': 'Êtes-vous sûr de vouloir tout réinitialiser ? Cette action est irréversible.',
     'toast.saved': 'Configuration sauvegardée !',
+    'toast.imported': 'Configuration importée avec succès',
+    'toast.reset': 'Configuration réinitialisée',
 
     // Steps labels
     'step1.label': 'Prérequis',
@@ -158,6 +173,19 @@ export const translations: Translations = {
   },
 
   en: {
+    // Landing
+    'landing.title': 'Intriqathon Configurator',
+    'landing.subtitle': 'Set up your hackathon environment in minutes.',
+    'landing.team': 'Le groupe 8',
+    'landing.btn.new': 'New configuration',
+    'landing.btn.resume': 'Resume',
+    'landing.btn.import': 'Import',
+    'landing.prompt.title': 'Existing configuration',
+    'landing.prompt.desc': 'A configuration is already in progress. Would you like to export it before starting a new one (which will overwrite the old one)?',
+    'landing.prompt.export': 'Export and continue',
+    'landing.prompt.discard': 'Overwrite (without exporting)',
+    'landing.prompt.cancel': 'Cancel',
+
     // Common
     'nav.saveAndNext': 'Save & Next',
     'nav.previous': 'Previous',
@@ -180,6 +208,8 @@ export const translations: Translations = {
     'settings.reset': 'Reset',
     'settings.reset.confirm': 'Are you sure you want to reset everything? This action cannot be undone.',
     'toast.saved': 'Configuration saved!',
+    'toast.imported': 'Configuration imported successfully',
+    'toast.reset': 'Configuration reset',
 
     // Steps labels
     'step1.label': 'Prerequisites',

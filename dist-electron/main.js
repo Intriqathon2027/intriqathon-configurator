@@ -1,17 +1,15 @@
-import { BrowserWindow, app, dialog, ipcMain, shell } from "electron";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
-import fs from "node:fs";
+import { BrowserWindow as e, app as t, dialog as n, ipcMain as r, shell as i } from "electron";
+import { fileURLToPath as a } from "node:url";
+import o from "node:path";
+import s from "node:fs";
 //#region electron/main.ts
-var __dirname = path.dirname(fileURLToPath(import.meta.url));
-process.env.APP_ROOT = path.join(__dirname, "..");
-var VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-var MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
-var RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
-var win;
-function createWindow() {
-	win = new BrowserWindow({
+var c = o.dirname(a(import.meta.url));
+process.env.APP_ROOT = o.join(c, "..");
+var l = process.env.VITE_DEV_SERVER_URL, u = o.join(process.env.APP_ROOT, "dist-electron"), d = o.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = l ? o.join(process.env.APP_ROOT, "public") : d;
+var f;
+function p() {
+	f = new e({
 		width: 1100,
 		height: 750,
 		minWidth: 900,
@@ -23,31 +21,25 @@ function createWindow() {
 		},
 		backgroundColor: "#F8FAF9",
 		webPreferences: {
-			preload: path.join(__dirname, "preload.mjs"),
-			nodeIntegration: false,
-			contextIsolation: true
+			preload: o.join(c, "preload.mjs"),
+			nodeIntegration: !1,
+			contextIsolation: !0
 		},
-		icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg")
-	});
-	win.webContents.on("did-finish-load", () => {
-		win?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toISOString());
-	});
-	if (VITE_DEV_SERVER_URL) win.loadURL(VITE_DEV_SERVER_URL);
-	else win.loadFile(path.join(RENDERER_DIST, "index.html"));
+		icon: o.join(process.env.VITE_PUBLIC, "electron-vite.svg")
+	}), f.webContents.on("did-finish-load", () => {
+		f?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toISOString());
+	}), l ? f.loadURL(l) : f.loadFile(o.join(d, "index.html"));
 }
-ipcMain.handle("open-external-url", async (_event, url) => {
-	await shell.openExternal(url);
-});
-ipcMain.handle("open-folder-dialog", async () => {
-	const result = await dialog.showOpenDialog(win, {
+r.handle("open-external-url", async (e, t) => {
+	await i.openExternal(t);
+}), r.handle("open-folder-dialog", async () => {
+	let e = await n.showOpenDialog(f, {
 		properties: ["openDirectory"],
 		title: "Sélectionner le dossier de déploiement"
 	});
-	if (!result.canceled && result.filePaths.length > 0) return result.filePaths[0];
-	return null;
-});
-ipcMain.handle("save-env-file", async (_event, content) => {
-	const result = await dialog.showSaveDialog(win, {
+	return !e.canceled && e.filePaths.length > 0 ? e.filePaths[0] : null;
+}), r.handle("save-env-file", async (e, t) => {
+	let r = await n.showSaveDialog(f, {
 		title: "Sauvegarder le fichier .env",
 		defaultPath: ".env",
 		filters: [{
@@ -55,30 +47,22 @@ ipcMain.handle("save-env-file", async (_event, content) => {
 			extensions: ["env"]
 		}]
 	});
-	if (!result.canceled && result.filePath) {
-		fs.writeFileSync(result.filePath, content, "utf-8");
-		return {
-			success: true,
-			path: result.filePath
-		};
-	}
-	return { success: false };
-});
-ipcMain.handle("save-local-config", async (_event, config) => {
-	const configPath = path.join(app.getPath("userData"), "local-config.json");
-	fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
-	return { success: true };
-});
-ipcMain.handle("load-local-config", async () => {
-	const configPath = path.join(app.getPath("userData"), "local-config.json");
-	if (fs.existsSync(configPath)) {
-		const raw = fs.readFileSync(configPath, "utf-8");
-		return JSON.parse(raw);
+	return !r.canceled && r.filePath ? (s.writeFileSync(r.filePath, t, "utf-8"), {
+		success: !0,
+		path: r.filePath
+	}) : { success: !1 };
+}), r.handle("save-local-config", async (e, n) => {
+	let r = o.join(t.getPath("userData"), "local-config.json");
+	return s.writeFileSync(r, JSON.stringify(n, null, 2), "utf-8"), { success: !0 };
+}), r.handle("load-local-config", async () => {
+	let e = o.join(t.getPath("userData"), "local-config.json");
+	if (s.existsSync(e)) {
+		let t = s.readFileSync(e, "utf-8");
+		return JSON.parse(t);
 	}
 	return {};
-});
-ipcMain.handle("export-config", async (_event, config) => {
-	const result = await dialog.showSaveDialog(win, {
+}), r.handle("export-config", async (e, t) => {
+	let r = await n.showSaveDialog(f, {
 		title: "Exporter la configuration",
 		defaultPath: "intriqathon-config.json",
 		filters: [{
@@ -86,14 +70,9 @@ ipcMain.handle("export-config", async (_event, config) => {
 			extensions: ["json"]
 		}]
 	});
-	if (!result.canceled && result.filePath) {
-		fs.writeFileSync(result.filePath, JSON.stringify(config, null, 2), "utf-8");
-		return { success: true };
-	}
-	return { success: false };
-});
-ipcMain.handle("import-config", async () => {
-	const result = await dialog.showOpenDialog(win, {
+	return !r.canceled && r.filePath ? (s.writeFileSync(r.filePath, JSON.stringify(t, null, 2), "utf-8"), { success: !0 }) : { success: !1 };
+}), r.handle("import-config", async () => {
+	let e = await n.showOpenDialog(f, {
 		title: "Importer la configuration",
 		properties: ["openFile"],
 		filters: [{
@@ -101,25 +80,19 @@ ipcMain.handle("import-config", async () => {
 			extensions: ["json"]
 		}]
 	});
-	if (!result.canceled && result.filePaths.length > 0) {
-		const raw = fs.readFileSync(result.filePaths[0], "utf-8");
+	if (!e.canceled && e.filePaths.length > 0) {
+		let t = s.readFileSync(e.filePaths[0], "utf-8");
 		try {
-			return JSON.parse(raw);
-		} catch (e) {
+			return JSON.parse(t);
+		} catch {
 			return null;
 		}
 	}
 	return null;
-});
-app.on("window-all-closed", () => {
-	if (process.platform !== "darwin") {
-		app.quit();
-		win = null;
-	}
-});
-app.on("activate", () => {
-	if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
-app.whenReady().then(createWindow);
+}), t.on("window-all-closed", () => {
+	process.platform !== "darwin" && (t.quit(), f = null);
+}), t.on("activate", () => {
+	e.getAllWindows().length === 0 && p();
+}), t.whenReady().then(p);
 //#endregion
-export { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL };
+export { u as MAIN_DIST, d as RENDERER_DIST, l as VITE_DEV_SERVER_URL };

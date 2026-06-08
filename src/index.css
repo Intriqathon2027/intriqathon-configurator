@@ -140,6 +140,7 @@ body {
   margin-bottom: var(--space-8);
   padding-bottom: var(--space-6);
   border-bottom: 1px solid var(--color-border);
+  -webkit-app-region: no-drag;
 }
 
 .sidebar-logo-icon {
@@ -1312,3 +1313,107 @@ body {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
+/* =============================================
+   LANDING PAGE
+   ============================================= */
+.landing-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-primary-light) 100%);
+  position: relative;
+  overflow: hidden;
+  -webkit-app-region: drag;
+}
+
+.landing-top-right {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-6);
+  z-index: 100;
+  -webkit-app-region: no-drag;
+}
+
+.landing-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-8);
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-logo-container {
+  margin-bottom: var(--space-6);
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.landing-logo-icon {
+  width: 96px;
+  height: 96px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #0F8261 100%);
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 20px 40px rgba(29, 180, 138, 0.3);
+  transform: rotate(-5deg);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.landing-logo-icon:hover {
+  transform: rotate(0deg) scale(1.05);
+}
+
+.landing-title {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin-bottom: var(--space-3);
+  letter-spacing: -0.02em;
+}
+
+.landing-subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  max-width: 500px;
+  margin-bottom: var(--space-5);
+  line-height: 1.5;
+}
+
+.landing-team-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--space-8);
+  box-shadow: var(--shadow-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.landing-actions {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  -webkit-app-region: no-drag;
+}
+
+.landing-btn {
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--font-size-base);
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+}

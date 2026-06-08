@@ -71,6 +71,8 @@ type Action =
   | { type: 'SET_STEP'; step: number }
   | { type: 'LOAD_SAVED'; config: Partial<Config> }
   | { type: 'RESET_CONFIG' }
+  | { type: 'START_CONFIG' }
+  | { type: 'STOP_CONFIG' }
 
 // ============================================================
 // STATE
@@ -79,12 +81,14 @@ interface AppState {
   config: Config
   language: Language
   currentStep: number
+  hasStarted: boolean
 }
 
 const initialState: AppState = {
   config: defaultConfig,
   language: 'fr',
   currentStep: 0,
+  hasStarted: false,
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -105,6 +109,10 @@ function reducer(state: AppState, action: Action): AppState {
       }
     case 'RESET_CONFIG':
       return { ...state, config: defaultConfig }
+    case 'START_CONFIG':
+      return { ...state, hasStarted: true }
+    case 'STOP_CONFIG':
+      return { ...state, hasStarted: false }
     default:
       return state
   }
@@ -122,6 +130,9 @@ interface AppContextType {
   goToStep: (step: number) => void
   saveAndNext: () => Promise<void>
   openUrl: (url: string) => void
+  startConfig: () => void
+  goHome: () => void
+  hasSavedConfig: boolean
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -196,6 +207,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const startConfig = () => {
+    dispatch({ type: 'START_CONFIG' })
+  }
+
+  const goHome = () => {
+    dispatch({ type: 'STOP_CONFIG' })
+  }
+
+  const hasSavedConfig = Object.entries(state.config).some(([k, v]) => k !== 'ALLOWED_EMAILS' && v !== '')
+
   return (
     <AppContext.Provider value={{
       state,
@@ -206,6 +227,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       goToStep,
       saveAndNext,
       openUrl,
+      startConfig,
+      goHome,
+      hasSavedConfig,
     }}>
       {children}
     </AppContext.Provider>

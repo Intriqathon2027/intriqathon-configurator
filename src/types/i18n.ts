@@ -1,6 +1,19 @@
 export type Language = 'fr' | 'en'
 
 export type TranslationKeys = {
+  // Landing
+  'landing.title': string
+  'landing.subtitle': string
+  'landing.team': string
+  'landing.btn.new': string
+  'landing.btn.resume': string
+  'landing.btn.import': string
+  'landing.prompt.title': string
+  'landing.prompt.desc': string
+  'landing.prompt.export': string
+  'landing.prompt.discard': string
+  'landing.prompt.cancel': string
+
   // Common
   'nav.saveAndNext': string
   'nav.previous': string
@@ -23,6 +36,8 @@ export type TranslationKeys = {
   'settings.reset': string
   'settings.reset.confirm': string
   'toast.saved': string
+  'toast.imported': string
+  'toast.reset': string
 
   // Steps labels
   'step1.label': string
