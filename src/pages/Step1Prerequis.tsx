@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { Server, Cpu, MemoryStick, HardDrive, Monitor, FolderOpen, Key } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { FormField } from '../components/ui/FormField'
 import { ExternalLinkBtn } from '../components/ui/ExternalLinkBtn'
@@ -48,7 +50,17 @@ function HelpContent() {
 }
 
 export function Step1Prerequis() {
-  const { t, config, setField } = useApp()
+  const { t, config, setField, hasSavedConfig } = useApp()
+
+  useEffect(() => {
+    if (!hasSavedConfig) {
+      toast(t('step1.help.toast'), {
+        icon: '💡',
+        duration: 6000,
+        id: 'help-toast'
+      })
+    }
+  }, [hasSavedConfig, t])
 
   const openFolderDialog = async () => {
     if (window.electronAPI) {

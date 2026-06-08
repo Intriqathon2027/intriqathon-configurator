@@ -52,6 +52,7 @@ export type TranslationKeys = {
   // Step 1
   'step1.title': string
   'step1.desc': string
+  'step1.help.toast': string
   'step1.domain': string
   'step1.domain.hint': string
   'step1.domain.placeholder': string

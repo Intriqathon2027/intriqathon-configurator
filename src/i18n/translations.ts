@@ -53,6 +53,7 @@ export const translations: Translations = {
     // Step 1
     'step1.title': 'Prérequis',
     'step1.desc': 'Configurez votre nom de domaine, le chemin de déploiement et créez votre instance Scaleway.',
+    'step1.help.toast': 'Besoin d\'aide ? Cliquez sur le bouton d\'aide en haut à droite pour afficher le guide.',
     'step1.domain': 'Nom de domaine',
     'step1.domain.hint': 'Ex: hackathon.monecole.fr — sans https://',
     'step1.domain.placeholder': 'monhackathon.fr',
@@ -224,6 +225,7 @@ export const translations: Translations = {
     // Step 1
     'step1.title': 'Prerequisites',
     'step1.desc': 'Configure your domain name, deployment path, and create your Scaleway instance.',
+    'step1.help.toast': 'Need help? Click the help button in the top right to view the guide.',
     'step1.domain': 'Domain name',
     'step1.domain.hint': 'E.g.: hackathon.myschool.com — without https://',
     'step1.domain.placeholder': 'myhackathon.com',

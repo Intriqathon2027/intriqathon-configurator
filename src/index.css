@@ -329,6 +329,23 @@ body {
   color: var(--color-text);
 }
 
+@keyframes pulseHelp {
+  0%, 100% {
+    background-color: transparent;
+    color: var(--color-text-muted);
+    box-shadow: 0 0 0 0 rgba(29, 180, 138, 0);
+  }
+  50% {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(29, 180, 138, 0.4);
+  }
+}
+
+.animate-pulse-help {
+  animation: pulseHelp 2s ease-in-out 3;
+}
+
 .top-right-island .lang-toggle {
   height: 32px;
   border: none;
