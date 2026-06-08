@@ -1,13 +1,13 @@
 import { AppProvider, useApp } from './context/AppContext'
 import { Toaster } from 'react-hot-toast'
-import { Step1Prerequis } from './steps/Step1Prerequis'
-import { Step2Supabase } from './steps/Step2Supabase'
-import { Step3OAuth2 } from './steps/Step3OAuth2'
-import { Step4Email } from './steps/Step4Email'
-import { Step5DiscordBot } from './steps/Step5DiscordBot'
-import { Step6Generation } from './steps/Step6Generation'
-import { Step7SetupSupabase } from './steps/Step7SetupSupabase'
-import { Step8ConfigSite } from './steps/Step8ConfigSite'
+import { Step1Prerequis } from './pages/Step1Prerequis'
+import { Step2Supabase } from './pages/Step2Supabase'
+import { Step3OAuth2 } from './pages/Step3OAuth2'
+import { Step4Email } from './pages/Step4Email'
+import { Step5DiscordBot } from './pages/Step5DiscordBot'
+import { Step6Generation } from './pages/Step6Generation'
+import { Step7SetupSupabase } from './pages/Step7SetupSupabase'
+import { Step8ConfigSite } from './pages/Step8ConfigSite'
 
 function StepRouter() {
   const { state } = useApp()
@@ -25,7 +25,7 @@ function StepRouter() {
   }
 }
 
-import { LandingPage } from './components/layout/LandingPage'
+import { LandingPage } from './pages/LandingPage'
 
 function AppContent() {
   const { state } = useApp()

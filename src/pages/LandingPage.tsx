@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Zap, Play, RotateCcw, Upload, Download, Trash2, X } from 'lucide-react'
-import { useApp } from '../../context/AppContext'
-import { LanguageToggle } from './LanguageToggle'
+import { useApp } from '../context/AppContext'
+import { LanguageToggle } from '../components/layout/LanguageToggle'
 
 export function LandingPage() {
   const { state, t, startConfig, hasSavedConfig, dispatch } = useApp()
