@@ -92,14 +92,18 @@ export function LandingPage() {
 
       {/* Export Prompt Modal */}
       {showPrompt && (
-        <div className="modal-overlay">
-          <div className="modal" style={{ width: '480px' }}>
-            <div className="modal-header">
+        <div className="modal-overlay" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+          <div className="modal" style={{ width: '480px', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+            <div className="modal-header" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
               <div className="modal-title">
                 <Trash2 size={18} color="var(--color-danger)" />
                 {t('landing.prompt.title')}
               </div>
-              <button className="modal-close" onClick={() => setShowPrompt(false)}>
+              <button 
+                className="modal-close" 
+                onClick={() => setShowPrompt(false)}
+                style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+              >
                 <X size={16} />
               </button>
             </div>
