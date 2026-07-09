@@ -138,6 +138,8 @@ export type TranslationKeys = {
   // Step 6
   'step6.title': string
   'step6.desc': string
+  'step6.tab.auto': string
+  'step6.tab.manual': string
   'step6.preview': string
   'step6.commands.title': string
   'step6.cmd.cd': string
@@ -149,6 +151,30 @@ export type TranslationKeys = {
   'step6.cmd.install': string
   'step6.label.mac': string
   'step6.label.windows': string
+  'step6.auto.title': string
+  'step6.auto.pathLabel': string
+  'step6.auto.btnStart': string
+  'step6.auto.btnCancel': string
+  'step6.auto.status.idle': string
+  'step6.auto.status.running': string
+  'step6.auto.status.completed': string
+  'step6.auto.status.error': string
+  'step6.auto.status.cancelled': string
+  'step6.dialog.auth.title': string
+  'step6.dialog.auth.username': string
+  'step6.dialog.auth.password': string
+  'step6.dialog.auth.submit': string
+  'step6.dialog.confirm.title': string
+  'step6.dialog.confirm.yes': string
+  'step6.dialog.confirm.no': string
+  'step6.dialog.choice.title': string
+  'step6.dialog.choice.submit': string
+  'step6.auto.info.title': string
+  'step6.auto.info.desc': string
+  'step6.auto.info.step1': string
+  'step6.auto.info.step2': string
+  'step6.auto.info.step3': string
+  'step6.auto.info.step4': string
 
   // Step 7
   'step7.title': string

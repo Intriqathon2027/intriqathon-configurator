@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, LogIn, AlertTriangle, List } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import type { DialogData, DialogResponse } from '../../hooks/useDeployment'
@@ -42,7 +43,7 @@ function AuthDialog({
     onRespond({ type: 'auth', username, password })
   }
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && undefined}>
       <div className="modal deploy-dialog">
         <div className="modal-header">
@@ -85,7 +86,8 @@ function AuthDialog({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -102,7 +104,7 @@ function ConfirmDialog({
   onRespond: (r: DialogResponse) => void
   t: (key: string) => string
 }) {
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && undefined}>
       <div className="modal deploy-dialog">
         <div className="modal-header">
@@ -132,7 +134,8 @@ function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -151,7 +154,7 @@ function ChoiceDialog({
 }) {
   const [selected, setSelected] = useState(dialog.options[0]?.value ?? '')
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && undefined}>
       <div className="modal deploy-dialog">
         <div className="modal-header">
@@ -191,6 +194,7 @@ function ChoiceDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

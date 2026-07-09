@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react'
-import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal } from 'lucide-react'
+import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import { useDeployment } from '../../hooks/useDeployment'
 import { DeployDialog } from './DeployDialog'
@@ -106,7 +106,7 @@ export function Step6AutoTab() {
             </span>
           )}
           {!isFinished && (
-            <span className="deploy-path-label">{t('step6.auto.pathLabel')}</span>
+            <span className="deploy-path-label">{t('step6.auto.pathLabel')} : {deployPath}</span>
           )}
         </div>
 
@@ -132,6 +132,35 @@ export function Step6AutoTab() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Explanatory card */}
+      <div className="card" style={{ marginTop: 'var(--space-5)' }}>
+        <div className="card-title">
+          <Info size={16} color="var(--color-primary)" />
+          {t('step6.auto.info.title')}
+        </div>
+        <p className="step-description" style={{ fontSize: 'var(--font-size-sm)' }}>
+          {t('step6.auto.info.desc')}
+        </p>
+        <ul className="spec-list" style={{ marginTop: 'var(--space-4)' }}>
+          <li className="spec-item">
+            <div className="spec-icon"><Upload size={16} /></div>
+            <div className="spec-label" style={{ color: 'var(--color-text)' }}>1. {t('step6.auto.info.step1')}</div>
+          </li>
+          <li className="spec-item">
+            <div className="spec-icon"><Globe size={16} /></div>
+            <div className="spec-label" style={{ color: 'var(--color-text)' }}>2. {t('step6.auto.info.step2')}</div>
+          </li>
+          <li className="spec-item">
+            <div className="spec-icon"><Database size={16} /></div>
+            <div className="spec-label" style={{ color: 'var(--color-text)' }}>3. {t('step6.auto.info.step3')}</div>
+          </li>
+          <li className="spec-item">
+            <div className="spec-icon"><Rocket size={16} /></div>
+            <div className="spec-label" style={{ color: 'var(--color-text)' }}>4. {t('step6.auto.info.step4')}</div>
+          </li>
+        </ul>
       </div>
 
       {/* Dialog overlay */}

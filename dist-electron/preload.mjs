@@ -1,12 +1,1 @@
-let electron = require("electron");
-//#region electron/preload.ts
-electron.contextBridge.exposeInMainWorld("electronAPI", {
-	openExternalUrl: (url) => electron.ipcRenderer.invoke("open-external-url", url),
-	openFolderDialog: () => electron.ipcRenderer.invoke("open-folder-dialog"),
-	saveEnvFile: (content) => electron.ipcRenderer.invoke("save-env-file", content),
-	saveLocalConfig: (config) => electron.ipcRenderer.invoke("save-local-config", config),
-	loadLocalConfig: () => electron.ipcRenderer.invoke("load-local-config"),
-	exportConfig: (config) => electron.ipcRenderer.invoke("export-config", config),
-	importConfig: () => electron.ipcRenderer.invoke("import-config")
-});
-//#endregion
+let e=require("electron");e.contextBridge.exposeInMainWorld(`electronAPI`,{openExternalUrl:t=>e.ipcRenderer.invoke(`open-external-url`,t),openFolderDialog:()=>e.ipcRenderer.invoke(`open-folder-dialog`),saveEnvFile:t=>e.ipcRenderer.invoke(`save-env-file`,t),saveLocalConfig:t=>e.ipcRenderer.invoke(`save-local-config`,t),loadLocalConfig:()=>e.ipcRenderer.invoke(`load-local-config`),exportConfig:t=>e.ipcRenderer.invoke(`export-config`,t),importConfig:()=>e.ipcRenderer.invoke(`import-config`)});

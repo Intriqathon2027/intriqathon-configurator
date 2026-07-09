@@ -153,7 +153,7 @@ export const translations: Translations = {
     'step6.label.mac': 'Linux / macOS',
     'step6.label.windows': 'Windows',
     'step6.auto.title': 'Déploiement automatique',
-    'step6.auto.pathLabel': 'Chemin absolu vers le dossier hackathon-deploy sur votre machine',
+    'step6.auto.pathLabel': 'Dossier de configuration',
     'step6.auto.btnStart': 'Lancer le déploiement',
     'step6.auto.btnCancel': 'Annuler',
     'step6.auto.status.idle': 'Prêt à déployer',
@@ -170,6 +170,12 @@ export const translations: Translations = {
     'step6.dialog.confirm.no': 'Annuler',
     'step6.dialog.choice.title': 'Sélection requise',
     'step6.dialog.choice.submit': 'Valider',
+    'step6.auto.info.title': 'Que va-t-il se passer ?',
+    'step6.auto.info.desc': 'Le déploiement automatique exécutera les actions suivantes sur votre serveur distant de manière séquentielle :',
+    'step6.auto.info.step1': 'Transfert du fichier .env et des scripts d\'installation via rsync/scp',
+    'step6.auto.info.step2': 'Configuration de Nginx et génération du certificat SSL',
+    'step6.auto.info.step3': 'Initialisation de la base de données',
+    'step6.auto.info.step4': 'Démarrage de tous les services Docker',
 
     // Step 7
     'step7.title': 'Setup Supabase DB',
@@ -345,7 +351,7 @@ export const translations: Translations = {
     'step6.label.mac': 'Linux / macOS',
     'step6.label.windows': 'Windows',
     'step6.auto.title': 'Automatic deployment',
-    'step6.auto.pathLabel': 'Absolute path to the hackathon-deploy folder on your machine',
+    'step6.auto.pathLabel': 'Configuration folder',
     'step6.auto.btnStart': 'Start deployment',
     'step6.auto.btnCancel': 'Cancel',
     'step6.auto.status.idle': 'Ready to deploy',
@@ -362,6 +368,12 @@ export const translations: Translations = {
     'step6.dialog.confirm.no': 'Cancel',
     'step6.dialog.choice.title': 'Selection required',
     'step6.dialog.choice.submit': 'Submit',
+    'step6.auto.info.title': 'What will happen?',
+    'step6.auto.info.desc': 'The automatic deployment will execute the following actions sequentially on your remote server:',
+    'step6.auto.info.step1': 'Transfer .env file and installation scripts via rsync/scp',
+    'step6.auto.info.step2': 'Nginx configuration and SSL certificate generation',
+    'step6.auto.info.step3': 'Database initialization',
+    'step6.auto.info.step4': 'Start all Docker services',
 
     // Step 7
     'step7.title': 'Supabase DB Setup',
