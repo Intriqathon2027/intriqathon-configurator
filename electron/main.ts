@@ -117,7 +117,7 @@ ipcMain.handle('import-config', async () => {
   if (!result.canceled && result.filePaths.length > 0) {
     const raw = fs.readFileSync(result.filePaths[0], 'utf-8')
     try {
-      return JSON.parse(raw)
+      return { data: JSON.parse(raw), path: result.filePaths[0] }
     } catch (e) {
       return null
     }

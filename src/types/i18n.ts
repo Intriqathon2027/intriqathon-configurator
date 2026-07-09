@@ -13,6 +13,11 @@ export type TranslationKeys = {
   'landing.prompt.export': string
   'landing.prompt.discard': string
   'landing.prompt.cancel': string
+  'landing.recent.title': string
+  'landing.recent.launch': string
+  'landing.recent.empty': string
+  'landing.recent.remove': string
+  'landing.recent.notFound': string
 
   // Common
   'nav.saveAndNext': string

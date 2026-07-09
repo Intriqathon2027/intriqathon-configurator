@@ -12,7 +12,7 @@ export interface ElectronAPI {
   saveLocalConfig: (config: Record<string, string>) => Promise<{ success: boolean }>
   loadLocalConfig: () => Promise<Record<string, string>>
   exportConfig: (config: Record<string, string>) => Promise<{ success: boolean; path?: string }>
-  importConfig: () => Promise<Record<string, string> | null>
+  importConfig: () => Promise<{ data: Record<string, string>; path: string } | null>
   saveRecentConfigs: (configs: RecentConfig[]) => Promise<{ success: boolean }>
   loadRecentConfigs: () => Promise<RecentConfig[]>
   readConfigFile: (filePath: string) => Promise<Record<string, string> | null>

@@ -67,6 +67,9 @@ export function LandingPage() {
       if (data) {
         dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
         await window.electronAPI.saveLocalConfig(data)
+        // Move to top of recent configs list
+        const updated = [config, ...recentConfigs.filter(c => c.path !== config.path)]
+        await saveRecentConfigs(updated)
         startConfig()
       } else {
         // File no longer exists, show error dialog and remove from recent
@@ -110,10 +113,11 @@ export function LandingPage() {
 
   const handleImport = async () => {
     if (window.electronAPI) {
-      const data = await window.electronAPI.importConfig()
-      if (data) {
-        dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
-        await window.electronAPI.saveLocalConfig(data)
+      const result = await window.electronAPI.importConfig()
+      if (result && result.data) {
+        dispatch({ type: 'LOAD_SAVED', config: result.data as unknown as Partial<typeof state.config> })
+        await window.electronAPI.saveLocalConfig(result.data)
+        await addToRecent(result.path)
         startConfig()
       }
     } else {
@@ -142,6 +146,7 @@ export function LandingPage() {
         {/* Recent Configurations */}
         {recentConfigs.length > 0 && (
           <div className="recent-configs-section">
+            <h2 className="recent-configs-title">{t('landing.recent.title')}</h2>
             <div className="recent-configs-card">
               <div className="recent-configs-list">
                 {recentConfigs.map((config) => (
@@ -175,10 +180,15 @@ export function LandingPage() {
 
         <div className="landing-actions">
           {hasSavedConfig && (
-            <button className="btn btn-primary landing-btn" onClick={startConfig}>
-              <Play size={18} />
-              {t('landing.btn.resume')}
-            </button>
+            <div className="tooltip-wrapper">
+              <button className="btn btn-primary landing-btn" onClick={startConfig}>
+                <Play size={18} />
+                {t('landing.btn.resume')}
+              </button>
+              <div className="tooltip-bottom">
+                {recentConfigs[0]?.name || 'Configuration en cours'}
+              </div>
+            </div>
           )}
 
           <button 

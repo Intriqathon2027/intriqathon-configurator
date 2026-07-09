@@ -14,10 +14,19 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
 
   const handleImport = async () => {
     if (window.electronAPI) {
-      const data = await window.electronAPI.importConfig()
-      if (data) {
-        dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
-        await window.electronAPI.saveLocalConfig(data)
+      const result = await window.electronAPI.importConfig()
+      if (result && result.data) {
+        dispatch({ type: 'LOAD_SAVED', config: result.data as unknown as Partial<typeof state.config> })
+        await window.electronAPI.saveLocalConfig(result.data)
+        
+        // Add to recent configs
+        const recentConfigs = await window.electronAPI.loadRecentConfigs()
+        const name = result.path.split('/').pop()?.replace('.json', '') || 'Configuration'
+        const newEntry = { name, path: result.path, savedAt: new Date().toISOString() }
+        const filtered = (recentConfigs || []).filter((c: { path: string }) => c.path !== result.path)
+        const updated = [newEntry, ...filtered].slice(0, 20)
+        await window.electronAPI.saveRecentConfigs(updated)
+
         setSettingsOpen(false)
         toast.success(t('toast.imported'), {
           position: 'top-center',

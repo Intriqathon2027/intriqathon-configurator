@@ -86,7 +86,10 @@ r.handle("open-external-url", async (e, t) => {
 	if (!e.canceled && e.filePaths.length > 0) {
 		let t = s.readFileSync(e.filePaths[0], "utf-8");
 		try {
-			return JSON.parse(t);
+			return {
+				data: JSON.parse(t),
+				path: e.filePaths[0]
+			};
 		} catch {
 			return null;
 		}
