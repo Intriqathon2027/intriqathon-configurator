@@ -34,7 +34,16 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
 
   const handleExport = async () => {
     if (window.electronAPI) {
-      await window.electronAPI.exportConfig(state.config as unknown as Record<string, string>)
+      const result = await window.electronAPI.exportConfig(state.config as unknown as Record<string, string>)
+      if (result.success && result.path) {
+        // Add to recent configs
+        const recentConfigs = await window.electronAPI.loadRecentConfigs()
+        const name = result.path.split('/').pop()?.replace('.json', '') || 'Configuration'
+        const newEntry = { name, path: result.path, savedAt: new Date().toISOString() }
+        const filtered = (recentConfigs || []).filter((c: { path: string }) => c.path !== result.path)
+        const updated = [newEntry, ...filtered].slice(0, 20)
+        await window.electronAPI.saveRecentConfigs(updated)
+      }
       setSettingsOpen(false)
     } else {
       alert('Non supporté sur le web')

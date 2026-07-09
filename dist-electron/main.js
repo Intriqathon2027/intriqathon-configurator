@@ -70,7 +70,10 @@ r.handle("open-external-url", async (e, t) => {
 			extensions: ["json"]
 		}]
 	});
-	return !r.canceled && r.filePath ? (s.writeFileSync(r.filePath, JSON.stringify(t, null, 2), "utf-8"), { success: !0 }) : { success: !1 };
+	return !r.canceled && r.filePath ? (s.writeFileSync(r.filePath, JSON.stringify(t, null, 2), "utf-8"), {
+		success: !0,
+		path: r.filePath
+	}) : { success: !1 };
 }), r.handle("import-config", async () => {
 	let e = await n.showOpenDialog(f, {
 		title: "Importer la configuration",
@@ -84,6 +87,30 @@ r.handle("open-external-url", async (e, t) => {
 		let t = s.readFileSync(e.filePaths[0], "utf-8");
 		try {
 			return JSON.parse(t);
+		} catch {
+			return null;
+		}
+	}
+	return null;
+}), r.handle("save-recent-configs", async (e, n) => {
+	let r = o.join(t.getPath("userData"), "recent-configs.json");
+	return s.writeFileSync(r, JSON.stringify(n, null, 2), "utf-8"), { success: !0 };
+}), r.handle("load-recent-configs", async () => {
+	let e = o.join(t.getPath("userData"), "recent-configs.json");
+	if (s.existsSync(e)) {
+		let t = s.readFileSync(e, "utf-8");
+		try {
+			return JSON.parse(t);
+		} catch {
+			return [];
+		}
+	}
+	return [];
+}), r.handle("read-config-file", async (e, t) => {
+	if (s.existsSync(t)) {
+		let e = s.readFileSync(t, "utf-8");
+		try {
+			return JSON.parse(e);
 		} catch {
 			return null;
 		}

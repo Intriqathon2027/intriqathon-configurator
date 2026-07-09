@@ -102,7 +102,7 @@ ipcMain.handle('export-config', async (_event, config: Record<string, string>) =
   })
   if (!result.canceled && result.filePath) {
     fs.writeFileSync(result.filePath, JSON.stringify(config, null, 2), 'utf-8')
-    return { success: true }
+    return { success: true, path: result.filePath }
   }
   return { success: false }
 })
@@ -119,6 +119,40 @@ ipcMain.handle('import-config', async () => {
     try {
       return JSON.parse(raw)
     } catch (e) {
+      return null
+    }
+  }
+  return null
+})
+
+// IPC: Save recent configs
+ipcMain.handle('save-recent-configs', async (_event, configs: Array<{ name: string; path: string; savedAt: string }>) => {
+  const configPath = path.join(app.getPath('userData'), 'recent-configs.json')
+  fs.writeFileSync(configPath, JSON.stringify(configs, null, 2), 'utf-8')
+  return { success: true }
+})
+
+// IPC: Load recent configs
+ipcMain.handle('load-recent-configs', async () => {
+  const configPath = path.join(app.getPath('userData'), 'recent-configs.json')
+  if (fs.existsSync(configPath)) {
+    const raw = fs.readFileSync(configPath, 'utf-8')
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return []
+    }
+  }
+  return []
+})
+
+// IPC: Read a config file by path
+ipcMain.handle('read-config-file', async (_event, filePath: string) => {
+  if (fs.existsSync(filePath)) {
+    const raw = fs.readFileSync(filePath, 'utf-8')
+    try {
+      return JSON.parse(raw)
+    } catch {
       return null
     }
   }

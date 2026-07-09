@@ -10,4 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadLocalConfig: () => ipcRenderer.invoke('load-local-config'),
   exportConfig: (config: Record<string, string>) => ipcRenderer.invoke('export-config', config),
   importConfig: () => ipcRenderer.invoke('import-config'),
+  saveRecentConfigs: (configs: Array<{ name: string; path: string; savedAt: string }>) => ipcRenderer.invoke('save-recent-configs', configs),
+  loadRecentConfigs: () => ipcRenderer.invoke('load-recent-configs'),
+  readConfigFile: (filePath: string) => ipcRenderer.invoke('read-config-file', filePath),
 })

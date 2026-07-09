@@ -14,6 +14,11 @@ export const translations: Translations = {
     'landing.prompt.export': 'Exporter et continuer',
     'landing.prompt.discard': 'Écraser (sans exporter)',
     'landing.prompt.cancel': 'Annuler',
+    'landing.recent.title': 'Configurations récentes',
+    'landing.recent.launch': 'Lancer',
+    'landing.recent.empty': 'Aucune configuration récente',
+    'landing.recent.remove': 'Retirer',
+    'landing.recent.notFound': 'Fichier de configuration introuvable ou inaccessible. Le fichier a peut-être été déplacé ou supprimé.',
 
     // Common
     'nav.saveAndNext': 'Sauvegarder & Suivant',
@@ -212,6 +217,11 @@ export const translations: Translations = {
     'landing.prompt.export': 'Export and continue',
     'landing.prompt.discard': 'Overwrite (without exporting)',
     'landing.prompt.cancel': 'Cancel',
+    'landing.recent.title': 'Recent configurations',
+    'landing.recent.launch': 'Launch',
+    'landing.recent.empty': 'No recent configurations',
+    'landing.recent.remove': 'Remove',
+    'landing.recent.notFound': 'Configuration file not found or inaccessible. The file may have been moved or deleted.',
 
     // Common
     'nav.saveAndNext': 'Save & Next',

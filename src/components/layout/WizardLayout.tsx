@@ -88,7 +88,6 @@ export function WizardLayout({
                   }
                 </div>
                 <div className="step-label">
-                  <div className="step-label-number">{t('nav.step')} {index + 1}</div>
                   <div className="step-label-title">{t(step.labelKey)}</div>
                 </div>
               </button>
