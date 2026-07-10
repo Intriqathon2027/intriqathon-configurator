@@ -1,0 +1,153 @@
+crée un utilitaire en react typescript electron qui me permet de remplir permet de remplir ce fichier [.env.example](file;file:///Users/hexalo/Documents/applications/intriqathon/vibe-code-poc/.env.example)
+
+Pour chaque etapes, si l'utilisateur a besoin d'aide, crée des pages d'aide supplementaire en reprenant la documentation suivante [doc](file;file:///Users/hexalo/Documents/applications/intriqathon/vibe-code-poc/02_Guide_Technique_Déploiement.pdf)
+
+globalement inspire toi de cette meme doc pour faire l'application
+
+fait en sorte que l'utilitaire soit simple et belle en terme d'ui.
+
+dans chaque page tu vas mettre :
+le titre de l'etape
+un bouton info avoir plus d'explication (en haut a gauche)
+un bouton precedent et un bouton suivant (en bas de page)
+et le reste que je vais t'indiquer
+
+l'utilitaire va afficher plusieurs etapes a l'utilisateur :
+
+----- etape 1 - prerequis -----
+
+crée un bouton redirigant vers scaleway
+
+- nom de domain (DOMAIN)
+- DEPLOY_PATH chemin vers le programme a deploy (hackathon-deploy) (a sauvegarder dans un autre fichier que le .env)
+- instance scaleway :
+    - 4 vCPU et 16 Go de RAM.
+    - image Ubuntu 24.04 LTS
+    - volume 10go
+    - avec crée clé ssh lié a cette session (met un bouton info qui donne un liens pour créer un cléf ssh)
+
+IPV4_INSTANCE= (a sauvegarder dans un autre fichier que le .env)
+
+----- etape 2 - setup supabase -----
+
+crée un bouton redirigant vers supabase
+
+# Supabase
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Database
+DATABASE_URL=
+DIRECT_URL=
+
+# Supabase S3
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+
+----- etape 3 - OAuth2 -----
+
+crée un bouton redirigant vers https://discord.com/developers/applications
+
+genere le lien suivant pret a etre copié par l'utilisateur :
+https://<DOMAIN>/api/auth/discord/callback
+
+# Discord Keys
+DISCORD_CLIENT_ID=
+OAUTH2_DISCORD_CLIENT_SECRET=
+
+crée un bouton redirigant vers github
+
+genere les liens suivant pret a etre copié par l'utilisateur :
+https://<DOMAIN>
+https://<DOMAIN>/api/auth/github/callback
+
+# Github Keys
+GITHUB_CLIENT_ID=
+OAUTH2_GITHUB_CLIENT_SECRET=
+
+----- etape 4 - Email resend -----
+
+genere le text suivant pret a etre copié par l'utilisateur :
+mail.<DOMAIN>.fr
+
+Configuration DNS :
+genere les texts suivants pret a etre copié par l'utilisateur :
+TXT, _dmarc.mail.<DOMAIN>, v=DMARC1;p=none;, Auto
+A,<DOMAIN>,<IPV4_INSTANCE>,Auto
+A,config.<DOMAIN>,<IPV4_INSTANCE>,Auto
+
+crée un bouton redirigant vers lien suivant :
+https://resend.com
+
+# Email Resend
+RESEND_API_KEY=
+pré-remplis :
+FROM_EMAIL="Hackathon Team <onboarding@mail.<DOMAIN>>"
+ALLOWED_EMAILS="*"
+
+----- etape 5 - Discord bot -----
+
+crée un bouton redirigant vers lien suivant :
+https://discord.com/developers/applications
+
+# Discord Bot
+CLIENT_ID=
+BOT_TOKEN=
+DEV_SERVER_ID=
+GUILD_ID=
+
+----- etape 6 - initisation -----
+genere le .env et crée un bouton permettant de le telecharger
+
+genere les commandes suivantes pretes a etre copié par l'utilisateur :
+
+cd absolute DEPLOY_PATH
+
+linux/mac : rsync -avz --progress ./ root@<IPV4_INSTANCE>:~/hackathon-deploy
+windows : scp -r ./ root@<IPV4_INSTANCE>:~/hackathon-deploy
+
+ssh root@<ip_du_vps>
+
+cd hackathon-deploy
+chmod +x install_hackathon.sh
+./install_hackathon.sh
+
+----- etape 7 - Setup Supabase -----
+
+genere les commandes suivantes pretes a etre copié par l'utilisateur :
+
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon,
+authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon,
+authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO
+postgres, anon, authenticated, service_role;
+
+genere les commandes suivantes pretes a etre copié ou executé par l'utilisateur :
+docker restart discord_bot
+
+----- etape 8 - config du site -----
+crée des boutons redirigants vers les liens suivants :
+https://config.<DOMAIN>/
+https://<DOMAIN>/
+
+
+Details en plus :
+Aide contextuelle — Extraire les vraies sections du PDF, ou que je rédige les aides moi-même ?
+lie le pdf et ensuite reredige la doc de maniere a ce que ce soit plus claire, plus simple et que tu puisse la mettre dans une page de l'appli
+
+Sauvegarde — Auto à chaque frappe, ou en cliquant "Suivant" ?
+a chaque appuie du bouton suivant, renomme meme le bouton suivant en "sauvegarder et suivant" ou quelque chose comme ca
+
+Plateforme — Build macOS uniquement ou multi-plateforme ?
+multi-plateforme
+
+Langue — Interface 100% en français ?
+dans l'idéal met un bouton pour choisir la langue (anglais ou francais) en haut de chaque page
+
+Points d'ui :
+je veux palette de couleur plutot blanche/verte, la DA doit etre raccord avec l'image que je t'ai envoyé (tu peux prendre des liberté et rendre cela plus moderne)
+n'utilisae pas d'emojis mais plus une libraire d'icones comme lucidchart
