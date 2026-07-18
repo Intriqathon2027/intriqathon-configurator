@@ -1,4 +1,11 @@
-# intriqathon-configurator : POC for deploy script
+# intriqathon-configurator : deploy script
+
+Recuperer la cle publique ssh:
+cat ~/.ssh/id_ed25519.pub
+
+Si besoin d'en generer une:
+ssh-keygen -t ed25519 -C "login@example.com"
+
 
 ## deploy commands :
 `cd /path/to/hackathon-deploy`
@@ -15,8 +22,3 @@
 `cd hackathon-deploy`
 `chmod +x install_hackathon.sh`
 `./install_hackathon.sh`
-
-## Python VS Bash + Powershell :
-Python est plus simple à utiliser car il gère lui même les différentes plateformes, mais il faut l'avoir d'installé sur la machine de l'utilisateur.
-
-Bash + Powershell requiert donc moins, vu qu'il n'y a besoin d'aucune installation mais, cela demande plus de code/de checks dans le client Electron.
