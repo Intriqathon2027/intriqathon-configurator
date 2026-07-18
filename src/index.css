@@ -397,8 +397,6 @@ body {
 
 .service-account-card__footer {
   margin-top: var(--space-5);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
   display: flex;
   justify-content: flex-end;
 }
@@ -1018,6 +1016,10 @@ body {
 
 .manual-config-details[open] > summary {
   margin-bottom: var(--space-4);
+}
+
+.manual-config-details[open] > .form-section {
+  margin-top: var(--space-5);
 }
 
 .manual-config-details[open] > summary::before {
