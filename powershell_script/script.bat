@@ -41,7 +41,7 @@ if %ERR% NEQ 0 (
 REM -- Etape 2 : execution distante du script d'installation ---
 echo.
 echo [2/2] Execution de install_hackathon.sh sur le serveur distant...
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL "root@%IPV4%" "cd hackathon-deploy && chmod +x install_hackathon.sh && ./install_hackathon.sh"
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL "root@%IPV4%" "cd hackathon-deploy && sed -i 's/\r$//' install_hackathon.sh && chmod +x install_hackathon.sh && ./install_hackathon.sh"
 set ERR=%ERRORLEVEL%
 if %ERR% NEQ 0 (
     echo ERREUR : l'execution distante a echoue avec le code d'erreur %ERR%.
