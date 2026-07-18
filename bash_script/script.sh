@@ -28,12 +28,20 @@ echo "    Dossier source : ${SOURCE_DIR}"
 # ── Étape 1 : copie des fichiers ─────────────────────────────
 echo ""
 echo "[1/2] Copie des fichiers vers le serveur distant..."
-rsync -avz --progress -e "ssh ${SSH_OPTS}" "${SOURCE_DIR}/" "root@${IPV4}:~/hackathon-deploy"
+rsync -avz --progress -e "ssh ${SSH_OPTS}" "${SOURCE_DIR}/" "root@${IPV4}:~/hackathon-deploy" || {
+    CODE=$?
+    echo "ERREUR : La copie des fichiers a échoué avec le code d'erreur $CODE."
+    exit $CODE
+}
 
 # ── Étape 2 : exécution distante du script d'installation ────
 echo ""
 echo "[2/2] Exécution de install_hackathon.sh sur le serveur distant..."
-ssh ${SSH_OPTS} "root@${IPV4}" "cd hackathon-deploy && chmod +x install_hackathon.sh && ./install_hackathon.sh"
+ssh ${SSH_OPTS} "root@${IPV4}" "cd hackathon-deploy && chmod +x install_hackathon.sh && ./install_hackathon.sh" || {
+    CODE=$?
+    echo "ERREUR : L'exécution distante a échoué avec le code d'erreur $CODE."
+    exit $CODE
+}
 
 echo ""
 echo "=== Déploiement terminé avec succès ! ==="
