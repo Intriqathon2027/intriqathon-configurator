@@ -1,9 +1,0 @@
-
-{$DOMAIN} {
-    reverse_proxy /api/* hackathon-backend:3000
-    reverse_proxy hackathon-frontend:80
-}
-
-config.{$DOMAIN} {
-    reverse_proxy config-app:80
-}
