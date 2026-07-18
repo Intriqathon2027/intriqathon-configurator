@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import {
-  Server, Database, Shield, Mail, Bot,
+  Server, Database, Shield,
   FileDown, Settings, Globe, Check, Zap
 } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
@@ -19,11 +19,8 @@ const steps: Step[] = [
   { labelKey: 'step1.label', icon: <Server size={13} /> },
   { labelKey: 'step2.label', icon: <Database size={13} /> },
   { labelKey: 'step3.label', icon: <Shield size={13} /> },
-  { labelKey: 'step4.label', icon: <Mail size={13} /> },
-  { labelKey: 'step5.label', icon: <Bot size={13} /> },
-  { labelKey: 'step6.label', icon: <FileDown size={13} /> },
-  { labelKey: 'step7.label', icon: <Settings size={13} /> },
-  { labelKey: 'step8.label', icon: <Globe size={13} /> },
+  { labelKey: 'step4.label', icon: <FileDown size={13} /> },
+  { labelKey: 'step5.label', icon: <Globe size={13} /> },
 ]
 
 interface WizardLayoutProps {

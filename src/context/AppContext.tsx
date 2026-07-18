@@ -6,19 +6,37 @@ import { translations } from '../i18n/translations'
 // CONFIG STATE
 // ============================================================
 export interface Config {
-  // Step 1
+  // Account Creation — Spaceship
   DOMAIN: string
-  DEPLOY_PATH: string
-  IPV4_INSTANCE: string
+  SPACESHIP_API_KEY: string
+  SPACESHIP_API_SECRET: string
 
-  // Step 2 — Supabase
+  // Account Creation — Supabase
+  SUPABASE_ACCESS_TOKEN: string
+  S3_ACCESS_KEY_ID: string
+  S3_SECRET_ACCESS_KEY: string
+
+  // Account Creation — Resend
+  RESEND_API_KEY: string
+
+  // Account Creation — Scaleway
+  SCW_SECRET_KEY: string
+  SCW_DEFAULT_PROJECT_ID: string
+  DEPLOY_PATH: string
+
+  // API Configuration — Supabase (auto-retrievable, kept for manual fallback)
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string
   SUPABASE_SERVICE_ROLE_KEY: string
   DATABASE_URL: string
   DIRECT_URL: string
-  S3_ACCESS_KEY_ID: string
-  S3_SECRET_ACCESS_KEY: string
+
+  // API Configuration — Spaceship (auto-retrievable)
+  IPV4_INSTANCE: string
+
+  // API Configuration — Email settings
+  FROM_EMAIL: string
+  ALLOWED_EMAILS: string
 
   // Step 3 — OAuth2
   DISCORD_CLIENT_ID: string
@@ -26,12 +44,7 @@ export interface Config {
   GITHUB_CLIENT_ID: string
   OAUTH2_GITHUB_CLIENT_SECRET: string
 
-  // Step 4 — Email
-  RESEND_API_KEY: string
-  FROM_EMAIL: string
-  ALLOWED_EMAILS: string
-
-  // Step 5 — Discord Bot
+  // Step 3 — Discord Bot
   CLIENT_ID: string
   BOT_TOKEN: string
   DEV_SERVER_ID: string
@@ -40,27 +53,37 @@ export interface Config {
 
 const defaultConfig: Config = {
   DOMAIN: '',
+  SPACESHIP_API_KEY: '',
+  SPACESHIP_API_SECRET: '',
+  SUPABASE_ACCESS_TOKEN: '',
+  S3_ACCESS_KEY_ID: '',
+  S3_SECRET_ACCESS_KEY: '',
+  RESEND_API_KEY: '',
+  SCW_SECRET_KEY: '',
+  SCW_DEFAULT_PROJECT_ID: '',
   DEPLOY_PATH: '',
-  IPV4_INSTANCE: '',
   SUPABASE_URL: '',
   SUPABASE_ANON_KEY: '',
   SUPABASE_SERVICE_ROLE_KEY: '',
   DATABASE_URL: '',
   DIRECT_URL: '',
-  S3_ACCESS_KEY_ID: '',
-  S3_SECRET_ACCESS_KEY: '',
+  IPV4_INSTANCE: '',
+  FROM_EMAIL: '',
+  ALLOWED_EMAILS: '*',
   DISCORD_CLIENT_ID: '',
   OAUTH2_DISCORD_CLIENT_SECRET: '',
   GITHUB_CLIENT_ID: '',
   OAUTH2_GITHUB_CLIENT_SECRET: '',
-  RESEND_API_KEY: '',
-  FROM_EMAIL: '',
-  ALLOWED_EMAILS: '*',
   CLIENT_ID: '',
   BOT_TOKEN: '',
   DEV_SERVER_ID: '',
   GUILD_ID: '',
 }
+
+// ============================================================
+// TOTAL STEPS
+// ============================================================
+const TOTAL_STEPS = 5
 
 // ============================================================
 // ACTIONS
@@ -133,6 +156,7 @@ interface AppContextType {
   startConfig: () => void
   goHome: () => void
   hasSavedConfig: boolean
+  totalSteps: number
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -195,7 +219,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     // Move to next step
-    const nextStep = Math.min(state.currentStep + 1, 7)
+    const nextStep = Math.min(state.currentStep + 1, TOTAL_STEPS - 1)
     dispatch({ type: 'SET_STEP', step: nextStep })
   }
 
@@ -230,6 +254,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       startConfig,
       goHome,
       hasSavedConfig,
+      totalSteps: TOTAL_STEPS,
     }}>
       {children}
     </AppContext.Provider>

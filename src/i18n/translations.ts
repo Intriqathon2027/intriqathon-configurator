@@ -45,58 +45,100 @@ export const translations: Translations = {
     'toast.imported': 'Configuration importée avec succès',
     'toast.reset': 'Configuration réinitialisée',
 
-    // Steps labels
-    'step1.label': 'Prérequis',
-    'step2.label': 'Supabase',
+    // Steps labels (5 steps)
+    'step1.label': 'Création des comptes',
+    'step2.label': 'Configurations par API',
     'step3.label': 'OAuth2',
-    'step4.label': 'Email',
-    'step5.label': 'Bot Discord',
-    'step6.label': 'Déploiement',
-    'step7.label': 'Setup Supabase',
-    'step8.label': 'Configuration',
+    'step4.label': 'Déploiement SSH',
+    'step5.label': 'Configuration du site',
 
-    // Step 1
-    'step1.title': 'Prérequis',
-    'step1.desc': 'Configurez votre nom de domaine, le chemin de déploiement et créez votre instance Scaleway.',
-    'step1.help.toast': 'Besoin d\'aide ? Cliquez sur le bouton d\'aide en haut à droite pour afficher le guide.',
-    'step1.domain': 'Nom de domaine',
-    'step1.domain.hint': 'Ex: hackathon.monecole.fr — sans https://',
-    'step1.domain.placeholder': 'monhackathon.fr',
-    'step1.deployPath': 'Chemin du dossier hackathon-deploy',
-    'step1.deployPath.hint': 'Chemin absolu vers le dossier hackathon-deploy sur votre machine',
-    'step1.deployPath.placeholder': '/Users/moi/hackathon-deploy',
-    'step1.ipv4': 'Adresse IPv4 de l\'instance',
-    'step1.ipv4.hint': 'L\'adresse IP publique de votre VPS Scaleway',
-    'step1.ipv4.placeholder': '51.158.112.162',
-    'step1.scaleway': 'Ouvrir Scaleway',
-    'step1.specs.title': 'Spécifications de l\'instance recommandée',
-    'step1.spec.cpu': '4 vCPU',
-    'step1.spec.ram': '16 Go de RAM',
-    'step1.spec.os': 'Ubuntu 24.04 LTS',
-    'step1.spec.storage': '10 Go de stockage',
-    'step1.ssh.info': 'Guide création clé SSH',
+    // =============================================
+    // Account Creation (Step 1)
+    // =============================================
+    'accountCreation.title': 'Création des comptes',
+    'accountCreation.desc': 'Créez vos comptes sur les services tiers et récupérez les clés d\'accès nécessaires.',
+    'accountCreation.help.toast': 'Créez vos comptes sur chaque service et récupérez les clés indiquées.',
 
-    // Step 2
-    'step2.title': 'Configuration Supabase',
-    'step2.desc': 'Créez votre projet Supabase et récupérez les clés API, l\'URL de base de données et les accès S3.',
-    'step2.supabase': 'Ouvrir Supabase',
-    'step2.section.credentials': 'Credentials Supabase',
-    'step2.supabaseUrl': 'URL Supabase',
-    'step2.supabaseUrl.hint': 'Trouvez-la dans Project Settings > API de votre projet Supabase',
-    'step2.supabaseAnonKey': 'Clé Anon (publique)',
-    'step2.supabaseAnonKey.hint': 'Clé publique pour les appels depuis le navigateur',
-    'step2.supabaseServiceKey': 'Clé Service Role (secrète)',
-    'step2.supabaseServiceKey.hint': 'Clé secrète pour les appels serveur — ne jamais exposer côté client',
-    'step2.section.database': 'Base de données',
-    'step2.databaseUrl': 'DATABASE_URL',
-    'step2.databaseUrl.hint': 'URL de connexion Prisma (pool) — trouvée dans Project Settings > Database',
-    'step2.directUrl': 'DIRECT_URL',
-    'step2.directUrl.hint': 'URL de connexion directe (migrations Prisma)',
-    'step2.section.s3': 'Stockage S3 (Supabase)',
-    'step2.s3AccessKey': 'S3 Access Key ID',
-    'step2.s3SecretKey': 'S3 Secret Access Key',
+    // Supabase
+    'accountCreation.supabase.title': 'SUPABASE',
+    'accountCreation.supabase.pat': 'Personal Access Token',
+    'accountCreation.supabase.pat.hint': 'Account > Access Tokens dans le dashboard Supabase',
+    'accountCreation.supabase.s3AccessKey': 'S3 Access Key ID',
+    'accountCreation.supabase.s3AccessKey.hint': 'Project Settings > Storage > S3 Access Keys',
+    'accountCreation.supabase.s3SecretKey': 'S3 Secret Access Key',
+    'accountCreation.supabase.s3SecretKey.hint': 'Généré avec la clé S3 Access Key',
+    'accountCreation.supabase.link': 'Supabase',
 
-    // Step 3
+    // Resend
+    'accountCreation.resend.title': 'RESEND',
+    'accountCreation.resend.apiKey': 'Clé API Resend',
+    'accountCreation.resend.apiKey.hint': 'Dashboard > API Keys > Create API Key (affichée une seule fois)',
+    'accountCreation.resend.link': 'Resend',
+
+    // Spaceship
+    'accountCreation.spaceship.title': 'SPACESHIP',
+    'accountCreation.spaceship.domain': 'Nom de domaine',
+    'accountCreation.spaceship.domain.hint': 'Ex : hackathon.monecole.fr — sans https://',
+    'accountCreation.spaceship.domain.placeholder': 'monhackathon.fr',
+    'accountCreation.spaceship.apiKey': 'API Key',
+    'accountCreation.spaceship.apiKey.hint': 'Compte > API Management dans le dashboard Spaceship',
+    'accountCreation.spaceship.apiSecret': 'API Secret',
+    'accountCreation.spaceship.apiSecret.hint': 'Généré avec la clé API',
+    'accountCreation.spaceship.link': 'Spaceship',
+
+    // Scaleway
+    'accountCreation.scaleway.title': 'SCALEWAY',
+    'accountCreation.scaleway.secretKey': 'Secret Key',
+    'accountCreation.scaleway.secretKey.hint': 'IAM > API Keys dans la console Scaleway',
+    'accountCreation.scaleway.projectId': 'Project ID',
+    'accountCreation.scaleway.projectId.hint': 'Project > Settings dans la console Scaleway',
+    'accountCreation.scaleway.deployPath': 'Chemin du dossier hackathon-deploy',
+    'accountCreation.scaleway.deployPath.hint': 'Chemin absolu vers le dossier hackathon-deploy sur votre machine',
+    'accountCreation.scaleway.deployPath.placeholder': '/Users/moi/hackathon-deploy',
+    'accountCreation.scaleway.link': 'Scaleway',
+
+    // =============================================
+    // API Configuration (Step 2)
+    // =============================================
+    'apiConfig.title': 'Configurations par API',
+    'apiConfig.desc': 'Configuration automatique des services tiers via leurs APIs. Lancez chaque service séquentiellement.',
+    'apiConfig.btnStart': 'Lancer',
+    'apiConfig.btnCancel': 'Annuler',
+    'apiConfig.status.done': 'Terminé',
+    'apiConfig.status.running': 'En cours…',
+    'apiConfig.status.error': 'Erreur',
+
+    // Supabase API config
+    'apiConfig.supabase.desc': 'Récupération des clés API, configuration de la base de données, activation du Realtime',
+    'apiConfig.supabase.url': 'URL Supabase',
+    'apiConfig.supabase.url.hint': 'Trouvez-la dans Project Settings > API de votre projet Supabase',
+    'apiConfig.supabase.anonKey': 'Clé Anon (publique)',
+    'apiConfig.supabase.anonKey.hint': 'Clé publique pour les appels depuis le navigateur',
+    'apiConfig.supabase.serviceKey': 'Clé Service Role (secrète)',
+    'apiConfig.supabase.serviceKey.hint': 'Clé secrète pour les appels serveur — ne jamais exposer côté client',
+    'apiConfig.supabase.databaseUrl': 'DATABASE_URL',
+    'apiConfig.supabase.databaseUrl.hint': 'URL de connexion Prisma (pool) — trouvée dans Project Settings > Database',
+    'apiConfig.supabase.directUrl': 'DIRECT_URL',
+    'apiConfig.supabase.directUrl.hint': 'URL de connexion directe (migrations Prisma)',
+    'apiConfig.supabase.fromEmail': 'Adresse d\'expédition',
+    'apiConfig.supabase.fromEmail.hint': 'Pré-rempli automatiquement avec votre domaine',
+    'apiConfig.supabase.allowedEmails': 'Emails autorisés',
+    'apiConfig.supabase.allowedEmails.hint': '"*" autorise l\'envoi vers toutes les adresses',
+
+    // Spaceship API config
+    'apiConfig.spaceship.desc': 'Configuration des entrées DNS (A records, DMARC, TXT) pour votre domaine',
+    'apiConfig.spaceship.ipv4': 'Adresse IPv4 de l\'instance',
+    'apiConfig.spaceship.ipv4.hint': 'L\'adresse IP publique de votre VPS Scaleway',
+
+    // Scaleway API config
+    'apiConfig.scaleway.desc': 'Création de l\'instance Scaleway, upload de la clé SSH, récupération de l\'IP',
+
+    // Resend API config
+    'apiConfig.resend.desc': 'Ajout du domaine d\'envoi, vérification DNS, création des clés secondaires',
+
+    // =============================================
+    // Step 3 — OAuth2 + Discord Bot
+    // =============================================
     'step3.title': 'Authentification OAuth2',
     'step3.desc': 'Configurez les connexions via Discord et GitHub pour permettre aux participants de s\'authentifier.',
     'step3.section.discord': 'Discord OAuth2',
@@ -111,37 +153,21 @@ export const translations: Translations = {
     'step3.githubClientId': 'GitHub Client ID',
     'step3.githubSecret': 'GitHub Client Secret',
 
-    // Step 4
-    'step4.title': 'Configuration Email (Resend)',
-    'step4.desc': 'Configurez Resend pour envoyer les emails transactionnels (invitations, reset de mot de passe).',
-    'step4.resend.btn': 'Ouvrir Resend',
-    'step4.subdomain': 'Sous-domaine mail à ajouter dans Resend',
-    'step4.dns.title': 'Entrées DNS à ajouter chez votre registrar',
-    'step4.dns.type': 'Type',
-    'step4.dns.host': 'Hôte',
-    'step4.dns.answer': 'Valeur',
-    'step4.dns.ttl': 'TTL',
-    'step4.resendKey': 'Clé API Resend',
-    'step4.fromEmail': 'Adresse d\'expédition',
-    'step4.fromEmail.hint': 'Pré-rempli automatiquement avec votre domaine',
-    'step4.allowedEmails': 'Emails autorisés',
-    'step4.allowedEmails.hint': '"*" autorise l\'envoi vers toutes les adresses (mode production)',
-    'step4.warning': 'La propagation DNS peut prendre jusqu\'à 48h. Vous pouvez continuer la configuration et tester l\'envoi d\'emails plus tard.',
+    // Discord Bot (integrated into step3)
+    'step3.section.bot': 'Bot Discord',
+    'step3.bot.btn': 'Discord Developers',
+    'step3.botClientId': 'Application ID (Client ID)',
+    'step3.botClientId.hint': 'Visible dans General Information de votre application Discord',
+    'step3.botToken': 'Bot Token',
+    'step3.botToken.hint': 'Généré dans la section Bot — ne jamais partager ce token',
+    'step3.devServerId': 'ID du serveur de dev',
+    'step3.devServerId.hint': 'Clic droit sur le serveur Discord > Copier l\'identifiant (mode développeur actif)',
+    'step3.guildId': 'Guild ID',
+    'step3.guildId.hint': 'Même valeur que le DEV_SERVER_ID pour un seul serveur',
 
-    // Step 5
-    'step5.title': 'Bot Discord',
-    'step5.desc': 'Créez et configurez votre bot Discord pour la communication avec les participants.',
-    'step5.discord.btn': 'Discord Developers',
-    'step5.clientId': 'Application ID (Client ID)',
-    'step5.clientId.hint': 'Visible dans General Information de votre application Discord',
-    'step5.botToken': 'Bot Token',
-    'step5.botToken.hint': 'Généré dans la section Bot — ne jamais partager ce token',
-    'step5.devServerId': 'ID du serveur de dev',
-    'step5.devServerId.hint': 'Clic droit sur le serveur Discord > Copier l\'identifiant (mode développeur actif)',
-    'step5.guildId': 'Guild ID',
-    'step5.guildId.hint': 'Même valeur que le DEV_SERVER_ID pour un seul serveur',
-
-    // Step 6
+    // =============================================
+    // Step 6 — SSH Deploy (internal keys preserved)
+    // =============================================
     'step6.title': 'Déploiement SSH',
     'step6.desc': 'Déployez automatiquement ou manuellement votre projet sur votre VPS Scaleway.',
     'step6.tab.auto': 'Automatique',
@@ -182,20 +208,9 @@ export const translations: Translations = {
     'step6.auto.info.step3': 'Initialisation de la base de données',
     'step6.auto.info.step4': 'Démarrage de tous les services Docker',
 
-    // Step 7
-    'step7.title': 'Setup Supabase DB',
-    'step7.desc': 'Activez les fonctionnalités nécessaires dans Supabase pour que l\'application et le bot fonctionnent.',
-    'step7.sql.title': 'Permissions SQL à injecter',
-    'step7.realtime.title': 'Activer Realtime sur la table Announcements',
-    'step7.realtime.desc': 'Dans Supabase : Table Editor > Announcement > Enable Realtime (en haut à droite)',
-    'step7.dataApi.title': 'Activer la Data API',
-    'step7.dataApi.desc': 'Project Settings > Data API > Activer + ajouter "public" dans Exposed Schemas',
-    'step7.auth.title': 'Désactiver la confirmation par email',
-    'step7.auth.desc': 'Authentication > Sign In / Providers > désactiver "Confirm email"',
-    'step7.docker.title': 'Redémarrer le bot Discord',
-    'step7.docker.desc': 'Exécutez cette commande depuis votre terminal connecté au VPS',
-
-    // Step 8
+    // =============================================
+    // Step 8 — Site Config (internal keys preserved)
+    // =============================================
     'step8.title': 'Configuration du site',
     'step8.desc': 'Finalisez la configuration en accédant au panneau admin et au site principal.',
     'step8.config.btn': 'Panneau d\'administration',
@@ -248,58 +263,100 @@ export const translations: Translations = {
     'toast.imported': 'Configuration imported successfully',
     'toast.reset': 'Configuration reset',
 
-    // Steps labels
-    'step1.label': 'Prerequisites',
-    'step2.label': 'Supabase',
+    // Steps labels (5 steps)
+    'step1.label': 'Account Creation',
+    'step2.label': 'API Configuration',
     'step3.label': 'OAuth2',
-    'step4.label': 'Email',
-    'step5.label': 'Discord Bot',
-    'step6.label': 'Deploy',
-    'step7.label': 'Supabase Setup',
-    'step8.label': 'Configuration',
+    'step4.label': 'SSH Deployment',
+    'step5.label': 'Site Configuration',
 
-    // Step 1
-    'step1.title': 'Prerequisites',
-    'step1.desc': 'Configure your domain name, deployment path, and create your Scaleway instance.',
-    'step1.help.toast': 'Need help? Click the help button in the top right to view the guide.',
-    'step1.domain': 'Domain name',
-    'step1.domain.hint': 'E.g.: hackathon.myschool.com — without https://',
-    'step1.domain.placeholder': 'myhackathon.com',
-    'step1.deployPath': 'hackathon-deploy folder path',
-    'step1.deployPath.hint': 'Absolute path to the hackathon-deploy folder on your machine',
-    'step1.deployPath.placeholder': '/Users/me/hackathon-deploy',
-    'step1.ipv4': 'Instance IPv4 address',
-    'step1.ipv4.hint': 'The public IP address of your Scaleway VPS',
-    'step1.ipv4.placeholder': '51.158.112.162',
-    'step1.scaleway': 'Open Scaleway',
-    'step1.specs.title': 'Recommended instance specifications',
-    'step1.spec.cpu': '4 vCPU',
-    'step1.spec.ram': '16 GB RAM',
-    'step1.spec.os': 'Ubuntu 24.04 LTS',
-    'step1.spec.storage': '10 GB storage',
-    'step1.ssh.info': 'SSH key creation guide',
+    // =============================================
+    // Account Creation (Step 1)
+    // =============================================
+    'accountCreation.title': 'Account Creation',
+    'accountCreation.desc': 'Create your accounts on third-party services and retrieve the required access keys.',
+    'accountCreation.help.toast': 'Create your accounts on each service and retrieve the indicated keys.',
 
-    // Step 2
-    'step2.title': 'Supabase Configuration',
-    'step2.desc': 'Create your Supabase project and retrieve the API keys, database URL, and S3 credentials.',
-    'step2.supabase': 'Open Supabase',
-    'step2.section.credentials': 'Supabase Credentials',
-    'step2.supabaseUrl': 'Supabase URL',
-    'step2.supabaseUrl.hint': 'Found in Project Settings > API of your Supabase project',
-    'step2.supabaseAnonKey': 'Anon Key (public)',
-    'step2.supabaseAnonKey.hint': 'Public key for browser-side calls',
-    'step2.supabaseServiceKey': 'Service Role Key (secret)',
-    'step2.supabaseServiceKey.hint': 'Secret key for server-side calls — never expose on the client',
-    'step2.section.database': 'Database',
-    'step2.databaseUrl': 'DATABASE_URL',
-    'step2.databaseUrl.hint': 'Prisma connection URL (pool) — found in Project Settings > Database',
-    'step2.directUrl': 'DIRECT_URL',
-    'step2.directUrl.hint': 'Direct connection URL (Prisma migrations)',
-    'step2.section.s3': 'S3 Storage (Supabase)',
-    'step2.s3AccessKey': 'S3 Access Key ID',
-    'step2.s3SecretKey': 'S3 Secret Access Key',
+    // Supabase
+    'accountCreation.supabase.title': 'SUPABASE',
+    'accountCreation.supabase.pat': 'Personal Access Token',
+    'accountCreation.supabase.pat.hint': 'Account > Access Tokens in the Supabase dashboard',
+    'accountCreation.supabase.s3AccessKey': 'S3 Access Key ID',
+    'accountCreation.supabase.s3AccessKey.hint': 'Project Settings > Storage > S3 Access Keys',
+    'accountCreation.supabase.s3SecretKey': 'S3 Secret Access Key',
+    'accountCreation.supabase.s3SecretKey.hint': 'Generated with the S3 Access Key',
+    'accountCreation.supabase.link': 'Supabase',
 
-    // Step 3
+    // Resend
+    'accountCreation.resend.title': 'RESEND',
+    'accountCreation.resend.apiKey': 'Resend API Key',
+    'accountCreation.resend.apiKey.hint': 'Dashboard > API Keys > Create API Key (shown only once)',
+    'accountCreation.resend.link': 'Resend',
+
+    // Spaceship
+    'accountCreation.spaceship.title': 'SPACESHIP',
+    'accountCreation.spaceship.domain': 'Domain name',
+    'accountCreation.spaceship.domain.hint': 'E.g.: hackathon.myschool.com — without https://',
+    'accountCreation.spaceship.domain.placeholder': 'myhackathon.com',
+    'accountCreation.spaceship.apiKey': 'API Key',
+    'accountCreation.spaceship.apiKey.hint': 'Account > API Management in the Spaceship dashboard',
+    'accountCreation.spaceship.apiSecret': 'API Secret',
+    'accountCreation.spaceship.apiSecret.hint': 'Generated with the API Key',
+    'accountCreation.spaceship.link': 'Spaceship',
+
+    // Scaleway
+    'accountCreation.scaleway.title': 'SCALEWAY',
+    'accountCreation.scaleway.secretKey': 'Secret Key',
+    'accountCreation.scaleway.secretKey.hint': 'IAM > API Keys in the Scaleway console',
+    'accountCreation.scaleway.projectId': 'Project ID',
+    'accountCreation.scaleway.projectId.hint': 'Project > Settings in the Scaleway console',
+    'accountCreation.scaleway.deployPath': 'hackathon-deploy folder path',
+    'accountCreation.scaleway.deployPath.hint': 'Absolute path to the hackathon-deploy folder on your machine',
+    'accountCreation.scaleway.deployPath.placeholder': '/Users/me/hackathon-deploy',
+    'accountCreation.scaleway.link': 'Scaleway',
+
+    // =============================================
+    // API Configuration (Step 2)
+    // =============================================
+    'apiConfig.title': 'API Configuration',
+    'apiConfig.desc': 'Automatic configuration of third-party services via their APIs. Launch each service sequentially.',
+    'apiConfig.btnStart': 'Launch',
+    'apiConfig.btnCancel': 'Cancel',
+    'apiConfig.status.done': 'Done',
+    'apiConfig.status.running': 'In progress…',
+    'apiConfig.status.error': 'Error',
+
+    // Supabase API config
+    'apiConfig.supabase.desc': 'API key retrieval, database configuration, Realtime activation',
+    'apiConfig.supabase.url': 'Supabase URL',
+    'apiConfig.supabase.url.hint': 'Found in Project Settings > API of your Supabase project',
+    'apiConfig.supabase.anonKey': 'Anon Key (public)',
+    'apiConfig.supabase.anonKey.hint': 'Public key for browser-side calls',
+    'apiConfig.supabase.serviceKey': 'Service Role Key (secret)',
+    'apiConfig.supabase.serviceKey.hint': 'Secret key for server-side calls — never expose on the client',
+    'apiConfig.supabase.databaseUrl': 'DATABASE_URL',
+    'apiConfig.supabase.databaseUrl.hint': 'Prisma connection URL (pool) — found in Project Settings > Database',
+    'apiConfig.supabase.directUrl': 'DIRECT_URL',
+    'apiConfig.supabase.directUrl.hint': 'Direct connection URL (Prisma migrations)',
+    'apiConfig.supabase.fromEmail': 'From email address',
+    'apiConfig.supabase.fromEmail.hint': 'Auto-filled with your domain',
+    'apiConfig.supabase.allowedEmails': 'Allowed emails',
+    'apiConfig.supabase.allowedEmails.hint': '"*" allows sending to all addresses',
+
+    // Spaceship API config
+    'apiConfig.spaceship.desc': 'DNS records configuration (A records, DMARC, TXT) for your domain',
+    'apiConfig.spaceship.ipv4': 'Instance IPv4 address',
+    'apiConfig.spaceship.ipv4.hint': 'The public IP address of your Scaleway VPS',
+
+    // Scaleway API config
+    'apiConfig.scaleway.desc': 'Scaleway instance creation, SSH key upload, IP retrieval',
+
+    // Resend API config
+    'apiConfig.resend.desc': 'Sending domain addition, DNS verification, secondary key creation',
+
+    // =============================================
+    // Step 3 — OAuth2 + Discord Bot
+    // =============================================
     'step3.title': 'OAuth2 Authentication',
     'step3.desc': 'Configure Discord and GitHub login to allow participants to authenticate.',
     'step3.section.discord': 'Discord OAuth2',
@@ -314,37 +371,21 @@ export const translations: Translations = {
     'step3.githubClientId': 'GitHub Client ID',
     'step3.githubSecret': 'GitHub Client Secret',
 
-    // Step 4
-    'step4.title': 'Email Configuration (Resend)',
-    'step4.desc': 'Configure Resend to send transactional emails (invitations, password resets).',
-    'step4.resend.btn': 'Open Resend',
-    'step4.subdomain': 'Mail subdomain to add in Resend',
-    'step4.dns.title': 'DNS entries to add at your registrar',
-    'step4.dns.type': 'Type',
-    'step4.dns.host': 'Host',
-    'step4.dns.answer': 'Value',
-    'step4.dns.ttl': 'TTL',
-    'step4.resendKey': 'Resend API Key',
-    'step4.fromEmail': 'From email address',
-    'step4.fromEmail.hint': 'Auto-filled with your domain',
-    'step4.allowedEmails': 'Allowed emails',
-    'step4.allowedEmails.hint': '"*" allows sending to all addresses (production mode)',
-    'step4.warning': 'DNS propagation can take up to 48h. You can continue setup and test email sending later.',
+    // Discord Bot (integrated into step3)
+    'step3.section.bot': 'Discord Bot',
+    'step3.bot.btn': 'Discord Developers',
+    'step3.botClientId': 'Application ID (Client ID)',
+    'step3.botClientId.hint': 'Found in General Information of your Discord application',
+    'step3.botToken': 'Bot Token',
+    'step3.botToken.hint': 'Generated in the Bot section — never share this token',
+    'step3.devServerId': 'Dev server ID',
+    'step3.devServerId.hint': 'Right-click on the Discord server > Copy ID (developer mode enabled)',
+    'step3.guildId': 'Guild ID',
+    'step3.guildId.hint': 'Same value as DEV_SERVER_ID for a single server',
 
-    // Step 5
-    'step5.title': 'Discord Bot',
-    'step5.desc': 'Create and configure your Discord bot for participant communication.',
-    'step5.discord.btn': 'Discord Developers',
-    'step5.clientId': 'Application ID (Client ID)',
-    'step5.clientId.hint': 'Found in General Information of your Discord application',
-    'step5.botToken': 'Bot Token',
-    'step5.botToken.hint': 'Generated in the Bot section — never share this token',
-    'step5.devServerId': 'Dev server ID',
-    'step5.devServerId.hint': 'Right-click on the Discord server > Copy ID (developer mode enabled)',
-    'step5.guildId': 'Guild ID',
-    'step5.guildId.hint': 'Same value as DEV_SERVER_ID for a single server',
-
-    // Step 6
+    // =============================================
+    // Step 6 — SSH Deploy (internal keys preserved)
+    // =============================================
     'step6.title': 'SSH Deployment',
     'step6.desc': 'Deploy your project automatically or manually to your Scaleway VPS.',
     'step6.tab.auto': 'Automatic',
@@ -385,20 +426,9 @@ export const translations: Translations = {
     'step6.auto.info.step3': 'Database initialization',
     'step6.auto.info.step4': 'Start all Docker services',
 
-    // Step 7
-    'step7.title': 'Supabase DB Setup',
-    'step7.desc': 'Enable required features in Supabase for the app and bot to work properly.',
-    'step7.sql.title': 'SQL permissions to inject',
-    'step7.realtime.title': 'Enable Realtime on Announcements table',
-    'step7.realtime.desc': 'In Supabase: Table Editor > Announcement > Enable Realtime (top right)',
-    'step7.dataApi.title': 'Enable Data API',
-    'step7.dataApi.desc': 'Project Settings > Data API > Enable + add "public" in Exposed Schemas',
-    'step7.auth.title': 'Disable email confirmation',
-    'step7.auth.desc': 'Authentication > Sign In / Providers > disable "Confirm email"',
-    'step7.docker.title': 'Restart Discord bot',
-    'step7.docker.desc': 'Run this command from your terminal connected to the VPS',
-
-    // Step 8
+    // =============================================
+    // Step 8 — Site Config (internal keys preserved)
+    // =============================================
     'step8.title': 'Site Configuration',
     'step8.desc': 'Finalize the setup by accessing the admin panel and the main site.',
     'step8.config.btn': 'Admin Panel',
