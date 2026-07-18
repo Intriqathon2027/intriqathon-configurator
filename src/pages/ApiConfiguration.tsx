@@ -133,18 +133,20 @@ export function ApiConfiguration() {
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
         >
-          <div className="form-section">
-            <FormField id="supabase-url" label={t('apiConfig.supabase.url')} envKey="SUPABASE_URL" value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" hint={t('apiConfig.supabase.url.hint')} />
-            <div className="form-row">
-              <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} envKey="SUPABASE_ANON_KEY" value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." hint={t('apiConfig.supabase.anonKey.hint')} />
-              <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} envKey="SUPABASE_SERVICE_ROLE_KEY" value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." hint={t('apiConfig.supabase.serviceKey.hint')} type="password" />
-            </div>
-            <div className="form-row">
-              <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} envKey="DATABASE_URL" value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.databaseUrl.hint')} type="password" />
-              <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} envKey="DIRECT_URL" value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.directUrl.hint')} type="password" />
-            </div>
+          <details className="manual-config-details">
+            <summary>{t('apiConfig.manualConfig')}</summary>
+            <div className="form-section">
+              <FormField id="supabase-url" label={t('apiConfig.supabase.url')} envKey="SUPABASE_URL" value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" hint={t('apiConfig.supabase.url.hint')} />
+              <div className="form-row">
+                <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} envKey="SUPABASE_ANON_KEY" value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." hint={t('apiConfig.supabase.anonKey.hint')} multiline />
+                <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} envKey="SUPABASE_SERVICE_ROLE_KEY" value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." hint={t('apiConfig.supabase.serviceKey.hint')} type="password" multiline />
+              </div>
+              <div className="form-row">
+                <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} envKey="DATABASE_URL" value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.databaseUrl.hint')} type="password" multiline />
+                <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} envKey="DIRECT_URL" value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.directUrl.hint')} type="password" multiline />
+              </div>
 
-            <div style={{ marginTop: '24px' }}>
+            <div>
               <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Database size={16} color="var(--color-primary)" />
                 {t('step7.sql.title')}
@@ -152,7 +154,7 @@ export function ApiConfiguration() {
               <SqlBlock sql={SQL_COMMANDS} />
             </div>
 
-            <div style={{ marginTop: '24px' }}>
+            <div>
               <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Check size={16} color="var(--color-primary)" />
                 Actions Supabase
@@ -172,7 +174,7 @@ export function ApiConfiguration() {
               </div>
             </div>
 
-            <div style={{ marginTop: '24px' }}>
+            <div>
               <div style={{ fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Play size={16} color="var(--color-primary)" />
                 {t('step7.docker.title')}
@@ -180,7 +182,8 @@ export function ApiConfiguration() {
               <p className="text-sm text-muted" style={{ marginBottom: '12px' }}>{t('step7.docker.desc')}</p>
               <DockerBlock command="docker restart discord_bot" />
             </div>
-          </div>
+            </div>
+          </details>
         </ServiceConfigBlock>
 
         {/* Spaceship */}
@@ -196,10 +199,12 @@ export function ApiConfiguration() {
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
         >
-          <div className="form-section">
-            <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} envKey="IPV4_INSTANCE" value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" hint={t('apiConfig.spaceship.ipv4.hint')} />
+          <details className="manual-config-details">
+            <summary>{t('apiConfig.manualConfig')}</summary>
+            <div className="form-section">
+              <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} envKey="IPV4_INSTANCE" value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" hint={t('apiConfig.spaceship.ipv4.hint')} />
 
-            <div style={{ marginTop: '24px' }}>
+            <div>
               <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Info size={16} color="var(--color-primary)" />
                 {t('step4.dns.title')}
@@ -238,7 +243,8 @@ export function ApiConfiguration() {
                 <div className="info-box-text">{t('step4.warning')}</div>
               </div>
             </div>
-          </div>
+            </div>
+          </details>
         </ServiceConfigBlock>
 
         {/* Scaleway */}
@@ -254,8 +260,10 @@ export function ApiConfiguration() {
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
         >
-          <div className="form-section">
-            <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <details className="manual-config-details">
+            <summary>{t('apiConfig.manualConfig')}</summary>
+            <div className="form-section">
+              <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Server size={16} color="var(--color-primary)" />
               {t('step1.specs.title')}
             </div>
@@ -270,7 +278,8 @@ export function ApiConfiguration() {
                 </div>
               ))}
             </div>
-          </div>
+            </div>
+          </details>
         </ServiceConfigBlock>
 
         {/* Resend */}
@@ -286,8 +295,10 @@ export function ApiConfiguration() {
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
         >
-          <div className="form-section">
-            <div style={{ marginBottom: '24px' }}>
+          <details className="manual-config-details">
+            <summary>{t('apiConfig.manualConfig')}</summary>
+            <div className="form-section">
+              <div>
               <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Mail size={16} color="var(--color-primary)" />
                 {t('step4.subdomain')}
@@ -299,7 +310,8 @@ export function ApiConfiguration() {
               <FormField id="from-email" label={t('apiConfig.supabase.fromEmail')} envKey="FROM_EMAIL" value={config.FROM_EMAIL} onChange={v => setField('FROM_EMAIL', v)} placeholder="Hackathon Team <onboarding@mail.domain.com>" hint={t('apiConfig.supabase.fromEmail.hint')} />
               <FormField id="allowed-emails" label={t('apiConfig.supabase.allowedEmails')} envKey="ALLOWED_EMAILS" value={config.ALLOWED_EMAILS} onChange={v => setField('ALLOWED_EMAILS', v)} placeholder="*" hint={t('apiConfig.supabase.allowedEmails.hint')} />
             </div>
-          </div>
+            </div>
+          </details>
         </ServiceConfigBlock>
 
       </div>

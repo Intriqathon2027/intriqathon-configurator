@@ -13,6 +13,7 @@ interface FormFieldProps {
   disabled?: boolean
   configKey?: keyof Config
   rightElement?: ReactNode
+  multiline?: boolean
 }
 
 export function FormField({
@@ -26,6 +27,7 @@ export function FormField({
   type = 'text',
   disabled = false,
   rightElement,
+  multiline = false,
 }: FormFieldProps) {
   return (
     <div className="form-group">
@@ -35,19 +37,45 @@ export function FormField({
       </label>
       {rightElement ? (
         <div className="folder-input-row">
-          <input
-            id={id}
-            type={type}
-            className="form-input"
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            placeholder={placeholder}
-            disabled={disabled}
-            autoComplete="off"
-            spellCheck={false}
-          />
+          {multiline ? (
+            <textarea
+              id={id}
+              className="form-input form-textarea"
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              placeholder={placeholder}
+              disabled={disabled}
+              autoComplete="off"
+              spellCheck={false}
+              rows={3}
+            />
+          ) : (
+            <input
+              id={id}
+              type={type}
+              className="form-input"
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              placeholder={placeholder}
+              disabled={disabled}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          )}
           {rightElement}
         </div>
+      ) : multiline ? (
+        <textarea
+          id={id}
+          className="form-input form-textarea"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={disabled}
+          autoComplete="off"
+          spellCheck={false}
+          rows={3}
+        />
       ) : (
         <input
           id={id}

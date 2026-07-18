@@ -107,6 +107,7 @@ export const translations: Translations = {
     'apiConfig.status.done': 'Terminé',
     'apiConfig.status.running': 'En cours…',
     'apiConfig.status.error': 'Erreur',
+    'apiConfig.manualConfig': 'Configuration manuelle',
 
     // Supabase API config
     'apiConfig.supabase.desc': 'Récupération des clés API, configuration de la base de données, activation du Realtime',
@@ -139,6 +140,28 @@ export const translations: Translations = {
     // =============================================
     // Step 3 — OAuth2 + Discord Bot
     // =============================================
+    'step4.dns.title': 'Entrées DNS à ajouter chez votre registrar',
+    'step4.dns.type': 'Type',
+    'step4.dns.host': 'Hôte',
+    'step4.dns.answer': 'Valeur',
+    'step4.dns.ttl': 'TTL',
+    'step4.subdomain': 'Sous-domaine mail à ajouter dans Resend',
+    'step4.warning': 'La propagation DNS peut prendre jusqu\'à 48h. Vous pouvez continuer la configuration et tester l\'envoi d\'emails plus tard.',
+    'step1.specs.title': 'Spécifications de l\'instance recommandée',
+    'step1.spec.cpu': '4 vCPU',
+    'step1.spec.ram': '16 Go de RAM',
+    'step1.spec.os': 'Ubuntu 24.04 LTS',
+    'step1.spec.storage': '10 Go de stockage',
+    'step7.sql.title': 'Permissions SQL à injecter',
+    'step7.realtime.title': 'Activer Realtime sur la table Announcements',
+    'step7.realtime.desc': 'Dans Supabase : Table Editor > Announcement > Enable Realtime (en haut à droite)',
+    'step7.dataApi.title': 'Activer la Data API',
+    'step7.dataApi.desc': 'Project Settings > Data API > Activer + ajouter "public" dans Exposed Schemas',
+    'step7.auth.title': 'Désactiver la confirmation par email',
+    'step7.auth.desc': 'Authentication > Sign In / Providers > désactiver "Confirm email"',
+    'step7.docker.title': 'Redémarrer le bot Discord',
+    'step7.docker.desc': 'Exécutez cette commande depuis votre terminal connecté au VPS',
+
     'step3.title': 'Authentification OAuth2',
     'step3.desc': 'Configurez les connexions via Discord et GitHub pour permettre aux participants de s\'authentifier.',
     'step3.section.discord': 'Discord OAuth2',
@@ -323,8 +346,9 @@ export const translations: Translations = {
     'apiConfig.btnStart': 'Launch',
     'apiConfig.btnCancel': 'Cancel',
     'apiConfig.status.done': 'Done',
-    'apiConfig.status.running': 'In progress…',
+    'apiConfig.status.running': 'Running...',
     'apiConfig.status.error': 'Error',
+    'apiConfig.manualConfig': 'Manual Configuration',
 
     // Supabase API config
     'apiConfig.supabase.desc': 'API key retrieval, database configuration, Realtime activation',
@@ -357,6 +381,28 @@ export const translations: Translations = {
     // =============================================
     // Step 3 — OAuth2 + Discord Bot
     // =============================================
+    'step4.dns.title': 'DNS entries to add at your registrar',
+    'step4.dns.type': 'Type',
+    'step4.dns.host': 'Host',
+    'step4.dns.answer': 'Value',
+    'step4.dns.ttl': 'TTL',
+    'step4.subdomain': 'Mail subdomain to add in Resend',
+    'step4.warning': 'DNS propagation can take up to 48h. You can continue setup and test email sending later.',
+    'step1.specs.title': 'Recommended instance specifications',
+    'step1.spec.cpu': '4 vCPU',
+    'step1.spec.ram': '16 GB RAM',
+    'step1.spec.os': 'Ubuntu 24.04 LTS',
+    'step1.spec.storage': '10 GB storage',
+    'step7.sql.title': 'SQL permissions to inject',
+    'step7.realtime.title': 'Enable Realtime on Announcements table',
+    'step7.realtime.desc': 'In Supabase: Table Editor > Announcement > Enable Realtime (top right)',
+    'step7.dataApi.title': 'Enable Data API',
+    'step7.dataApi.desc': 'Project Settings > Data API > Enable + add "public" in Exposed Schemas',
+    'step7.auth.title': 'Disable email confirmation',
+    'step7.auth.desc': 'Authentication > Sign In / Providers > disable "Confirm email"',
+    'step7.docker.title': 'Restart Discord bot',
+    'step7.docker.desc': 'Run this command from your terminal connected to the VPS',
+
     'step3.title': 'OAuth2 Authentication',
     'step3.desc': 'Configure Discord and GitHub login to allow participants to authenticate.',
     'step3.section.discord': 'Discord OAuth2',

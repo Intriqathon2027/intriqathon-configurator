@@ -106,6 +106,7 @@ export type TranslationKeys = {
   'apiConfig.status.done': string
   'apiConfig.status.running': string
   'apiConfig.status.error': string
+  'apiConfig.manualConfig': string
 
   // Supabase API config
   'apiConfig.supabase.desc': string
@@ -138,6 +139,28 @@ export type TranslationKeys = {
   // =============================================
   // Step 3 — OAuth2 + Discord Bot
   // =============================================
+  'step4.dns.title': string
+  'step4.dns.type': string
+  'step4.dns.host': string
+  'step4.dns.answer': string
+  'step4.dns.ttl': string
+  'step4.subdomain': string
+  'step4.warning': string
+  'step1.specs.title': string
+  'step1.spec.cpu': string
+  'step1.spec.ram': string
+  'step1.spec.os': string
+  'step1.spec.storage': string
+  'step7.sql.title': string
+  'step7.realtime.title': string
+  'step7.realtime.desc': string
+  'step7.dataApi.title': string
+  'step7.dataApi.desc': string
+  'step7.auth.title': string
+  'step7.auth.desc': string
+  'step7.docker.title': string
+  'step7.docker.desc': string
+
   'step3.title': string
   'step3.desc': string
   'step3.section.discord': string
