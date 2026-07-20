@@ -96,6 +96,7 @@ type Action =
   | { type: 'RESET_CONFIG' }
   | { type: 'START_CONFIG' }
   | { type: 'STOP_CONFIG' }
+  | { type: 'SET_THEME'; theme: 'light' | 'dark' }
 
 // ============================================================
 // STATE
@@ -105,6 +106,7 @@ interface AppState {
   language: Language
   currentStep: number
   hasStarted: boolean
+  theme: 'light' | 'dark'
 }
 
 const initialState: AppState = {
@@ -112,6 +114,7 @@ const initialState: AppState = {
   language: 'fr',
   currentStep: 0,
   hasStarted: false,
+  theme: (localStorage.getItem('intriqathon-theme') as 'light' | 'dark') || 'light',
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -136,6 +139,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, hasStarted: true }
     case 'STOP_CONFIG':
       return { ...state, hasStarted: false }
+    case 'SET_THEME':
+      return { ...state, theme: action.theme }
     default:
       return state
   }
@@ -157,6 +162,7 @@ interface AppContextType {
   goHome: () => void
   hasSavedConfig: boolean
   totalSteps: number
+  setTheme: (theme: 'light' | 'dark') => void
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -196,6 +202,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       })
     }
   }, [state.config.DOMAIN])
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', state.theme)
+    localStorage.setItem('intriqathon-theme', state.theme)
+  }, [state.theme])
+
+  // Initialize theme on mount
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', state.theme)
+  }, [])
 
   const t = (key: string): string => {
     const dict = translations[state.language] as Record<string, string>
@@ -239,6 +256,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'STOP_CONFIG' })
   }
 
+  const setTheme = (theme: 'light' | 'dark') => {
+    dispatch({ type: 'SET_THEME', theme })
+  }
+
   const hasSavedConfig = Object.entries(state.config).some(([k, v]) => k !== 'ALLOWED_EMAILS' && v !== '')
 
   return (
@@ -255,6 +276,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       goHome,
       hasSavedConfig,
       totalSteps: TOTAL_STEPS,
+      setTheme,
     }}>
       {children}
     </AppContext.Provider>

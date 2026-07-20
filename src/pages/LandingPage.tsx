@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Zap, Play, RotateCcw, Upload, Download, Trash2, X, ExternalLink } from 'lucide-react'
+import { Zap, Play, RotateCcw, Upload, Download, Trash2, X, ExternalLink, Moon, Sun } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { LanguageToggle } from '../components/layout/LanguageToggle'
 import type { RecentConfig } from '../types/electron'
 
 export function LandingPage() {
-  const { state, t, startConfig, hasSavedConfig, dispatch } = useApp()
+  const { state, t, startConfig, hasSavedConfig, dispatch, setTheme } = useApp()
+  const isDark = state.theme === 'dark'
   const [showPrompt, setShowPrompt] = useState(false)
   const [errorDialog, setErrorDialog] = useState<string | null>(null)
   const [recentConfigs, setRecentConfigs] = useState<RecentConfig[]>([])
@@ -127,8 +128,16 @@ export function LandingPage() {
 
   return (
     <div className="landing-container">
-      {/* Language Toggle in Top Right */}
+      {/* Top right controls */}
       <div className="landing-top-right">
+        <button
+          className="btn btn-icon"
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
+          title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+          id="btn-theme-landing"
+        >
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
         <LanguageToggle />
       </div>
 

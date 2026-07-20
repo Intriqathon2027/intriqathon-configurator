@@ -7,7 +7,7 @@ import { useApp } from '../../context/AppContext'
 import { TopRightIsland } from './TopRightIsland'
 import { StepContent } from './StepContent'
 import { BottomNavigation } from './BottomNavigation'
-import { HelpModal } from './HelpModal'
+import { HelpPanel } from './HelpPanel'
 import { SettingsModal } from './SettingsModal'
 
 export interface Step {
@@ -56,7 +56,7 @@ export function WizardLayout({
       <div className="main-content">
         <div className="main-drag-area" />
 
-        <TopRightIsland helpContent={helpContent} setHelpOpen={setHelpOpen} />
+        <TopRightIsland helpContent={helpContent} helpOpen={helpOpen} setHelpOpen={setHelpOpen} />
 
         <StepContent currentStep={currentStep} title={title} description={description}>
           {children}
@@ -70,7 +70,7 @@ export function WizardLayout({
         />
       </div>
 
-      <HelpModal 
+      <HelpPanel 
         helpOpen={helpOpen} 
         setHelpOpen={setHelpOpen} 
         title={title} 
