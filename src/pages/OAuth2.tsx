@@ -53,7 +53,7 @@ function HelpContent() {
   </>
 }
 
-export function Step3OAuth2() {
+export function OAuth2() {
   const { t, config, setField } = useApp()
   const domain = config.DOMAIN || '<DOMAIN>'
 

@@ -2,9 +2,9 @@ import { AppProvider, useApp } from './context/AppContext'
 import { Toaster } from 'react-hot-toast'
 import { AccountCreation } from './pages/AccountCreation'
 import { ApiConfiguration } from './pages/ApiConfiguration'
-import { Step3OAuth2 } from './pages/Step3OAuth2'
-import { Step6Generation } from './pages/Step6Generation'
-import { Step8ConfigSite } from './pages/Step8ConfigSite'
+import { OAuth2 } from './pages/OAuth2.tsx'
+import { Generation } from './pages/Generation.tsx'
+import { ConfigSite } from './pages/ConfigSite.tsx'
 
 function StepRouter() {
   const { state } = useApp()
@@ -12,9 +12,9 @@ function StepRouter() {
   switch (state.currentStep) {
     case 0: return <AccountCreation />
     case 1: return <ApiConfiguration />
-    case 2: return <Step3OAuth2 />
-    case 3: return <Step6Generation />
-    case 4: return <Step8ConfigSite />
+    case 2: return <OAuth2 />
+    case 3: return <Generation />
+    case 4: return <ConfigSite />
     default: return <AccountCreation />
   }
 }

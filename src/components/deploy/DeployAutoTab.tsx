@@ -31,7 +31,7 @@ function getGlobalStatusIcon(status: DeploymentStatus) {
   }
 }
 
-export function Step6AutoTab() {
+export function DeployAutoTab() {
   const { t, config } = useApp()
   const {
     status,
