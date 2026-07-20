@@ -50,7 +50,7 @@ export function WizardLayout({
   return (
     <div className="app-container">
       {/* Sidebar */}
-      <Sidebar setSettingsOpen={setSettingsOpen} />
+      <Sidebar setSettingsOpen={setSettingsOpen} helpOpen={helpOpen} />
 
       {/* Main */}
       <div className="main-content">

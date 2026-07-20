@@ -147,9 +147,19 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
+[data-theme="dark"] .deploy-tab.active,
+[data-theme="dark"] .lang-btn.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-primary);
+}
+
 [data-theme="dark"] .recent-configs-card {
   background: rgba(43, 45, 49, 0.7);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .recent-config-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="dark"] .landing-team-badge {
@@ -435,7 +445,8 @@ body {
 
 .service-account-card--complete {
   background: var(--color-primary-lighter);
-  border-color: var(--color-primary-light);
+  border-color: var(--color-primary);
+  border-width: 1.5px;
 }
 
 .service-account-card__header {

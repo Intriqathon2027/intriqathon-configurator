@@ -130,6 +130,7 @@ export function LandingPage() {
     <div className="landing-container">
       {/* Top right controls */}
       <div className="landing-top-right">
+        <LanguageToggle />
         <button
           className="btn btn-icon"
           onClick={() => setTheme(isDark ? 'light' : 'dark')}
@@ -138,7 +139,6 @@ export function LandingPage() {
         >
           {isDark ? <Sun size={16} /> : <Moon size={16} />}
         </button>
-        <LanguageToggle />
       </div>
 
       <div className="landing-content">

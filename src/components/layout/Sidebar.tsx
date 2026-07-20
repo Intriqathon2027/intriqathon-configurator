@@ -1,13 +1,14 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Check, Settings, Zap, PanelLeftClose, PanelLeft } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import { steps } from './WizardLayout'
 
 interface SidebarProps {
   setSettingsOpen: (v: boolean) => void
+  helpOpen?: boolean
 }
 
-export function Sidebar({ setSettingsOpen }: SidebarProps) {
+export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
   const { state, t, goToStep, goHome } = useApp()
   const { currentStep } = state
 
@@ -27,6 +28,19 @@ export function Sidebar({ setSettingsOpen }: SidebarProps) {
   useEffect(() => {
     localStorage.setItem('sidebarCollapsed', isCollapsed.toString())
   }, [isCollapsed])
+
+  const wasOpenRef = useRef(!isCollapsed)
+
+  useEffect(() => {
+    if (helpOpen) {
+      wasOpenRef.current = !isCollapsed
+      setIsCollapsed(true)
+    } else if (helpOpen === false) {
+      if (wasOpenRef.current) {
+        setIsCollapsed(false)
+      }
+    }
+  }, [helpOpen])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 1100px)')

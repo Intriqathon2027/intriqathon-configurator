@@ -30,7 +30,15 @@ function App() {
   return (
     <AppProvider>
       <AppContent />
-      <Toaster />
+      <Toaster 
+        toastOptions={{
+          style: {
+            background: 'var(--color-surface)',
+            color: 'var(--color-text)',
+            border: '1px solid var(--color-border)'
+          }
+        }}
+      />
     </AppProvider>
   )
 }
