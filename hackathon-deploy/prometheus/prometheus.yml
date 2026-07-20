@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'hackathon-backend'
+    metrics_path: '/api/metrics' # Adjust if your NestJS app exposes metrics elsewhere or use a different path
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['hackathon-backend:3000']
+
+  - job_name: 'jaeger'
+    static_configs:
+      - targets: ['jaeger:14269']
