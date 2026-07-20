@@ -28,6 +28,25 @@ export function Sidebar({ setSettingsOpen }: SidebarProps) {
     localStorage.setItem('sidebarCollapsed', isCollapsed.toString())
   }, [isCollapsed])
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1100px)')
+    
+    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches) {
+        setIsCollapsed(true)
+      } else {
+        setIsCollapsed(false)
+      }
+    }
+
+    mediaQuery.addEventListener('change', handleChange)
+    if (mediaQuery.matches) {
+      setIsCollapsed(true)
+    }
+
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
+
   const startResizing = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     setIsResizing(true)
@@ -63,7 +82,7 @@ export function Sidebar({ setSettingsOpen }: SidebarProps) {
 
   if (isCollapsed) {
     return (
-      <aside className="sidebar sidebar--collapsed">
+      <aside className="sidebar sidebar--collapsed" style={{ transition: 'width 0.3s ease' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', paddingTop: '24px' }}>
           <div className="sidebar-logo-icon" onClick={goHome} style={{ cursor: 'pointer' }}>
             <Zap size={18} />
