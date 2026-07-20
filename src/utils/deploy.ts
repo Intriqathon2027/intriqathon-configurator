@@ -63,19 +63,31 @@ echo ""
 
 # ── Étape 2 : Synchronisation rsync ─────────────────────────────────────────
 echo "📦 [2/4] Envoi des fichiers vers le VPS (rsync)..."
-rsync -avz -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress "\${DEPLOY_PATH}/" root@\${IPV4}:~/hackathon-deploy
+rsync -avz -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress "\${DEPLOY_PATH}/" root@\${IPV4}:~/hackathon-deploy || {
+    CODE=$?
+    echo "ERREUR : La copie des fichiers a échoué avec le code d'erreur $CODE."
+    exit $CODE
+}
 echo "✅ Fichiers synchronisés."
 echo ""
 
 # ── Étape 3 : Connexion SSH + chmod ─────────────────────────────────────────
 echo "🔗 [3/4] Connexion SSH — attribution des droits d'exécution..."
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@\${IPV4} "cd hackathon-deploy && chmod +x install_hackathon.sh"
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@\${IPV4} "cd hackathon-deploy && sed -i 's/\\r$//' install_hackathon.sh && chmod +x install_hackathon.sh" || {
+    CODE=$?
+    echo "ERREUR : L'attribution des droits a échoué avec le code d'erreur $CODE."
+    exit $CODE
+}
 echo "✅ Droits accordés."
 echo ""
 
 # ── Étape 4 : Lancement du script d'installation ────────────────────────────
 echo "🚀 [4/4] Lancement de l'installation sur le VPS..."
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@\${IPV4} "cd hackathon-deploy && ./install_hackathon.sh"
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@\${IPV4} "cd hackathon-deploy && ./install_hackathon.sh" || {
+    CODE=$?
+    echo "❌ ERREUR : L'exécution distante a échoué avec le code d'erreur $CODE."
+    exit $CODE
+}
 echo ""
 echo "🎉 Déploiement terminé avec succès !"
 `
@@ -115,18 +127,30 @@ echo.
 :: Etape 2 : Envoi des fichiers
 echo [2/4] Envoi des fichiers vers le VPS (scp)...
 scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r "%DEPLOY_PATH%\\" root@%IPV4%:~/hackathon-deploy
+if !ERRORLEVEL! NEQ 0 (
+    echo ERREUR : la copie des fichiers a echoue avec le code !ERRORLEVEL!.
+    exit /b !ERRORLEVEL!
+)
 echo [OK] Fichiers envoyes.
 echo.
 
 :: Etape 3 : Droits execution
 echo [3/4] Attribution des droits d'execution...
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@%IPV4% "cd hackathon-deploy && chmod +x install_hackathon.sh"
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@%IPV4% "cd hackathon-deploy && sed -i 's/\\r$//' install_hackathon.sh && chmod +x install_hackathon.sh"
+if !ERRORLEVEL! NEQ 0 (
+    echo ERREUR : l'attribution des droits a echoue avec le code !ERRORLEVEL!.
+    exit /b !ERRORLEVEL!
+)
 echo [OK] Droits accordes.
 echo.
 
 :: Etape 4 : Installation
 echo [4/4] Lancement de l'installation...
 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@%IPV4% "cd hackathon-deploy && ./install_hackathon.sh"
+if !ERRORLEVEL! NEQ 0 (
+    echo ERREUR : l'execution distante a echoue avec le code !ERRORLEVEL!.
+    exit /b !ERRORLEVEL!
+)
 echo.
 echo Deploiement termine avec succes !
 `
@@ -136,7 +160,7 @@ echo Deploiement termine avec succes !
 
 export function platformLabel(p: string): { label: string; cssClass: string; emoji: string } {
   if (p === 'darwin') return { label: 'macOS', cssClass: 'mac', emoji: '🍎' }
-  if (p === 'win32')  return { label: 'Windows', cssClass: 'windows', emoji: '🪟' }
+  if (p === 'win32') return { label: 'Windows', cssClass: 'windows', emoji: '🪟' }
   return { label: 'Linux', cssClass: 'linux', emoji: '🐧' }
 }
 
