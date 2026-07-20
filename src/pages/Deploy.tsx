@@ -7,7 +7,7 @@ import { useApp } from '../context/AppContext'
 
 type DeployTab = 'auto' | 'manual'
 
-export function Generation() {
+export function Deploy() {
   const { t } = useApp()
   const [activeTab, setActiveTab] = useState<DeployTab>('auto')
 

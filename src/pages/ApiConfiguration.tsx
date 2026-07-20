@@ -16,26 +16,22 @@ function HelpContent() {
     <>
       <h3><Database size={15} /> Supabase</h3>
       <ol>
-        <li>In your Supabase project, go to <strong>Project Settings &gt; API</strong> to find your URL and anon/service keys</li>
-        <li>Go to <strong>Project Settings &gt; Database</strong> to get the DATABASE_URL and DIRECT_URL connection strings</li>
-        <li>Click <strong>Launch</strong> to auto-configure, or open the manual section to fill in the fields yourself</li>
+        <li><strong>URL, Anon Key & Service Role Key:</strong> Go to <code>Project Settings &gt; API</code> in your Supabase dashboard.</li>
+        <li><strong>DATABASE_URL & DIRECT_URL:</strong> Go to <code>Project Settings &gt; Database</code>. Make sure to use Transaction mode for DIRECT_URL (port 5432) and Session mode for DATABASE_URL (port 6543).</li>
       </ol>
       <h3><Globe size={15} /> Spaceship</h3>
       <ol>
-        <li>Enter the IPv4 address of your Scaleway instance</li>
-        <li>The DNS records below (A, TXT) must be added to your domain registrar (Spaceship)</li>
-        <li>Propagation can take up to 24–48h</li>
+        <li><strong>IPv4 Address:</strong> Copy the public IP from <code>Scaleway Console &gt; Compute &gt; Instances &gt; [Your Instance] &gt; Overview</code>.</li>
+        <li><strong>DNS Configuration:</strong> Go to Spaceship in <code>Launchpad &gt; Domain Portfolio &gt; (Click your domain) &gt; Advanced DNS</code> to add the required A and TXT records.</li>
       </ol>
       <h3><Server size={15} /> Scaleway</h3>
       <ol>
-        <li>Create an instance with the recommended specs</li>
-        <li>Note the public IPv4 address and enter it in the Spaceship step</li>
+        <li><strong>Specifications:</strong> Manually create your instance from <code>Scaleway Console &gt; Compute &gt; Instances &gt; Create an Instance</code> using the recommended specs.</li>
       </ol>
       <h3><Mail size={15} /> Resend</h3>
       <ol>
-        <li>In Resend, add the <strong>mail.yourdomain.com</strong> subdomain</li>
-        <li>Configure the FROM_EMAIL field with the sending address</li>
-        <li>Set ALLOWED_EMAILS to <code>*</code> to allow all, or restrict to specific addresses</li>
+        <li><strong>Subdomain:</strong> Go to <code>Resend Dashboard &gt; Domains &gt; Add Domain</code> to register <code>mail.yourdomain.com</code>.</li>
+        <li><strong>Sender (FROM_EMAIL):</strong> Use an authorized address on this verified domain.</li>
       </ol>
     </>
   )
@@ -44,26 +40,22 @@ function HelpContent() {
     <>
       <h3><Database size={15} /> Supabase</h3>
       <ol>
-        <li>Dans votre projet Supabase, allez dans <strong>Project Settings &gt; API</strong> pour trouver l'URL et les clés anon/service</li>
-        <li>Allez dans <strong>Project Settings &gt; Database</strong> pour obtenir les chaînes de connexion DATABASE_URL et DIRECT_URL</li>
-        <li>Cliquez sur <strong>Lancer</strong> pour configurer automatiquement, ou ouvrez la section manuelle pour renseigner les champs vous-même</li>
+        <li><strong>URL, Clé Anon & Clé Service Role :</strong> Allez dans <code>Project Settings &gt; API</code> dans le dashboard Supabase.</li>
+        <li><strong>DATABASE_URL & DIRECT_URL :</strong> Allez dans <code>Project Settings &gt; Database</code>. Assurez-vous d'utiliser le mode "Transaction" pour DIRECT_URL (port 5432) et "Session" pour DATABASE_URL (port 6543).</li>
       </ol>
       <h3><Globe size={15} /> Spaceship</h3>
       <ol>
-        <li>Entrez l'adresse IPv4 de votre instance Scaleway</li>
-        <li>Les enregistrements DNS ci-dessous (A, TXT) doivent être ajoutés chez votre registrar (Spaceship)</li>
-        <li>La propagation peut prendre jusqu'à 24–48h</li>
+        <li><strong>Adresse IPv4 :</strong> Copiez l'IP publique depuis <code>Scaleway Console &gt; Compute &gt; Instances &gt; [Votre Instance] &gt; Overview</code>.</li>
+        <li><strong>Configuration DNS :</strong> Allez sur Spaceship dans <code>Launchpad &gt; Domain Portfolio &gt; (Cliquez sur votre domaine) &gt; Advanced DNS</code> pour ajouter les entrées A et TXT affichées.</li>
       </ol>
       <h3><Server size={15} /> Scaleway</h3>
       <ol>
-        <li>Créez une instance avec les spécifications recommandées</li>
-        <li>Notez l'adresse IPv4 publique et entrez-la à l'étape Spaceship</li>
+        <li><strong>Spécifications :</strong> Créez manuellement votre instance depuis <code>Scaleway Console &gt; Compute &gt; Instances &gt; Create an Instance</code> en suivant les caractéristiques recommandées.</li>
       </ol>
       <h3><Mail size={15} /> Resend</h3>
       <ol>
-        <li>Dans Resend, ajoutez le sous-domaine <strong>mail.votredomaine.com</strong></li>
-        <li>Renseignez le champ FROM_EMAIL avec l'adresse d'envoi</li>
-        <li>Mettez ALLOWED_EMAILS à <code>*</code> pour tout autoriser, ou restreignez à des adresses spécifiques</li>
+        <li><strong>Sous-domaine :</strong> Allez dans <code>Resend Dashboard &gt; Domains &gt; Add Domain</code> pour enregistrer <code>mail.votredomaine.com</code>.</li>
+        <li><strong>Expéditeur (FROM_EMAIL) :</strong> Utilisez une adresse autorisée sur ce domaine vérifié.</li>
       </ol>
     </>
   )
@@ -186,7 +178,7 @@ export function ApiConfiguration() {
         <ServiceConfigBlock
           stepNumber={1}
           serviceName="SUPABASE"
-          serviceIcon={<Database size={18} />}
+          serviceIcon={<Database size={18} color="var(--color-primary)" />}
           description={t('apiConfig.supabase.desc')}
           status={supabaseStatus}
           onStart={() => handleStart('Supabase')}
@@ -248,7 +240,7 @@ export function ApiConfiguration() {
         <ServiceConfigBlock
           stepNumber={2}
           serviceName="SPACESHIP"
-          serviceIcon={<Globe size={18} />}
+          serviceIcon={<Globe size={18} color="var(--color-primary)" />}
           description={t('apiConfig.spaceship.desc')}
           status={spaceshipStatus}
           onStart={() => handleStart('Spaceship')}
@@ -309,7 +301,7 @@ export function ApiConfiguration() {
         <ServiceConfigBlock
           stepNumber={3}
           serviceName="SCALEWAY"
-          serviceIcon={<Server size={18} />}
+          serviceIcon={<Server size={18} color="var(--color-primary)" />}
           description={t('apiConfig.scaleway.desc')}
           status={scalewayStatus}
           onStart={() => handleStart('Scaleway')}
@@ -344,7 +336,7 @@ export function ApiConfiguration() {
         <ServiceConfigBlock
           stepNumber={4}
           serviceName="RESEND"
-          serviceIcon={<Mail size={18} />}
+          serviceIcon={<Mail size={18} color="var(--color-primary)" />}
           description={t('apiConfig.resend.desc')}
           status={resendStatus}
           onStart={() => handleStart('Resend')}

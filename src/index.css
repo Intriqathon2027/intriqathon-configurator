@@ -342,21 +342,6 @@ body {
   overflow: hidden;
 }
 
-.service-account-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 3px;
-  background: transparent;
-  transition: background var(--transition-fast);
-}
-
-.service-account-card--complete::before {
-  background: var(--color-primary);
-}
-
 .service-account-card--complete {
   background: hsla(160, 60%, 97%, 0.6);
   border-color: hsla(160, 60%, 75%, 0.6);
@@ -384,7 +369,7 @@ body {
 }
 
 .service-account-card__service-icon {
-  color: var(--color-text);
+  color: var(--color-primary);
   display: flex;
   align-items: center;
 }
@@ -454,7 +439,7 @@ body {
 }
 
 .service-config-block__icon {
-  color: var(--color-text);
+  color: var(--color-primary);
   display: flex;
   align-items: center;
 }
@@ -1436,7 +1421,7 @@ body {
 }
 
 /* =============================================
-   FINAL STEP (Generation)
+   FINAL STEP (Deploy)
    ============================================= */
 .env-preview {
   background: var(--color-text);

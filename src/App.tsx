@@ -3,7 +3,7 @@ import { Toaster } from 'react-hot-toast'
 import { AccountCreation } from './pages/AccountCreation'
 import { ApiConfiguration } from './pages/ApiConfiguration'
 import { OAuth2 } from './pages/OAuth2.tsx'
-import { Generation } from './pages/Generation.tsx'
+import { Deploy } from './pages/Deploy.tsx'
 import { ConfigSite } from './pages/ConfigSite.tsx'
 
 function StepRouter() {
@@ -13,7 +13,7 @@ function StepRouter() {
     case 0: return <AccountCreation />
     case 1: return <ApiConfiguration />
     case 2: return <OAuth2 />
-    case 3: return <Generation />
+    case 3: return <Deploy />
     case 4: return <ConfigSite />
     default: return <AccountCreation />
   }

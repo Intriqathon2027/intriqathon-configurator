@@ -119,7 +119,7 @@ export function AccountCreation() {
         {/* Supabase */}
         <ServiceAccountCard
           serviceName={t('accountCreation.supabase.title')}
-          serviceIcon={<Database size={16} />}
+          serviceIcon={<Database size={16} color="var(--color-primary)" />}
           externalUrl="https://supabase.com/dashboard/account/tokens"
           externalLabel={t('accountCreation.supabase.link')}
           isComplete={isSupabaseComplete}
@@ -160,7 +160,7 @@ export function AccountCreation() {
         {/* Resend */}
         <ServiceAccountCard
           serviceName={t('accountCreation.resend.title')}
-          serviceIcon={<Mail size={16} />}
+          serviceIcon={<Mail size={16} color="var(--color-primary)" />}
           externalUrl="https://resend.com/api-keys"
           externalLabel={t('accountCreation.resend.link')}
           isComplete={isResendComplete}
@@ -182,7 +182,7 @@ export function AccountCreation() {
         {/* Spaceship */}
         <ServiceAccountCard
           serviceName={t('accountCreation.spaceship.title')}
-          serviceIcon={<Globe size={16} />}
+          serviceIcon={<Globe size={16} color="var(--color-primary)" />}
           externalUrl="https://www.spaceship.com"
           externalLabel={t('accountCreation.spaceship.link')}
           isComplete={isSpaceshipComplete}
@@ -222,7 +222,7 @@ export function AccountCreation() {
         {/* Scaleway */}
         <ServiceAccountCard
           serviceName={t('accountCreation.scaleway.title')}
-          serviceIcon={<Server size={16} />}
+          serviceIcon={<Server size={16} color="var(--color-primary)" />}
           externalUrl="https://console.scaleway.com/iam/api-keys"
           externalLabel={t('accountCreation.scaleway.link')}
           isComplete={isScalewayComplete}
