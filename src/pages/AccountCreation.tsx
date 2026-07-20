@@ -135,27 +135,25 @@ export function AccountCreation() {
               hint={t('accountCreation.supabase.pat.hint')}
               type="password"
             />
-            <div className="form-row">
-              <FormField
-                id="s3-access-key"
-                label={t('accountCreation.supabase.s3AccessKey')}
-                envKey="S3_ACCESS_KEY_ID"
-                value={config.S3_ACCESS_KEY_ID}
-                onChange={v => setField('S3_ACCESS_KEY_ID', v)}
-                placeholder="625b..."
-                hint={t('accountCreation.supabase.s3AccessKey.hint')}
-              />
-              <FormField
-                id="s3-secret"
-                label={t('accountCreation.supabase.s3SecretKey')}
-                envKey="S3_SECRET_ACCESS_KEY"
-                value={config.S3_SECRET_ACCESS_KEY}
-                onChange={v => setField('S3_SECRET_ACCESS_KEY', v)}
-                placeholder="5w36..."
-                hint={t('accountCreation.supabase.s3SecretKey.hint')}
-                type="password"
-              />
-            </div>
+            <FormField
+              id="s3-access-key"
+              label={t('accountCreation.supabase.s3AccessKey')}
+              envKey="S3_ACCESS_KEY_ID"
+              value={config.S3_ACCESS_KEY_ID}
+              onChange={v => setField('S3_ACCESS_KEY_ID', v)}
+              placeholder="625b..."
+              hint={t('accountCreation.supabase.s3AccessKey.hint')}
+            />
+            <FormField
+              id="s3-secret"
+              label={t('accountCreation.supabase.s3SecretKey')}
+              envKey="S3_SECRET_ACCESS_KEY"
+              value={config.S3_SECRET_ACCESS_KEY}
+              onChange={v => setField('S3_SECRET_ACCESS_KEY', v)}
+              placeholder="5w36..."
+              hint={t('accountCreation.supabase.s3SecretKey.hint')}
+              type="password"
+            />
           </div>
         </ServiceAccountCard>
 
@@ -199,27 +197,25 @@ export function AccountCreation() {
               placeholder={t('accountCreation.spaceship.domain.placeholder')}
               hint={t('accountCreation.spaceship.domain.hint')}
             />
-            <div className="form-row">
-              <FormField
-                id="spaceship-api-key"
-                label={t('accountCreation.spaceship.apiKey')}
-                envKey="SPACESHIP_API_KEY"
-                value={config.SPACESHIP_API_KEY}
-                onChange={v => setField('SPACESHIP_API_KEY', v)}
-                placeholder="sk_abc123..."
-                hint={t('accountCreation.spaceship.apiKey.hint')}
-              />
-              <FormField
-                id="spaceship-api-secret"
-                label={t('accountCreation.spaceship.apiSecret')}
-                envKey="SPACESHIP_API_SECRET"
-                value={config.SPACESHIP_API_SECRET}
-                onChange={v => setField('SPACESHIP_API_SECRET', v)}
-                placeholder="ss_xyz789..."
-                hint={t('accountCreation.spaceship.apiSecret.hint')}
-                type="password"
-              />
-            </div>
+            <FormField
+              id="spaceship-api-key"
+              label={t('accountCreation.spaceship.apiKey')}
+              envKey="SPACESHIP_API_KEY"
+              value={config.SPACESHIP_API_KEY}
+              onChange={v => setField('SPACESHIP_API_KEY', v)}
+              placeholder="sk_abc123..."
+              hint={t('accountCreation.spaceship.apiKey.hint')}
+            />
+            <FormField
+              id="spaceship-api-secret"
+              label={t('accountCreation.spaceship.apiSecret')}
+              envKey="SPACESHIP_API_SECRET"
+              value={config.SPACESHIP_API_SECRET}
+              onChange={v => setField('SPACESHIP_API_SECRET', v)}
+              placeholder="ss_xyz789..."
+              hint={t('accountCreation.spaceship.apiSecret.hint')}
+              type="password"
+            />
           </div>
         </ServiceAccountCard>
 

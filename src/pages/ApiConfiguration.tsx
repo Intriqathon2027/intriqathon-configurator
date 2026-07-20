@@ -8,6 +8,67 @@ import { useApp } from '../context/AppContext'
 
 type Status = 'idle' | 'running' | 'done' | 'error'
 
+function HelpContent() {
+  const { state } = useApp()
+  const isEn = state.language === 'en'
+
+  if (isEn) return (
+    <>
+      <h3><Database size={15} /> Supabase</h3>
+      <ol>
+        <li>In your Supabase project, go to <strong>Project Settings &gt; API</strong> to find your URL and anon/service keys</li>
+        <li>Go to <strong>Project Settings &gt; Database</strong> to get the DATABASE_URL and DIRECT_URL connection strings</li>
+        <li>Click <strong>Launch</strong> to auto-configure, or open the manual section to fill in the fields yourself</li>
+      </ol>
+      <h3><Globe size={15} /> Spaceship</h3>
+      <ol>
+        <li>Enter the IPv4 address of your Scaleway instance</li>
+        <li>The DNS records below (A, TXT) must be added to your domain registrar (Spaceship)</li>
+        <li>Propagation can take up to 24–48h</li>
+      </ol>
+      <h3><Server size={15} /> Scaleway</h3>
+      <ol>
+        <li>Create an instance with the recommended specs</li>
+        <li>Note the public IPv4 address and enter it in the Spaceship step</li>
+      </ol>
+      <h3><Mail size={15} /> Resend</h3>
+      <ol>
+        <li>In Resend, add the <strong>mail.yourdomain.com</strong> subdomain</li>
+        <li>Configure the FROM_EMAIL field with the sending address</li>
+        <li>Set ALLOWED_EMAILS to <code>*</code> to allow all, or restrict to specific addresses</li>
+      </ol>
+    </>
+  )
+
+  return (
+    <>
+      <h3><Database size={15} /> Supabase</h3>
+      <ol>
+        <li>Dans votre projet Supabase, allez dans <strong>Project Settings &gt; API</strong> pour trouver l'URL et les clés anon/service</li>
+        <li>Allez dans <strong>Project Settings &gt; Database</strong> pour obtenir les chaînes de connexion DATABASE_URL et DIRECT_URL</li>
+        <li>Cliquez sur <strong>Lancer</strong> pour configurer automatiquement, ou ouvrez la section manuelle pour renseigner les champs vous-même</li>
+      </ol>
+      <h3><Globe size={15} /> Spaceship</h3>
+      <ol>
+        <li>Entrez l'adresse IPv4 de votre instance Scaleway</li>
+        <li>Les enregistrements DNS ci-dessous (A, TXT) doivent être ajoutés chez votre registrar (Spaceship)</li>
+        <li>La propagation peut prendre jusqu'à 24–48h</li>
+      </ol>
+      <h3><Server size={15} /> Scaleway</h3>
+      <ol>
+        <li>Créez une instance avec les spécifications recommandées</li>
+        <li>Notez l'adresse IPv4 publique et entrez-la à l'étape Spaceship</li>
+      </ol>
+      <h3><Mail size={15} /> Resend</h3>
+      <ol>
+        <li>Dans Resend, ajoutez le sous-domaine <strong>mail.votredomaine.com</strong></li>
+        <li>Renseignez le champ FROM_EMAIL avec l'adresse d'envoi</li>
+        <li>Mettez ALLOWED_EMAILS à <code>*</code> pour tout autoriser, ou restreignez à des adresses spécifiques</li>
+      </ol>
+    </>
+  )
+}
+
 const SQL_COMMANDS = `GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon,
@@ -117,6 +178,7 @@ export function ApiConfiguration() {
     <WizardLayout
       title={t('apiConfig.title')}
       description={t('apiConfig.desc')}
+      helpContent={<HelpContent />}
     >
       <div className="api-config-list">
         
@@ -137,14 +199,10 @@ export function ApiConfiguration() {
             <summary>{t('apiConfig.manualConfig')}</summary>
             <div className="form-section">
               <FormField id="supabase-url" label={t('apiConfig.supabase.url')} envKey="SUPABASE_URL" value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" hint={t('apiConfig.supabase.url.hint')} />
-              <div className="form-row">
-                <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} envKey="SUPABASE_ANON_KEY" value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." hint={t('apiConfig.supabase.anonKey.hint')} multiline />
-                <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} envKey="SUPABASE_SERVICE_ROLE_KEY" value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." hint={t('apiConfig.supabase.serviceKey.hint')} type="password" multiline />
-              </div>
-              <div className="form-row">
-                <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} envKey="DATABASE_URL" value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.databaseUrl.hint')} type="password" multiline />
-                <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} envKey="DIRECT_URL" value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.directUrl.hint')} type="password" multiline />
-              </div>
+              <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} envKey="SUPABASE_ANON_KEY" value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." hint={t('apiConfig.supabase.anonKey.hint')} multiline />
+              <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} envKey="SUPABASE_SERVICE_ROLE_KEY" value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." hint={t('apiConfig.supabase.serviceKey.hint')} type="password" multiline />
+              <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} envKey="DATABASE_URL" value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.databaseUrl.hint')} type="password" multiline />
+              <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} envKey="DIRECT_URL" value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.directUrl.hint')} type="password" multiline />
 
             <div>
               <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -306,10 +364,8 @@ export function ApiConfiguration() {
               <CopyRow label={t('step4.subdomain')} content={mailSubdomain} />
             </div>
 
-            <div className="form-row">
               <FormField id="from-email" label={t('apiConfig.supabase.fromEmail')} envKey="FROM_EMAIL" value={config.FROM_EMAIL} onChange={v => setField('FROM_EMAIL', v)} placeholder="Hackathon Team <onboarding@mail.domain.com>" hint={t('apiConfig.supabase.fromEmail.hint')} />
               <FormField id="allowed-emails" label={t('apiConfig.supabase.allowedEmails')} envKey="ALLOWED_EMAILS" value={config.ALLOWED_EMAILS} onChange={v => setField('ALLOWED_EMAILS', v)} placeholder="*" hint={t('apiConfig.supabase.allowedEmails.hint')} />
-            </div>
             </div>
           </details>
         </ServiceConfigBlock>
