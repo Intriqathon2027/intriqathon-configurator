@@ -1,4 +1,4 @@
-import { Settings, Upload, Download, Trash2 } from 'lucide-react'
+import { Settings, Upload, Download, Trash2, Moon, Sun } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import toast from 'react-hot-toast'
 
@@ -8,7 +8,8 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalProps) {
-  const { state, dispatch, t } = useApp()
+  const { state, dispatch, t, setTheme } = useApp()
+  const isDark = state.theme === 'dark'
 
   if (!settingsOpen) return null
 
@@ -92,6 +93,21 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
           </button>
         </div>
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Dark mode toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text)' }}>
+              {isDark ? <Moon size={16} color="var(--color-primary)" /> : <Sun size={16} color="var(--color-primary)" />}
+              {isDark ? 'Mode sombre' : 'Mode clair'}
+            </div>
+            <button
+              className={`settings-theme-toggle ${isDark ? 'settings-theme-toggle--dark' : ''}`}
+              onClick={() => setTheme(isDark ? 'light' : 'dark')}
+              title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+            >
+              <span className="settings-theme-toggle__thumb" />
+            </button>
+          </div>
+          <div style={{ height: '1px', background: 'var(--color-border)', margin: '4px 0' }} />
           <button
             className="btn btn-secondary"
             style={{ justifyContent: 'flex-start', padding: '12px 16px' }}

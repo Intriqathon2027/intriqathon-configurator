@@ -1,7 +1,7 @@
 import { Shield, AlertTriangle } from 'lucide-react'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { FormField } from '../components/ui/FormField'
-import { ExternalLinkBtn } from '../components/ui/ExternalLinkBtn'
+import { ServiceAccountCard } from '../components/ui/ServiceAccountCard'
 import { CopyRow } from '../components/ui/CopyBlock'
 import { useApp } from '../context/AppContext'
 
@@ -44,16 +44,26 @@ function HelpContent() {
         }
       </div>
     </div>
+    <h3><Shield size={15} /> {isEn ? 'Discord Bot' : 'Bot Discord'}</h3>
+    <ol>
+      <li>{isEn ? 'In your Discord Application, go to the "Bot" section' : 'Dans votre application Discord, allez dans la section "Bot"'}</li>
+      <li>{isEn ? 'Click "Reset Token" and copy the token → BOT_TOKEN' : 'Cliquez "Reset Token" et copiez le token → BOT_TOKEN'}</li>
+      <li>{isEn ? 'Copy your Discord Server ID (right-click the server icon with Developer Mode enabled) → DEV_SERVER_ID and GUILD_ID' : 'Copiez l\'ID de votre serveur Discord (clic droit sur l\'icône du serveur avec le Mode Développeur activé) → DEV_SERVER_ID et GUILD_ID'}</li>
+    </ol>
   </>
 }
 
-export function Step3OAuth2() {
+export function OAuth2() {
   const { t, config, setField } = useApp()
   const domain = config.DOMAIN || '<DOMAIN>'
 
   const discordCallback = `https://${domain}/api/auth/discord/callback`
   const githubHomepage = `https://${domain}`
   const githubCallback = `https://${domain}/api/auth/github/callback`
+
+  const isDiscordComplete = !!(config.DISCORD_CLIENT_ID && config.OAUTH2_DISCORD_CLIENT_SECRET)
+  const isGithubComplete = !!(config.GITHUB_CLIENT_ID && config.OAUTH2_GITHUB_CLIENT_SECRET)
+  const isBotComplete = !!(config.CLIENT_ID && config.BOT_TOKEN && config.DEV_SERVER_ID && config.GUILD_ID)
 
   return (
     <WizardLayout
@@ -62,17 +72,19 @@ export function Step3OAuth2() {
       description={t('step3.desc')}
       helpContent={<HelpContent />}
     >
-      {/* Discord */}
-      <div className="card">
-        <div className="form-section-title"><Shield size={14} />{t('step3.section.discord')}</div>
-        <div className="link-buttons-row">
-          <ExternalLinkBtn url="https://discord.com/developers/applications" label={t('step3.discord.btn')} />
-        </div>
-        <div style={{ marginBottom: '16px' }}>
-          <CopyRow label={t('step3.discord.callback')} content={discordCallback} />
-        </div>
-        <div className="form-section">
-          <div className="form-row">
+      <div className="service-account-grid">
+        {/* Discord */}
+        <ServiceAccountCard
+          serviceName={t('step3.section.discord')}
+          serviceIcon={<Shield size={16} color="var(--color-primary)" />}
+          externalUrl="https://discord.com/developers/applications"
+          externalLabel={t('step3.discord.btn')}
+          isComplete={isDiscordComplete}
+        >
+          <div style={{ marginBottom: '16px' }}>
+            <CopyRow label={t('step3.discord.callback')} content={discordCallback} />
+          </div>
+          <div className="form-section">
             <FormField id="discord-client-id" label={t('step3.discordClientId')} envKey="DISCORD_CLIENT_ID"
               value={config.DISCORD_CLIENT_ID} onChange={v => setField('DISCORD_CLIENT_ID', v)}
               placeholder="1234567890123456789" />
@@ -80,21 +92,21 @@ export function Step3OAuth2() {
               value={config.OAUTH2_DISCORD_CLIENT_SECRET} onChange={v => setField('OAUTH2_DISCORD_CLIENT_SECRET', v)}
               placeholder="abc123..." type="password" />
           </div>
-        </div>
-      </div>
+        </ServiceAccountCard>
 
-      {/* GitHub */}
-      <div className="card">
-        <div className="form-section-title"><Shield size={14} />{t('step3.section.github')}</div>
-        <div className="link-buttons-row">
-          <ExternalLinkBtn url="https://github.com/settings/developers" label={t('step3.github.btn')} />
-        </div>
-        <div style={{ marginBottom: '16px' }}>
-          <CopyRow label={t('step3.github.homepage')} content={githubHomepage} />
-          <CopyRow label={t('step3.github.callback')} content={githubCallback} />
-        </div>
-        <div className="form-section">
-          <div className="form-row">
+        {/* GitHub */}
+        <ServiceAccountCard
+          serviceName={t('step3.section.github')}
+          serviceIcon={<Shield size={16} color="var(--color-primary)" />}
+          externalUrl="https://github.com/settings/developers"
+          externalLabel={t('step3.github.btn')}
+          isComplete={isGithubComplete}
+        >
+          <div style={{ marginBottom: '16px' }}>
+            <CopyRow label={t('step3.github.homepage')} content={githubHomepage} />
+            <CopyRow label={t('step3.github.callback')} content={githubCallback} />
+          </div>
+          <div className="form-section">
             <FormField id="github-client-id" label={t('step3.githubClientId')} envKey="GITHUB_CLIENT_ID"
               value={config.GITHUB_CLIENT_ID} onChange={v => setField('GITHUB_CLIENT_ID', v)}
               placeholder="Iv1.abc123..." />
@@ -102,7 +114,31 @@ export function Step3OAuth2() {
               value={config.OAUTH2_GITHUB_CLIENT_SECRET} onChange={v => setField('OAUTH2_GITHUB_CLIENT_SECRET', v)}
               placeholder="ghp_abc123..." type="password" />
           </div>
-        </div>
+        </ServiceAccountCard>
+
+        {/* Discord Bot */}
+        <ServiceAccountCard
+          serviceName={t('step3.section.bot')}
+          serviceIcon={<Shield size={16} color="var(--color-primary)" />}
+          externalUrl="https://discord.com/developers/applications"
+          externalLabel={t('step3.bot.btn')}
+          isComplete={isBotComplete}
+        >
+          <div className="form-section">
+            <FormField id="bot-client-id" label={t('step3.botClientId')} envKey="CLIENT_ID"
+              value={config.CLIENT_ID} onChange={v => setField('CLIENT_ID', v)}
+              placeholder="1234567890123456789" hint={t('step3.botClientId.hint')} />
+            <FormField id="bot-token" label={t('step3.botToken')} envKey="BOT_TOKEN"
+              value={config.BOT_TOKEN} onChange={v => setField('BOT_TOKEN', v)}
+              placeholder="MTIzNDU..." hint={t('step3.botToken.hint')} type="password" />
+            <FormField id="dev-server-id" label={t('step3.devServerId')} envKey="DEV_SERVER_ID"
+              value={config.DEV_SERVER_ID} onChange={v => setField('DEV_SERVER_ID', v)}
+              placeholder="1234567890123456789" hint={t('step3.devServerId.hint')} />
+            <FormField id="guild-id" label={t('step3.guildId')} envKey="GUILD_ID"
+              value={config.GUILD_ID} onChange={v => setField('GUILD_ID', v)}
+              placeholder="1234567890123456789" hint={t('step3.guildId.hint')} />
+          </div>
+        </ServiceAccountCard>
       </div>
     </WizardLayout>
   )

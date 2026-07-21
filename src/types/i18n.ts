@@ -44,58 +44,123 @@ export type TranslationKeys = {
   'toast.imported': string
   'toast.reset': string
 
-  // Steps labels
+  // Steps labels (5 steps)
   'step1.label': string
   'step2.label': string
   'step3.label': string
   'step4.label': string
   'step5.label': string
-  'step6.label': string
-  'step7.label': string
-  'step8.label': string
 
-  // Step 1
-  'step1.title': string
-  'step1.desc': string
-  'step1.help.toast': string
-  'step1.domain': string
-  'step1.domain.hint': string
-  'step1.domain.placeholder': string
-  'step1.deployPath': string
-  'step1.deployPath.hint': string
-  'step1.deployPath.placeholder': string
-  'step1.ipv4': string
-  'step1.ipv4.hint': string
-  'step1.ipv4.placeholder': string
-  'step1.scaleway': string
+  // =============================================
+  // Account Creation (Step 1)
+  // =============================================
+  'accountCreation.title': string
+  'accountCreation.desc': string
+  'accountCreation.help.toast': string
+
+  // Supabase
+  'accountCreation.supabase.title': string
+  'accountCreation.supabase.pat': string
+  'accountCreation.supabase.pat.hint': string
+  'accountCreation.supabase.s3AccessKey': string
+  'accountCreation.supabase.s3AccessKey.hint': string
+  'accountCreation.supabase.s3SecretKey': string
+  'accountCreation.supabase.s3SecretKey.hint': string
+  'accountCreation.supabase.link': string
+
+  // Resend
+  'accountCreation.resend.title': string
+  'accountCreation.resend.apiKey': string
+  'accountCreation.resend.apiKey.hint': string
+  'accountCreation.resend.link': string
+
+  // Spaceship
+  'accountCreation.spaceship.title': string
+  'accountCreation.spaceship.domain': string
+  'accountCreation.spaceship.domain.hint': string
+  'accountCreation.spaceship.domain.placeholder': string
+  'accountCreation.spaceship.apiKey': string
+  'accountCreation.spaceship.apiKey.hint': string
+  'accountCreation.spaceship.apiSecret': string
+  'accountCreation.spaceship.apiSecret.hint': string
+  'accountCreation.spaceship.link': string
+
+  // Scaleway
+  'accountCreation.scaleway.title': string
+  'accountCreation.scaleway.secretKey': string
+  'accountCreation.scaleway.secretKey.hint': string
+  'accountCreation.scaleway.projectId': string
+  'accountCreation.scaleway.projectId.hint': string
+  'accountCreation.scaleway.deployPath': string
+  'accountCreation.scaleway.deployPath.hint': string
+  'accountCreation.scaleway.deployPath.placeholder': string
+  'accountCreation.scaleway.link': string
+
+  // =============================================
+  // API Configuration (Step 2)
+  // =============================================
+  'apiConfig.title': string
+  'apiConfig.desc': string
+  'apiConfig.btnStart': string
+  'apiConfig.btnCancel': string
+  'apiConfig.status.done': string
+  'apiConfig.status.running': string
+  'apiConfig.status.error': string
+  'apiConfig.manualConfig': string
+
+  // Supabase API config
+  'apiConfig.supabase.desc': string
+  'apiConfig.supabase.url': string
+  'apiConfig.supabase.url.hint': string
+  'apiConfig.supabase.anonKey': string
+  'apiConfig.supabase.anonKey.hint': string
+  'apiConfig.supabase.serviceKey': string
+  'apiConfig.supabase.serviceKey.hint': string
+  'apiConfig.supabase.databaseUrl': string
+  'apiConfig.supabase.databaseUrl.hint': string
+  'apiConfig.supabase.directUrl': string
+  'apiConfig.supabase.directUrl.hint': string
+  'apiConfig.supabase.fromEmail': string
+  'apiConfig.supabase.fromEmail.hint': string
+  'apiConfig.supabase.allowedEmails': string
+  'apiConfig.supabase.allowedEmails.hint': string
+
+  // Spaceship API config
+  'apiConfig.spaceship.desc': string
+  'apiConfig.spaceship.ipv4': string
+  'apiConfig.spaceship.ipv4.hint': string
+
+  // Scaleway API config
+  'apiConfig.scaleway.desc': string
+
+  // Resend API config
+  'apiConfig.resend.desc': string
+
+  // =============================================
+  // Step 3 — OAuth2 + Discord Bot
+  // =============================================
+  'step4.dns.title': string
+  'step4.dns.type': string
+  'step4.dns.host': string
+  'step4.dns.answer': string
+  'step4.dns.ttl': string
+  'step4.subdomain': string
+  'step4.warning': string
   'step1.specs.title': string
   'step1.spec.cpu': string
   'step1.spec.ram': string
   'step1.spec.os': string
   'step1.spec.storage': string
-  'step1.ssh.info': string
+  'step7.sql.title': string
+  'step7.realtime.title': string
+  'step7.realtime.desc': string
+  'step7.dataApi.title': string
+  'step7.dataApi.desc': string
+  'step7.auth.title': string
+  'step7.auth.desc': string
+  'step7.docker.title': string
+  'step7.docker.desc': string
 
-  // Step 2
-  'step2.title': string
-  'step2.desc': string
-  'step2.supabase': string
-  'step2.section.credentials': string
-  'step2.supabaseUrl': string
-  'step2.supabaseUrl.hint': string
-  'step2.supabaseAnonKey': string
-  'step2.supabaseAnonKey.hint': string
-  'step2.supabaseServiceKey': string
-  'step2.supabaseServiceKey.hint': string
-  'step2.section.database': string
-  'step2.databaseUrl': string
-  'step2.databaseUrl.hint': string
-  'step2.directUrl': string
-  'step2.directUrl.hint': string
-  'step2.section.s3': string
-  'step2.s3AccessKey': string
-  'step2.s3SecretKey': string
-
-  // Step 3
   'step3.title': string
   'step3.desc': string
   'step3.section.discord': string
@@ -110,37 +175,21 @@ export type TranslationKeys = {
   'step3.githubClientId': string
   'step3.githubSecret': string
 
-  // Step 4
-  'step4.title': string
-  'step4.desc': string
-  'step4.resend.btn': string
-  'step4.subdomain': string
-  'step4.dns.title': string
-  'step4.dns.type': string
-  'step4.dns.host': string
-  'step4.dns.answer': string
-  'step4.dns.ttl': string
-  'step4.resendKey': string
-  'step4.fromEmail': string
-  'step4.fromEmail.hint': string
-  'step4.allowedEmails': string
-  'step4.allowedEmails.hint': string
-  'step4.warning': string
+  // Discord Bot (integrated into step3)
+  'step3.section.bot': string
+  'step3.bot.btn': string
+  'step3.botClientId': string
+  'step3.botClientId.hint': string
+  'step3.botToken': string
+  'step3.botToken.hint': string
+  'step3.devServerId': string
+  'step3.devServerId.hint': string
+  'step3.guildId': string
+  'step3.guildId.hint': string
 
-  // Step 5
-  'step5.title': string
-  'step5.desc': string
-  'step5.discord.btn': string
-  'step5.clientId': string
-  'step5.clientId.hint': string
-  'step5.botToken': string
-  'step5.botToken.hint': string
-  'step5.devServerId': string
-  'step5.devServerId.hint': string
-  'step5.guildId': string
-  'step5.guildId.hint': string
-
-  // Step 6
+  // =============================================
+  // Step 6 — SSH Deploy (now step 4, keys kept as step6.*)
+  // =============================================
   'step6.title': string
   'step6.desc': string
   'step6.tab.auto': string
@@ -181,20 +230,9 @@ export type TranslationKeys = {
   'step6.auto.info.step3': string
   'step6.auto.info.step4': string
 
-  // Step 7
-  'step7.title': string
-  'step7.desc': string
-  'step7.sql.title': string
-  'step7.realtime.title': string
-  'step7.realtime.desc': string
-  'step7.dataApi.title': string
-  'step7.dataApi.desc': string
-  'step7.auth.title': string
-  'step7.auth.desc': string
-  'step7.docker.title': string
-  'step7.docker.desc': string
-
-  // Step 8
+  // =============================================
+  // Step 8 — Site Config (now step 5, keys kept as step8.*)
+  // =============================================
   'step8.title': string
   'step8.desc': string
   'step8.config.btn': string

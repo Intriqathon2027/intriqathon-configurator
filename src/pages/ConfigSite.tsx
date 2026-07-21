@@ -3,7 +3,7 @@ import { WizardLayout } from '../components/layout/WizardLayout'
 import { ExternalLinkBtn } from '../components/ui/ExternalLinkBtn'
 import { useApp } from '../context/AppContext'
 
-export function Step8ConfigSite() {
+export function ConfigSite() {
   const { t, config, state } = useApp()
   const domain = config.DOMAIN || '<DOMAIN>'
   const isEn = state.language === 'en'

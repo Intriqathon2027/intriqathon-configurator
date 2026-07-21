@@ -39,7 +39,7 @@ GUILD_ID=${config.GUILD_ID}
 `
 }
 
-export function Step6ManualTab() {
+export function DeployManualTab() {
   const { t, config, state } = useApp()
   const deployPath = config.DEPLOY_PATH || '/path/to/hackathon-deploy'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'

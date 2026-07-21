@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Zap, BookOpen } from 'lucide-react'
 import { WizardLayout } from '../components/layout/WizardLayout'
-import { Step6AutoTab } from '../components/deploy/Step6AutoTab'
-import { Step6ManualTab } from '../components/deploy/Step6ManualTab'
+import { DeployAutoTab } from '../components/deploy/DeployAutoTab.tsx'
+import { DeployManualTab } from '../components/deploy/DeployManualTab.tsx'
 import { useApp } from '../context/AppContext'
 
 type DeployTab = 'auto' | 'manual'
 
-export function Step6Generation() {
+export function Deploy() {
   const { t } = useApp()
   const [activeTab, setActiveTab] = useState<DeployTab>('auto')
 
@@ -39,7 +39,7 @@ export function Step6Generation() {
 
       {/* Tab content */}
       <div className="deploy-tab-content">
-        {activeTab === 'auto' ? <Step6AutoTab /> : <Step6ManualTab />}
+        {activeTab === 'auto' ? <DeployAutoTab /> : <DeployManualTab />}
       </div>
     </WizardLayout>
   )
