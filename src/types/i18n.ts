@@ -206,6 +206,8 @@ export type TranslationKeys = {
   'step6.label.mac': string
   'step6.label.windows': string
   'step6.auto.title': string
+  'step6.auto.deployPath': string
+  'step6.auto.browse': string
   'step6.auto.pathLabel': string
   'step6.auto.btnStart': string
   'step6.auto.btnCancel': string

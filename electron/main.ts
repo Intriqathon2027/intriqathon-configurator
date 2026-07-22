@@ -4,6 +4,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+import { registerDeployHandlers } from '../src/electron/ipc/deployHandlers'
 
 // The built directory structure
 process.env.APP_ROOT = path.join(__dirname, '..')
@@ -172,4 +173,5 @@ app.on('activate', () => {
   }
 })
 
+registerDeployHandlers(() => win)
 app.whenReady().then(createWindow)

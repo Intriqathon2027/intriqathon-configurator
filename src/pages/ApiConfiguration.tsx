@@ -15,48 +15,104 @@ function HelpContent() {
   if (isEn) return (
     <>
       <h3><Database size={15} /> Supabase</h3>
-      <ol>
-        <li><strong>URL, Anon Key & Service Role Key:</strong> Go to <code>Project Settings &gt; API</code> in your Supabase dashboard.</li>
-        <li><strong>DATABASE_URL & DIRECT_URL:</strong> Go to <code>Project Settings &gt; Database</code>. Make sure to use Transaction mode for DIRECT_URL (port 5432) and Session mode for DATABASE_URL (port 6543).</li>
-      </ol>
-      <h3><Globe size={15} /> Spaceship</h3>
-      <ol>
-        <li><strong>IPv4 Address:</strong> Copy the public IP from <code>Scaleway Console &gt; Compute &gt; Instances &gt; [Your Instance] &gt; Overview</code>.</li>
-        <li><strong>DNS Configuration:</strong> Go to Spaceship in <code>Launchpad &gt; Domain Portfolio &gt; (Click your domain) &gt; Advanced DNS</code> to add the required A and TXT records.</li>
-      </ol>
+      <div className="help-block">
+        <p><strong>1. URL & Core Keys:</strong></p>
+        <p className="step-schema"><code>Settings (gear icon, bottom left)</code> ➔ <code>API</code></p>
+        <p className="help-note">Copy the Project URL, the `anon` public key, and the `service_role` secret key.</p>
+        
+        <p><strong>2. Database Connection:</strong></p>
+        <p className="step-schema"><code>Connect button (top)</code> ➔ <code>ORMs tab</code></p>
+        <p className="help-note">Use <strong>Transaction mode (port 6543)</strong> for DATABASE_URL and <strong>Session mode (port 5432)</strong> for DIRECT_URL.</p>
+        
+        <p><strong>3. Storage Buckets (S3):</strong></p>
+        <p className="step-schema"><code>Storage (left sidebar)</code> ➔ <code>Buckets</code> ➔ <code>New Bucket</code></p>
+        <p className="help-note">Name it <strong>public_files</strong>, check <strong>Public bucket</strong>. Then create 4 folders inside: <code>evaluations</code>, <code>submissions</code>, <code>users</code>, and <code>annonces</code>.</p>
+      </div>
+
       <h3><Server size={15} /> Scaleway</h3>
-      <ol>
-        <li><strong>Specifications:</strong> Manually create your instance from <code>Scaleway Console &gt; Compute &gt; Instances &gt; Create an Instance</code> using the recommended specs.</li>
-      </ol>
+      <div className="help-block">
+        <p><strong>1. Instance Creation:</strong></p>
+        <p className="step-schema"><code>Console</code> ➔ <code>Compute</code> ➔ <code>Instances</code> ➔ <code>Create an Instance</code></p>
+        
+        <p><strong>2. Mandatory Settings:</strong></p>
+        <ul className="help-note">
+          <li><strong>Image:</strong> Ubuntu 24.04 LTS</li>
+          <li><strong>Specs:</strong> Minimum 4 vCPU & 16 GB RAM (e.g., PRO2-M)</li>
+          <li><strong>Storage:</strong> Block storage 10GB+</li>
+          <li><strong>Network:</strong> Enable Public IPv4</li>
+          <li><strong>Security:</strong> Add your SSH Public Key (<code>cat ~/.ssh/id_ed25519.pub</code>)</li>
+        </ul>
+      </div>
+
+      <h3><Globe size={15} /> Spaceship</h3>
+      <div className="help-block">
+        <p><strong>1. DNS Management:</strong></p>
+        <p className="step-schema"><code>Launchpad</code> ➔ <code>Domain Portfolio</code> ➔ <code>click your domain</code> ➔ <code>Advanced DNS</code></p>
+        <p className="help-note">Create A records pointing to your Scaleway IPv4, and add MX + TXT records provided by Resend for email.</p>
+      </div>
+
       <h3><Mail size={15} /> Resend</h3>
-      <ol>
-        <li><strong>Subdomain:</strong> Go to <code>Resend Dashboard &gt; Domains &gt; Add Domain</code> to register <code>mail.yourdomain.com</code>.</li>
-        <li><strong>Sender (FROM_EMAIL):</strong> Use an authorized address on this verified domain.</li>
-      </ol>
+      <div className="help-block">
+        <p><strong>1. Add Sending Domain:</strong></p>
+        <p className="step-schema"><code>Domains (left menu)</code> ➔ <code>Add Domain</code></p>
+        <p className="help-note">Use a subdomain like <code>mail.yourdomain.com</code>.</p>
+        
+        <p><strong>2. Verify with Spaceship:</strong></p>
+        <p className="step-schema"><code>Resend DNS values</code> ➔ <code>Spaceship Advanced DNS</code></p>
+        <p className="help-note">Copy exactly the MX and TXT records Resend gives you into Spaceship to verify ownership.</p>
+      </div>
     </>
   )
 
   return (
     <>
       <h3><Database size={15} /> Supabase</h3>
-      <ol>
-        <li><strong>URL, Clé Anon & Clé Service Role :</strong> Allez dans <code>Project Settings &gt; API</code> dans le dashboard Supabase.</li>
-        <li><strong>DATABASE_URL & DIRECT_URL :</strong> Allez dans <code>Project Settings &gt; Database</code>. Assurez-vous d'utiliser le mode "Transaction" pour DIRECT_URL (port 5432) et "Session" pour DATABASE_URL (port 6543).</li>
-      </ol>
-      <h3><Globe size={15} /> Spaceship</h3>
-      <ol>
-        <li><strong>Adresse IPv4 :</strong> Copiez l'IP publique depuis <code>Scaleway Console &gt; Compute &gt; Instances &gt; [Votre Instance] &gt; Overview</code>.</li>
-        <li><strong>Configuration DNS :</strong> Allez sur Spaceship dans <code>Launchpad &gt; Domain Portfolio &gt; (Cliquez sur votre domaine) &gt; Advanced DNS</code> pour ajouter les entrées A et TXT affichées.</li>
-      </ol>
+      <div className="help-block">
+        <p><strong>1. URL & Clés Principales :</strong></p>
+        <p className="step-schema"><code>Settings (roue crantée, bas gauche)</code> ➔ <code>API</code></p>
+        <p className="help-note">Copiez l'URL du projet, la clé publique `anon` et la clé secrète `service_role`.</p>
+        
+        <p><strong>2. Connexion Base de Données :</strong></p>
+        <p className="step-schema"><code>Bouton Connect (en haut)</code> ➔ <code>Onglet ORMs</code></p>
+        <p className="help-note">Utilisez le mode <strong>Transaction (port 6543)</strong> pour DATABASE_URL et le mode <strong>Session (port 5432)</strong> pour DIRECT_URL.</p>
+        
+        <p><strong>3. Storage Buckets (S3) :</strong></p>
+        <p className="step-schema"><code>Storage (barre de navigation gauche)</code> ➔ <code>Buckets</code> ➔ <code>New Bucket</code></p>
+        <p className="help-note">Nommez-le <strong>public_files</strong>, cochez <strong>Public bucket</strong>. À l'intérieur, créez les 4 dossiers : <code>evaluations</code>, <code>submissions</code>, <code>users</code>, et <code>annonces</code>.</p>
+      </div>
+
       <h3><Server size={15} /> Scaleway</h3>
-      <ol>
-        <li><strong>Spécifications :</strong> Créez manuellement votre instance depuis <code>Scaleway Console &gt; Compute &gt; Instances &gt; Create an Instance</code> en suivant les caractéristiques recommandées.</li>
-      </ol>
+      <div className="help-block">
+        <p><strong>1. Création de l'Instance :</strong></p>
+        <p className="step-schema"><code>Console</code> ➔ <code>Compute</code> ➔ <code>Instances</code> ➔ <code>Create an Instance</code></p>
+        
+        <p><strong>2. Paramètres Obligatoires :</strong></p>
+        <ul className="help-note">
+          <li><strong>Image :</strong> Ubuntu 24.04 LTS</li>
+          <li><strong>Ressources :</strong> Minimum 4 vCPU & 16 Go RAM</li>
+          <li><strong>Stockage :</strong> Block storage de 10 Go ou plus</li>
+          <li><strong>Réseau :</strong> Activer une IPv4 publique</li>
+          <li><strong>Sécurité :</strong> Ajouter votre clé publique SSH (ex: <code>cat ~/.ssh/id_ed25519.pub</code>)</li>
+        </ul>
+      </div>
+
+      <h3><Globe size={15} /> Spaceship</h3>
+      <div className="help-block">
+        <p><strong>1. Gestion DNS :</strong></p>
+        <p className="step-schema"><code>Launchpad</code> ➔ <code>Domain Portfolio</code> ➔ <code>cliquez votre domaine</code> ➔ <code>Advanced DNS</code></p>
+        <p className="help-note">Créez les enregistrements A vers l'IPv4 de Scaleway, et ajoutez les enregistrements MX + TXT fournis par Resend pour l'email.</p>
+      </div>
+
       <h3><Mail size={15} /> Resend</h3>
-      <ol>
-        <li><strong>Sous-domaine :</strong> Allez dans <code>Resend Dashboard &gt; Domains &gt; Add Domain</code> pour enregistrer <code>mail.votredomaine.com</code>.</li>
-        <li><strong>Expéditeur (FROM_EMAIL) :</strong> Utilisez une adresse autorisée sur ce domaine vérifié.</li>
-      </ol>
+      <div className="help-block">
+        <p><strong>1. Ajouter le domaine d'envoi :</strong></p>
+        <p className="step-schema"><code>Domains (menu gauche)</code> ➔ <code>Add Domain</code></p>
+        <p className="help-note">Utilisez un sous-domaine dédié comme <code>mail.votredomaine.com</code>.</p>
+        
+        <p><strong>2. Vérification DNS :</strong></p>
+        <p className="step-schema"><code>Valeurs fournies par Resend</code> ➔ <code>Spaceship Advanced DNS</code></p>
+        <p className="help-note">Copiez scrupuleusement les champs MX et TXT affichés par Resend dans l'interface de Spaceship, puis validez.</p>
+      </div>
     </>
   )
 }
@@ -236,70 +292,9 @@ export function ApiConfiguration() {
           </details>
         </ServiceConfigBlock>
 
-        {/* Spaceship */}
-        <ServiceConfigBlock
-          stepNumber={2}
-          serviceName="SPACESHIP"
-          serviceIcon={<Globe size={18} color="var(--color-primary)" />}
-          description={t('apiConfig.spaceship.desc')}
-          status={spaceshipStatus}
-          onStart={() => handleStart('Spaceship')}
-          onCancel={() => handleCancel('Spaceship')}
-          btnStartLabel={t('apiConfig.btnStart')}
-          btnCancelLabel={t('apiConfig.btnCancel')}
-          statusLabels={statusLabels}
-        >
-          <details className="manual-config-details">
-            <summary>{t('apiConfig.manualConfig')}</summary>
-            <div className="form-section">
-              <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} envKey="IPV4_INSTANCE" value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" hint={t('apiConfig.spaceship.ipv4.hint')} />
-
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Info size={16} color="var(--color-primary)" />
-                {t('step4.dns.title')}
-              </div>
-              <table className="dns-table">
-                <thead>
-                  <tr>
-                    <th>{t('step4.dns.type')}</th>
-                    <th>{t('step4.dns.host')}</th>
-                    <th>{t('step4.dns.answer')}</th>
-                    <th>{t('step4.dns.ttl')}</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dnsRecords.map((rec, i) => (
-                    <tr key={i}>
-                      <td><span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{rec.type}</span></td>
-                      <td>{rec.host}</td>
-                      <td>{rec.answer}</td>
-                      <td>{rec.ttl}</td>
-                      <td>
-                        <button
-                          className="btn btn-copy"
-                          onClick={() => navigator.clipboard.writeText(`${rec.type},${rec.host},${rec.answer},${rec.ttl}`)}
-                        >
-                          Copier
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="info-box warning" style={{ marginTop: '16px' }}>
-                <AlertTriangle size={15} className="info-box-icon" />
-                <div className="info-box-text">{t('step4.warning')}</div>
-              </div>
-            </div>
-            </div>
-          </details>
-        </ServiceConfigBlock>
-
         {/* Scaleway */}
         <ServiceConfigBlock
-          stepNumber={3}
+          stepNumber={2}
           serviceName="SCALEWAY"
           serviceIcon={<Server size={18} color="var(--color-primary)" />}
           description={t('apiConfig.scaleway.desc')}
@@ -313,21 +308,82 @@ export function ApiConfiguration() {
           <details className="manual-config-details">
             <summary>{t('apiConfig.manualConfig')}</summary>
             <div className="form-section">
-              <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Server size={16} color="var(--color-primary)" />
-              {t('step1.specs.title')}
-            </div>
-            <div className="spec-list">
-              {specs.map(spec => (
-                <div className="spec-item" key={spec.key}>
-                  <div className="spec-icon">{spec.icon}</div>
-                  <div>
-                    <div className="spec-label">{spec.label}</div>
-                    <div className="spec-value">{spec.value}</div>
+              <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} envKey="IPV4_INSTANCE" value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" hint={t('apiConfig.spaceship.ipv4.hint')} />
+
+              <div style={{ fontWeight: 600, marginBottom: '12px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Server size={16} color="var(--color-primary)" />
+                {t('step1.specs.title')}
+              </div>
+              <div className="spec-list">
+                {specs.map(spec => (
+                  <div className="spec-item" key={spec.key}>
+                    <div className="spec-icon">{spec.icon}</div>
+                    <div>
+                      <div className="spec-label">{spec.label}</div>
+                      <div className="spec-value">{spec.value}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+          </details>
+        </ServiceConfigBlock>
+
+        {/* Spaceship */}
+        <ServiceConfigBlock
+          stepNumber={3}
+          serviceName="SPACESHIP"
+          serviceIcon={<Globe size={18} color="var(--color-primary)" />}
+          description={t('apiConfig.spaceship.desc')}
+          status={spaceshipStatus}
+          onStart={() => handleStart('Spaceship')}
+          onCancel={() => handleCancel('Spaceship')}
+          btnStartLabel={t('apiConfig.btnStart')}
+          btnCancelLabel={t('apiConfig.btnCancel')}
+          statusLabels={statusLabels}
+        >
+          <details className="manual-config-details">
+            <summary>{t('apiConfig.manualConfig')}</summary>
+            <div className="form-section">
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Info size={16} color="var(--color-primary)" />
+                  {t('step4.dns.title')}
+                </div>
+                <table className="dns-table">
+                  <thead>
+                    <tr>
+                      <th>{t('step4.dns.type')}</th>
+                      <th>{t('step4.dns.host')}</th>
+                      <th>{t('step4.dns.answer')}</th>
+                      <th>{t('step4.dns.ttl')}</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dnsRecords.map((rec, i) => (
+                      <tr key={i}>
+                        <td><span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{rec.type}</span></td>
+                        <td>{rec.host}</td>
+                        <td>{rec.answer}</td>
+                        <td>{rec.ttl}</td>
+                        <td>
+                          <button
+                            className="btn btn-copy"
+                            onClick={() => navigator.clipboard.writeText(`${rec.type},${rec.host},${rec.answer},${rec.ttl}`)}
+                          >
+                            Copier
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="info-box warning" style={{ marginTop: '16px' }}>
+                  <AlertTriangle size={15} className="info-box-icon" />
+                  <div className="info-box-text">{t('step4.warning')}</div>
+                </div>
+              </div>
             </div>
           </details>
         </ServiceConfigBlock>

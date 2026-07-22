@@ -1621,6 +1621,48 @@ body {
   margin-bottom: var(--space-3);
 }
 
+.help-block {
+  margin-left: var(--space-4);
+  margin-bottom: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.help-block p {
+  margin-bottom: 0;
+}
+
+.step-schema {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.help-note {
+  font-size: 12px;
+  color: var(--color-text-tertiary, #888);
+  margin-top: 2px;
+  margin-left: 4px;
+  line-height: 1.5;
+}
+.help-note strong {
+  color: var(--color-text-secondary);
+}
+
+ul.help-note {
+  margin-left: var(--space-4);
+  margin-top: 4px;
+  list-style: disc;
+}
+ul.help-note li {
+  font-size: 12px;
+  color: var(--color-text-tertiary, #888);
+}
+
 /* Active help button state */
 .btn-icon--active {
   background: var(--color-primary-light);
