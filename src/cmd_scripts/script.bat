@@ -30,7 +30,7 @@ if "%~2"=="" (
 echo [SCRIPT] IPV4 = %IPV4%
 echo [SCRIPT] SOURCE_DIR = %SOURCE_DIR%
 
-set "SSH_OPTS=-o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o BatchMode=no"
+set "SSH_OPTS=-o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o BatchMode=yes"
 
 echo === Deploiement vers %IPV4% ===
 echo     Dossier source : %SOURCE_DIR%
