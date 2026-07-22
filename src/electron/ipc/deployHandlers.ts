@@ -13,6 +13,11 @@ export function registerDeployHandlers(getWin: () => BrowserWindow | null): void
     if (!win) throw new Error('No active window')
     deployService.start(ipv4, sourceDir, win, sshPassword)
   })
+  ipcMain.handle('deploy:restart', (_event, ipv4: string, sshPassword?: string) => {
+    const win = getWin()
+    if (!win) throw new Error('No active window')
+    deployService.startRestart(ipv4, win, sshPassword)
+  })
   ipcMain.handle('deploy:cancel', () => deployService.cancel())
   ipcMain.handle('deploy:send-input', (_event, text: string) => deployService.sendInput(text))
 }

@@ -23,9 +23,9 @@ var l = class {
 	}
 }, u = o.dirname(a(import.meta.url)), d = class {
 	childProcess = null;
-	getScriptPath() {
-		let e = l.isWindows() ? "script.bat" : "script.sh";
-		return u.includes("app.asar") && process.resourcesPath ? o.join(process.resourcesPath, "src/cmd_scripts", e) : o.join(process.env.APP_ROOT, "src/cmd_scripts", e);
+	getScriptPath(e = "script") {
+		let t = l.isWindows() ? `${e}.bat` : `${e}.sh`;
+		return u.includes("app.asar") && process.resourcesPath ? o.join(process.resourcesPath, "src/cmd_scripts", t) : o.join(process.env.APP_ROOT, "src/cmd_scripts", t);
 	}
 	debug(e, t) {
 		e.webContents.send("deploy:stdout", `[DEBUG] ${t}`);
@@ -66,16 +66,59 @@ var l = class {
 				"pipe"
 			]
 		};
-		this.childProcess = c(u[0], u[1], d), this.debug(n, `PID : ${this.childProcess.pid ?? "N/A"}`), this.childProcess.stdout?.on("data", (e) => {
+		this.childProcess = c(u[0], u[1], d), this.debug(n, `PID : ${this.childProcess?.pid ?? "N/A"}`), this.childProcess?.stdout?.on("data", (e) => {
 			let t = e.toString().split("\n");
 			for (let e of t) e.trim() && n.webContents.send("deploy:stdout", e.trimEnd());
-		}), this.childProcess.stderr?.on("data", (e) => {
+		}), this.childProcess?.stderr?.on("data", (e) => {
 			let t = e.toString().split("\n");
 			for (let e of t) e.trim() && n.webContents.send("deploy:stderr", e.trimEnd());
-		}), this.childProcess.on("close", (e, t) => {
+		}), this.childProcess?.on("close", (e, t) => {
 			this.debug(n, `Processus terminé — code: ${e}, signal: ${t}`), n.webContents.send("deploy:exit", e), this.childProcess = null;
-		}), this.childProcess.on("error", (e) => {
+		}), this.childProcess?.on("error", (e) => {
 			this.debug(n, `Erreur spawn : ${e.message}`), n.webContents.send("deploy:error", e.message), this.childProcess = null;
+		});
+	}
+	startRestart(e, t, n) {
+		this.cancel();
+		let r = this.getScriptPath("restart_docker"), i = l.isWindows();
+		if (this.debug(t, `Plateforme : ${process.platform}`), this.debug(t, `Script : ${r}`), this.debug(t, `Existe : ${s.existsSync(r)}`), this.debug(t, `IPV4 : ${e}`), !s.existsSync(r)) {
+			t.webContents.send("deploy:error", `Script introuvable : ${r}`);
+			return;
+		}
+		if (!i) try {
+			s.chmodSync(r, 493), this.debug(t, "chmod 755 appliqué au script");
+		} catch (e) {
+			this.debug(t, `chmod échoué (non bloquant) : ${String(e)}`);
+		}
+		let a = {
+			...process.env,
+			DISPLAY: ""
+		};
+		n && (a.SSHPASS = n, this.debug(t, "SSHPASS configuré pour l'authentification"));
+		let o = i ? ["cmd.exe", [
+			"/c",
+			r,
+			e
+		]] : ["bash", [r, e]];
+		this.debug(t, `Commande : ${o[0]} ${o[1].join(" ")}`);
+		let u = {
+			env: a,
+			stdio: [
+				"pipe",
+				"pipe",
+				"pipe"
+			]
+		};
+		this.childProcess = c(o[0], o[1], u), this.debug(t, `PID : ${this.childProcess?.pid ?? "N/A"}`), this.childProcess?.stdout?.on("data", (e) => {
+			let n = e.toString().split("\n");
+			for (let e of n) e.trim() && t.webContents.send("deploy:stdout", e.trimEnd());
+		}), this.childProcess?.stderr?.on("data", (e) => {
+			let n = e.toString().split("\n");
+			for (let e of n) e.trim() && t.webContents.send("deploy:stderr", e.trimEnd());
+		}), this.childProcess?.on("close", (e, n) => {
+			this.debug(t, `Processus terminé — code: ${e}, signal: ${n}`), t.webContents.send("deploy:exit", e), this.childProcess = null;
+		}), this.childProcess?.on("error", (e) => {
+			this.debug(t, `Erreur spawn : ${e.message}`), t.webContents.send("deploy:error", e.message), this.childProcess = null;
 		});
 	}
 	cancel() {
@@ -96,6 +139,10 @@ function f(e) {
 		let o = e();
 		if (!o) throw Error("No active window");
 		t.start(r, i, o, a);
+	}), r.handle("deploy:restart", (n, r, i) => {
+		let a = e();
+		if (!a) throw Error("No active window");
+		t.startRestart(r, a, i);
 	}), r.handle("deploy:cancel", () => t.cancel()), r.handle("deploy:send-input", (e, n) => t.sendInput(n));
 }
 //#endregion

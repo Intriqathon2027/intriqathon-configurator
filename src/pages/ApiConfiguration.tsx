@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Database, Mail, Globe, Server, Info, AlertTriangle, Check, Copy, Play, Cpu, MemoryStick, HardDrive, Monitor } from 'lucide-react'
+import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor } from 'lucide-react'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
 import { FormField } from '../components/ui/FormField'
@@ -117,64 +117,6 @@ function HelpContent() {
   )
 }
 
-const SQL_COMMANDS = `GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon,
-    authenticated, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon,
-    authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO
-    postgres, anon, authenticated, service_role;`
-
-function SqlBlock({ sql }: { sql: string }) {
-  const { t } = useApp()
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(sql)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <div className="sql-block" style={{ marginTop: '16px', marginBottom: '16px' }}>
-      <div className="sql-block-header">
-        <span className="sql-lang-badge">SQL</span>
-        <button className={`btn btn-copy ${copied ? 'copied' : ''}`} onClick={handleCopy}>
-          {copied
-            ? <><Check size={11} />{t('btn.copied')}</>
-            : <><Copy size={11} />{t('btn.copy')}</>
-          }
-        </button>
-      </div>
-      <div className="sql-block-content">{sql}</div>
-    </div>
-  )
-}
-
-function DockerBlock({ command }: { command: string }) {
-  const { t } = useApp()
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(command)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <div className="command-block" style={{ marginTop: '16px' }}>
-      <Play size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
-      <span className="command-text">{command}</span>
-      <button className={`btn btn-copy ${copied ? 'copied' : ''}`} onClick={handleCopy} style={{ flexShrink: 0 }}>
-        {copied
-          ? <><Check size={11} />{t('btn.copied')}</>
-          : <><Copy size={11} />{t('btn.copy')}</>
-        }
-      </button>
-    </div>
-  )
-}
 
 export function ApiConfiguration() {
   const { t, config, setField } = useApp()
@@ -189,11 +131,6 @@ export function ApiConfiguration() {
     { type: 'A', host: `config.${domain}`, answer: ipv4, ttl: 'Auto' },
   ]
 
-  const checklist = [
-    { key: 'realtime', title: t('step7.realtime.title'), desc: t('step7.realtime.desc') },
-    { key: 'dataApi', title: t('step7.dataApi.title'), desc: t('step7.dataApi.desc') },
-    { key: 'auth', title: t('step7.auth.title'), desc: t('step7.auth.desc') },
-  ]
 
   const specs = [
     { key: 'cpu', icon: <Cpu size={15} />, label: 'CPU', value: t('step1.spec.cpu') },
@@ -252,42 +189,7 @@ export function ApiConfiguration() {
               <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} envKey="DATABASE_URL" value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.databaseUrl.hint')} type="password" multiline />
               <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} envKey="DIRECT_URL" value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.directUrl.hint')} type="password" multiline />
 
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Database size={16} color="var(--color-primary)" />
-                {t('step7.sql.title')}
-              </div>
-              <SqlBlock sql={SQL_COMMANDS} />
-            </div>
 
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Check size={16} color="var(--color-primary)" />
-                Actions Supabase
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {checklist.map(item => (
-                  <div key={item.key} className="info-box info">
-                    <div className="info-box-icon" style={{ marginTop: '0' }}>
-                      <Database size={15} />
-                    </div>
-                    <div className="info-box-text">
-                      <div className="info-box-title">{item.title}</div>
-                      {item.desc}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Play size={16} color="var(--color-primary)" />
-                {t('step7.docker.title')}
-              </div>
-              <p className="text-sm text-muted" style={{ marginBottom: '12px' }}>{t('step7.docker.desc')}</p>
-              <DockerBlock command="docker restart discord_bot" />
-            </div>
             </div>
           </details>
         </ServiceConfigBlock>

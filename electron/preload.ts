@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPlatform: () => ipcRenderer.invoke('deploy:get-platform'),
   writeEnvToDir: (dir: string, content: string) => ipcRenderer.invoke('deploy:write-env', dir, content),
   startDeploy: (ipv4: string, sourceDir: string, sshPassword?: string) => ipcRenderer.invoke('deploy:start', ipv4, sourceDir, sshPassword),
+  restartDocker: (ipv4: string, sshPassword?: string) => ipcRenderer.invoke('deploy:restart', ipv4, sshPassword),
   cancelDeploy: () => ipcRenderer.invoke('deploy:cancel'),
   sendDeployInput: (text: string) => ipcRenderer.invoke('deploy:send-input', text),
   onDeployStdout: (cb: (line: string) => void) => {

@@ -69,7 +69,7 @@ export function FormField({
                 autoComplete="off"
                 spellCheck={false}
                 rows={3}
-                style={isPassword && !showPassword ? { WebkitTextSecurity: 'disc', fontFamily: 'monospace' } : {}}
+                style={isPassword && !showPassword ? { WebkitTextSecurity: 'disc', fontFamily: 'monospace' } as any : {}}
               />
               {renderPasswordToggle()}
             </div>
@@ -104,7 +104,7 @@ export function FormField({
             autoComplete="off"
             spellCheck={false}
             rows={3}
-            style={isPassword && !showPassword ? { WebkitTextSecurity: 'disc', fontFamily: 'monospace' } : {}}
+            style={isPassword && !showPassword ? { WebkitTextSecurity: 'disc', fontFamily: 'monospace' } as any : {}}
           />
           {renderPasswordToggle()}
         </div>

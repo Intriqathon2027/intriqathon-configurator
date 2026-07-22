@@ -2,6 +2,7 @@ export interface DeployBridge {
   getPlatform(): Promise<string>
   writeEnvToDir(dir: string, content: string): Promise<{ success: boolean; error?: string }>
   startDeploy(ipv4: string, sourceDir: string, sshPassword?: string): Promise<void>
+  restartDocker(ipv4: string, sshPassword?: string): Promise<void>
   cancelDeploy(): Promise<void>
   sendInput(text: string): Promise<void>
   onStdout(cb: (line: string) => void): () => void
@@ -19,6 +20,9 @@ class ElectronDeployBridge implements DeployBridge {
   }
   startDeploy(ipv4: string, sourceDir: string, sshPassword?: string) {
     return window.electronAPI.startDeploy(ipv4, sourceDir, sshPassword)
+  }
+  restartDocker(ipv4: string, sshPassword?: string) {
+    return window.electronAPI.restartDocker(ipv4, sshPassword)
   }
   cancelDeploy() {
     return window.electronAPI.cancelDeploy()
@@ -48,9 +52,6 @@ class MockDeployBridge implements DeployBridge {
   private timeouts: ReturnType<typeof setTimeout>[] = []
   private cancelled = false
   
-  private currentIpv4 = ''
-  private currentSourceDir = ''
-  
   private resolveInput: ((val: string) => void) | null = null
 
   async getPlatform() {
@@ -64,8 +65,6 @@ class MockDeployBridge implements DeployBridge {
   
   async startDeploy(ipv4: string, sourceDir: string, _sshPassword?: string) {
     this.cancelled = false
-    this.currentIpv4 = ipv4
-    this.currentSourceDir = sourceDir
     
     try {
       this.stdout(`Connexion SSH à root@${ipv4}…`)
@@ -120,6 +119,27 @@ class MockDeployBridge implements DeployBridge {
       if (this.cancelled) return
       this.stdout(`Déploiement terminé avec succès !`)
       
+      this.exitCbs.forEach(cb => cb(0))
+    } catch {
+      if (!this.cancelled) {
+        this.exitCbs.forEach(cb => cb(1))
+      }
+    }
+  }
+
+  async restartDocker(ipv4: string, _sshPassword?: string) {
+    this.cancelled = false
+
+    try {
+      this.stdout(`Connexion SSH à root@${ipv4}…`)
+      await this.wait(800)
+      if (this.cancelled) return
+
+      this.stdout(`Exécution de docker restart discord_bot...`)
+      await this.wait(1500)
+      if (this.cancelled) return
+
+      this.stdout(`Redémarrage de Docker terminé avec succès !`)
       this.exitCbs.forEach(cb => cb(0))
     } catch {
       if (!this.cancelled) {
@@ -193,7 +213,7 @@ class MockDeployBridge implements DeployBridge {
 }
 
 export function createDeployBridge(): DeployBridge {
-  if (window.electronAPI?.startDeploy) {
+  if (typeof window !== 'undefined' && window.electronAPI && !!window.electronAPI.startDeploy) {
     return new ElectronDeployBridge()
   }
   return new MockDeployBridge()

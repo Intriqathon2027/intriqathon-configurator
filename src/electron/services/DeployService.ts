@@ -10,9 +10,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export class DeployService {
   private childProcess: ChildProcess | null = null
 
-  getScriptPath(): string {
+  getScriptPath(scriptNameBase: 'script' | 'restart_docker' = 'script'): string {
     const isWin = PlatformService.isWindows()
-    const scriptName = isWin ? 'script.bat' : 'script.sh'
+    const scriptName = isWin ? `${scriptNameBase}.bat` : `${scriptNameBase}.sh`
 
     if (__dirname.includes('app.asar') && process.resourcesPath) {
       return path.join(process.resourcesPath, 'src/cmd_scripts', scriptName)
@@ -70,13 +70,13 @@ export class DeployService {
 
     this.debug(win, `Commande : ${args[0]} ${(args[1] as string[]).join(' ')}`)
 
-    const spawnOpts = { env, stdio: ['pipe', 'pipe', 'pipe'] as const }
+    const spawnOpts = { env, stdio: ['pipe', 'pipe', 'pipe'] as ['pipe', 'pipe', 'pipe'] }
 
     this.childProcess = spawn(args[0] as string, args[1] as string[], spawnOpts)
 
-    this.debug(win, `PID : ${this.childProcess.pid ?? 'N/A'}`)
+    this.debug(win, `PID : ${this.childProcess?.pid ?? 'N/A'}`)
 
-    this.childProcess.stdout?.on('data', (data: Buffer) => {
+    this.childProcess?.stdout?.on('data', (data: Buffer) => {
       const lines = data.toString().split('\n')
       for (const line of lines) {
         if (line.trim()) {
@@ -85,7 +85,7 @@ export class DeployService {
       }
     })
 
-    this.childProcess.stderr?.on('data', (data: Buffer) => {
+    this.childProcess?.stderr?.on('data', (data: Buffer) => {
       const lines = data.toString().split('\n')
       for (const line of lines) {
         if (line.trim()) {
@@ -94,13 +94,90 @@ export class DeployService {
       }
     })
 
-    this.childProcess.on('close', (code, signal) => {
+    this.childProcess?.on('close', (code, signal) => {
       this.debug(win, `Processus terminé — code: ${code}, signal: ${signal}`)
       win.webContents.send('deploy:exit', code)
       this.childProcess = null
     })
 
-    this.childProcess.on('error', (err) => {
+    this.childProcess?.on('error', (err) => {
+      this.debug(win, `Erreur spawn : ${err.message}`)
+      win.webContents.send('deploy:error', err.message)
+      this.childProcess = null
+    })
+  }
+
+  startRestart(ipv4: string, win: BrowserWindow, sshPassword?: string): void {
+    this.cancel()
+
+    const scriptPath = this.getScriptPath('restart_docker')
+    const isWin = PlatformService.isWindows()
+
+    this.debug(win, `Plateforme : ${process.platform}`)
+    this.debug(win, `Script : ${scriptPath}`)
+    this.debug(win, `Existe : ${fs.existsSync(scriptPath)}`)
+    this.debug(win, `IPV4 : ${ipv4}`)
+
+    if (!fs.existsSync(scriptPath)) {
+      win.webContents.send('deploy:error', `Script introuvable : ${scriptPath}`)
+      return
+    }
+
+    if (!isWin) {
+      try {
+        fs.chmodSync(scriptPath, 0o755)
+        this.debug(win, 'chmod 755 appliqué au script')
+      } catch (e) {
+        this.debug(win, `chmod échoué (non bloquant) : ${String(e)}`)
+      }
+    }
+
+    const env: Record<string, string> = {
+      ...process.env as Record<string, string>,
+      DISPLAY: '',
+    }
+    
+    if (sshPassword) {
+      env.SSHPASS = sshPassword
+      this.debug(win, `SSHPASS configuré pour l'authentification`)
+    }
+
+    const args = isWin
+      ? ['cmd.exe', ['/c', scriptPath, ipv4]]
+      : ['bash', [scriptPath, ipv4]]
+
+    this.debug(win, `Commande : ${args[0]} ${(args[1] as string[]).join(' ')}`)
+
+    const spawnOpts = { env, stdio: ['pipe', 'pipe', 'pipe'] as ['pipe', 'pipe', 'pipe'] }
+    this.childProcess = spawn(args[0] as string, args[1] as string[], spawnOpts)
+
+    this.debug(win, `PID : ${this.childProcess?.pid ?? 'N/A'}`)
+
+    this.childProcess?.stdout?.on('data', (data: Buffer) => {
+      const lines = data.toString().split('\n')
+      for (const line of lines) {
+        if (line.trim()) {
+          win.webContents.send('deploy:stdout', line.trimEnd())
+        }
+      }
+    })
+
+    this.childProcess?.stderr?.on('data', (data: Buffer) => {
+      const lines = data.toString().split('\n')
+      for (const line of lines) {
+        if (line.trim()) {
+          win.webContents.send('deploy:stderr', line.trimEnd())
+        }
+      }
+    })
+
+    this.childProcess?.on('close', (code, signal) => {
+      this.debug(win, `Processus terminé — code: ${code}, signal: ${signal}`)
+      win.webContents.send('deploy:exit', code)
+      this.childProcess = null
+    })
+
+    this.childProcess?.on('error', (err) => {
       this.debug(win, `Erreur spawn : ${err.message}`)
       win.webContents.send('deploy:error', err.message)
       this.childProcess = null
