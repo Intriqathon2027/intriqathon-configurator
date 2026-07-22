@@ -207,19 +207,6 @@ export function useDeployment() {
     setProgress(0)
     setPendingDialog(null)
 
-    // SSH writes password prompts to /dev/tty — they never reach our pipe.
-    // Ask for the password upfront and pass it via SSHPASS env var.
-    if (!config.sshPassword) {
-      setStatus('paused_for_dialog')
-      setPendingDialog({
-        type: 'auth',
-        title: 'Authentification SSH',
-        message: `Mot de passe root@${config.ipv4}`,
-      })
-      pendingConfigRef.current = config
-      return
-    }
-
     runWithConfig(config)
   }, [runWithConfig])
 
@@ -239,18 +226,9 @@ export function useDeployment() {
     setPendingDialog(null)
 
     if (response.type === 'auth') {
-      const pending = pendingConfigRef.current
-      if (pending) {
-        // Upfront password dialog — resume with password
-        pendingConfigRef.current = null
-        addLog(`Authentification SSH : ${response.username || 'root'}`, 'info')
-        runWithConfig({ ...pending, sshPassword: response.password })
-      } else {
-        // Mid-deployment fallback
-        bridgeRef.current?.sendInput(response.password + '\n')
-        addLog('Authentification envoyée', 'done')
-        setStatus('running')
-      }
+      // In case we ever add back auth dialogs, we can just log for now
+      addLog('Authentification non gérée', 'error')
+      setStatus('error')
     } else if (response.type === 'confirm') {
       setStatus('running')
       if (response.confirmed) {
