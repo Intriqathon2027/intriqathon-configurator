@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
 import { Check, Play, XCircle, Loader, AlertTriangle } from 'lucide-react'
 
-type ServiceConfigStatus = 'idle' | 'running' | 'done' | 'error'
+type ServiceConfigStatus = 'idle' | 'running' | 'done' | 'error' | 'none'
 
 interface ServiceConfigBlockProps {
   stepNumber: number
