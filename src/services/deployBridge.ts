@@ -1,7 +1,7 @@
 export interface DeployBridge {
   getPlatform(): Promise<string>
   writeEnvToDir(dir: string, content: string): Promise<{ success: boolean; error?: string }>
-  startDeploy(ipv4: string, sourceDir: string): Promise<void>
+  startDeploy(ipv4: string, sourceDir: string, sshPassword?: string): Promise<void>
   cancelDeploy(): Promise<void>
   sendInput(text: string): Promise<void>
   onStdout(cb: (line: string) => void): () => void
@@ -17,8 +17,8 @@ class ElectronDeployBridge implements DeployBridge {
   writeEnvToDir(dir: string, content: string) {
     return window.electronAPI.writeEnvToDir(dir, content)
   }
-  startDeploy(ipv4: string, sourceDir: string) {
-    return window.electronAPI.startDeploy(ipv4, sourceDir)
+  startDeploy(ipv4: string, sourceDir: string, sshPassword?: string) {
+    return window.electronAPI.startDeploy(ipv4, sourceDir, sshPassword)
   }
   cancelDeploy() {
     return window.electronAPI.cancelDeploy()
@@ -62,7 +62,7 @@ class MockDeployBridge implements DeployBridge {
     return { success: true }
   }
   
-  async startDeploy(ipv4: string, sourceDir: string) {
+  async startDeploy(ipv4: string, sourceDir: string, _sshPassword?: string) {
     this.cancelled = false
     this.currentIpv4 = ipv4
     this.currentSourceDir = sourceDir

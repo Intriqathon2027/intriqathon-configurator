@@ -20,7 +20,7 @@ export interface ElectronAPI {
   // Deploy
   getPlatform: () => Promise<string>
   writeEnvToDir: (dir: string, content: string) => Promise<{ success: boolean; error?: string }>
-  startDeploy: (ipv4: string, sourceDir: string) => Promise<void>
+  startDeploy: (ipv4: string, sourceDir: string, sshPassword?: string) => Promise<void>
   cancelDeploy: () => Promise<void>
   sendDeployInput: (text: string) => Promise<void>
   onDeployStdout: (cb: (line: string) => void) => () => void

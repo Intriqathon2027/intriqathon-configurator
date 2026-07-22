@@ -21,45 +21,68 @@ var l = class {
 			};
 		}
 	}
-}, u = class {
+}, u = o.dirname(a(import.meta.url)), d = class {
 	childProcess = null;
 	getScriptPath() {
 		let e = l.isWindows() ? "script.bat" : "script.sh";
-		return __dirname.includes("app.asar") && process.resourcesPath ? o.join(process.resourcesPath, "src/cmd_scripts", e) : o.join(process.env.APP_ROOT, "src/cmd_scripts", e);
+		return u.includes("app.asar") && process.resourcesPath ? o.join(process.resourcesPath, "src/cmd_scripts", e) : o.join(process.env.APP_ROOT, "src/cmd_scripts", e);
 	}
-	start(e, t, n) {
+	debug(e, t) {
+		e.webContents.send("deploy:stdout", `[DEBUG] ${t}`);
+	}
+	start(e, t, n, r) {
 		this.cancel();
-		let r = this.getScriptPath(), i = l.isWindows(), a = {
+		let i = this.getScriptPath(), a = l.isWindows();
+		if (this.debug(n, `Plateforme : ${process.platform}`), this.debug(n, `Script : ${i}`), this.debug(n, `Existe : ${s.existsSync(i)}`), this.debug(n, `IPV4 : ${e}`), this.debug(n, `SOURCE_DIR : ${t}`), !s.existsSync(i)) {
+			n.webContents.send("deploy:error", `Script introuvable : ${i}`);
+			return;
+		}
+		if (!a) try {
+			s.chmodSync(i, 493), this.debug(n, "chmod 755 appliqué au script");
+		} catch (e) {
+			this.debug(n, `chmod échoué (non bloquant) : ${String(e)}`);
+		}
+		let o = {
 			...process.env,
-			SSH_ASKPASS: "",
 			DISPLAY: ""
 		};
-		i ? this.childProcess = c("cmd.exe", [
+		r && (o.SSHPASS = r, this.debug(n, "SSHPASS configuré pour l'authentification"));
+		let u = a ? ["cmd.exe", [
 			"/c",
-			r,
+			i,
 			e,
 			t
-		], { env: a }) : this.childProcess = c("bash", [
-			r,
+		]] : ["bash", [
+			i,
 			e,
 			t
-		], { env: a }), this.childProcess.stdout?.on("data", (e) => {
+		]];
+		this.debug(n, `Commande : ${u[0]} ${u[1].join(" ")}`);
+		let d = {
+			env: o,
+			stdio: [
+				"pipe",
+				"pipe",
+				"pipe"
+			]
+		};
+		this.childProcess = c(u[0], u[1], d), this.debug(n, `PID : ${this.childProcess.pid ?? "N/A"}`), this.childProcess.stdout?.on("data", (e) => {
 			let t = e.toString().split("\n");
-			for (let e of t) e.trim() && n.webContents.send("deploy:stdout", e);
+			for (let e of t) e.trim() && n.webContents.send("deploy:stdout", e.trimEnd());
 		}), this.childProcess.stderr?.on("data", (e) => {
 			let t = e.toString().split("\n");
-			for (let e of t) e.trim() && n.webContents.send("deploy:stderr", e);
-		}), this.childProcess.on("close", (e) => {
-			n.webContents.send("deploy:exit", e), this.childProcess = null;
+			for (let e of t) e.trim() && n.webContents.send("deploy:stderr", e.trimEnd());
+		}), this.childProcess.on("close", (e, t) => {
+			this.debug(n, `Processus terminé — code: ${e}, signal: ${t}`), n.webContents.send("deploy:exit", e), this.childProcess = null;
 		}), this.childProcess.on("error", (e) => {
-			n.webContents.send("deploy:error", e.message), this.childProcess = null;
+			this.debug(n, `Erreur spawn : ${e.message}`), n.webContents.send("deploy:error", e.message), this.childProcess = null;
 		});
 	}
 	cancel() {
 		this.childProcess &&= (this.childProcess.kill("SIGTERM"), null);
 	}
 	sendInput(e) {
-		this.childProcess && this.childProcess.stdin && this.childProcess.stdin.write(e);
+		this.childProcess?.stdin?.writable && this.childProcess.stdin.write(e);
 	}
 	isRunning() {
 		return this.childProcess !== null;
@@ -67,23 +90,23 @@ var l = class {
 };
 //#endregion
 //#region src/electron/ipc/deployHandlers.ts
-function d(e) {
-	let t = new u();
-	r.handle("deploy:get-platform", () => l.getPlatform()), r.handle("deploy:write-env", (e, t, n) => l.writeEnvFile(t, n)), r.handle("deploy:start", (n, r, i) => {
-		let a = e();
-		if (!a) throw Error("No active window");
-		t.start(r, i, a);
+function f(e) {
+	let t = new d();
+	r.handle("deploy:get-platform", () => l.getPlatform()), r.handle("deploy:write-env", (e, t, n) => l.writeEnvFile(t, n)), r.handle("deploy:start", (n, r, i, a) => {
+		let o = e();
+		if (!o) throw Error("No active window");
+		t.start(r, i, o, a);
 	}), r.handle("deploy:cancel", () => t.cancel()), r.handle("deploy:send-input", (e, n) => t.sendInput(n));
 }
 //#endregion
 //#region electron/main.ts
-var f = o.dirname(a(import.meta.url));
-process.env.APP_ROOT = o.join(f, "..");
-var p = process.env.VITE_DEV_SERVER_URL, m = o.join(process.env.APP_ROOT, "dist-electron"), h = o.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = p ? o.join(process.env.APP_ROOT, "public") : h;
-var g;
-function _() {
-	g = new e({
+var p = o.dirname(a(import.meta.url));
+process.env.APP_ROOT = o.join(p, "..");
+var m = process.env.VITE_DEV_SERVER_URL, h = o.join(process.env.APP_ROOT, "dist-electron"), g = o.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = m ? o.join(process.env.APP_ROOT, "public") : g;
+var _;
+function v() {
+	_ = new e({
 		width: 1100,
 		height: 750,
 		minWidth: 900,
@@ -95,25 +118,25 @@ function _() {
 		},
 		backgroundColor: "#F8FAF9",
 		webPreferences: {
-			preload: o.join(f, "preload.mjs"),
+			preload: o.join(p, "preload.mjs"),
 			nodeIntegration: !1,
 			contextIsolation: !0
 		},
 		icon: o.join(process.env.VITE_PUBLIC, "electron-vite.svg")
-	}), g.webContents.on("did-finish-load", () => {
-		g?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toISOString());
-	}), p ? g.loadURL(p) : g.loadFile(o.join(h, "index.html"));
+	}), _.webContents.on("did-finish-load", () => {
+		_?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toISOString());
+	}), m ? _.loadURL(m) : _.loadFile(o.join(g, "index.html"));
 }
 r.handle("open-external-url", async (e, t) => {
 	await i.openExternal(t);
 }), r.handle("open-folder-dialog", async () => {
-	let e = await n.showOpenDialog(g, {
+	let e = await n.showOpenDialog(_, {
 		properties: ["openDirectory"],
 		title: "Sélectionner le dossier de déploiement"
 	});
 	return !e.canceled && e.filePaths.length > 0 ? e.filePaths[0] : null;
 }), r.handle("save-env-file", async (e, t) => {
-	let r = await n.showSaveDialog(g, {
+	let r = await n.showSaveDialog(_, {
 		title: "Sauvegarder le fichier .env",
 		defaultPath: ".env",
 		filters: [{
@@ -136,7 +159,7 @@ r.handle("open-external-url", async (e, t) => {
 	}
 	return {};
 }), r.handle("export-config", async (e, t) => {
-	let r = await n.showSaveDialog(g, {
+	let r = await n.showSaveDialog(_, {
 		title: "Exporter la configuration",
 		defaultPath: "intriqathon-config.json",
 		filters: [{
@@ -149,7 +172,7 @@ r.handle("open-external-url", async (e, t) => {
 		path: r.filePath
 	}) : { success: !1 };
 }), r.handle("import-config", async () => {
-	let e = await n.showOpenDialog(g, {
+	let e = await n.showOpenDialog(_, {
 		title: "Importer la configuration",
 		properties: ["openFile"],
 		filters: [{
@@ -194,9 +217,9 @@ r.handle("open-external-url", async (e, t) => {
 	}
 	return null;
 }), t.on("window-all-closed", () => {
-	process.platform !== "darwin" && (t.quit(), g = null);
+	process.platform !== "darwin" && (t.quit(), _ = null);
 }), t.on("activate", () => {
-	e.getAllWindows().length === 0 && _();
-}), d(() => g), t.whenReady().then(_);
+	e.getAllWindows().length === 0 && v();
+}), f(() => _), t.whenReady().then(v);
 //#endregion
-export { m as MAIN_DIST, h as RENDERER_DIST, p as VITE_DEV_SERVER_URL };
+export { h as MAIN_DIST, g as RENDERER_DIST, m as VITE_DEV_SERVER_URL };
