@@ -6,6 +6,7 @@ import { SqlBlock } from '../components/ui/SqlBlock'
 import { DockerBlock } from '../components/ui/DockerBlock'
 import { useApp } from '../context/AppContext'
 import { useDockerRestart } from '../hooks/useDockerRestart'
+import { DeployDialog } from '../components/deploy/DeployDialog'
 
 const SQL_COMMANDS = `GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO anon, authenticated, service_role;
@@ -92,7 +93,7 @@ function HelpContent() {
 
 export function ConfigSite() {
   const { t, config, state } = useApp()
-  const { status, logs, progress, start, cancel } = useDockerRestart()
+  const { status, logs, progress, pendingDialog, start, cancel, respondToDialog } = useDockerRestart()
   const domain = config.DOMAIN || '<DOMAIN>'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const isEn = state.language === 'en'
@@ -109,7 +110,7 @@ export function ConfigSite() {
 
   // map hook status to ServiceConfigBlock status
   let serviceStatus: 'idle' | 'running' | 'done' | 'error' = 'idle'
-  if (status === 'running') serviceStatus = 'running'
+  if (status === 'running' || status === 'paused_for_dialog') serviceStatus = 'running'
   else if (status === 'completed') serviceStatus = 'done'
   else if (status === 'error') serviceStatus = 'error'
 
@@ -279,6 +280,11 @@ export function ConfigSite() {
           {isEn ? 'Your hackathon infrastructure is configured!' : 'Votre infrastructure hackathon est configurée !'}
         </div>
       </div>
+    
+      {/* Saisie du mot de passe SSH si aucune clé n'est acceptée */}
+      {pendingDialog && (
+        <DeployDialog dialog={pendingDialog} onRespond={respondToDialog} />
+      )}
     </WizardLayout>
   )
 }

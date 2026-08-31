@@ -1,220 +1,135 @@
-export interface DeployBridge {
-  getPlatform(): Promise<string>
-  writeEnvToDir(dir: string, content: string): Promise<{ success: boolean; error?: string }>
-  startDeploy(ipv4: string, sourceDir: string, sshPassword?: string): Promise<void>
-  restartDocker(ipv4: string, sshPassword?: string): Promise<void>
-  cancelDeploy(): Promise<void>
-  sendInput(text: string): Promise<void>
-  onStdout(cb: (line: string) => void): () => void
-  onStderr(cb: (line: string) => void): () => void
-  onExit(cb: (code: number | null) => void): () => void
-  onError(cb: (error: string) => void): () => void
+// ============================================================================
+// Pont renderer → main pour les jobs SSH.
+//
+// Un unique canal d'événements arrive du main ; ce module le démultiplexe par
+// jobId, de sorte qu'un abonné ne voit jamais la sortie d'un autre job.
+// L'implémentation Mock permet de travailler l'UI dans un navigateur.
+// ============================================================================
+
+import type {
+  DeployFailureReason,
+  DeployRequest,
+  DeployStartResult,
+  WriteResult,
+} from '../../shared/ipc'
+
+export interface JobHandlers {
+  onStdout(line: string): void
+  onStderr(line: string): void
+  onStep(label: string, index: number, total: number): void
+  onDone(exitCode: number): void
+  onFailed(reason: DeployFailureReason, message: string): void
 }
+
+export interface DeployBridge {
+  writeEnv(dir: string, content: string): Promise<WriteResult>
+  start(kind: 'deploy' | 'restart', request: DeployRequest, handlers: JobHandlers): Promise<DeployStartResult>
+  cancel(jobId: string): Promise<void>
+}
+
+// ============================================================================
+// Implémentation Electron
+// ============================================================================
 
 class ElectronDeployBridge implements DeployBridge {
-  getPlatform() {
-    return window.electronAPI.getPlatform()
-  }
-  writeEnvToDir(dir: string, content: string) {
+  writeEnv(dir: string, content: string) {
     return window.electronAPI.writeEnvToDir(dir, content)
   }
-  startDeploy(ipv4: string, sourceDir: string, sshPassword?: string) {
-    return window.electronAPI.startDeploy(ipv4, sourceDir, sshPassword)
+
+  async start(kind: 'deploy' | 'restart', request: DeployRequest, handlers: JobHandlers) {
+    // On s'abonne AVANT l'invoke : aucun événement ne peut être manqué.
+    const unsubscribe = window.electronAPI.onDeployEvent((event) => {
+      if (event.jobId !== request.jobId) return // job voisin : ignoré
+
+      switch (event.type) {
+        case 'stdout': return handlers.onStdout(event.line)
+        case 'stderr': return handlers.onStderr(event.line)
+        case 'step': return handlers.onStep(event.label, event.index, event.total)
+        case 'done':
+          unsubscribe()
+          return handlers.onDone(event.exitCode)
+        case 'failed':
+          unsubscribe()
+          return handlers.onFailed(event.reason, event.message)
+      }
+    })
+
+    const invoke = kind === 'deploy' ? window.electronAPI.startDeploy : window.electronAPI.restartDocker
+    const result = await invoke(request)
+    if (!result.accepted) unsubscribe()
+    return result
   }
-  restartDocker(ipv4: string, sshPassword?: string) {
-    return window.electronAPI.restartDocker(ipv4, sshPassword)
-  }
-  cancelDeploy() {
-    return window.electronAPI.cancelDeploy()
-  }
-  sendInput(text: string) {
-    return window.electronAPI.sendDeployInput(text)
-  }
-  onStdout(cb: (line: string) => void) {
-    return window.electronAPI.onDeployStdout(cb)
-  }
-  onStderr(cb: (line: string) => void) {
-    return window.electronAPI.onDeployStderr(cb)
-  }
-  onExit(cb: (code: number | null) => void) {
-    return window.electronAPI.onDeployExit(cb)
-  }
-  onError(cb: (error: string) => void) {
-    return window.electronAPI.onDeployError(cb)
+
+  async cancel(jobId: string) {
+    await window.electronAPI.cancelDeploy(jobId)
   }
 }
+
+// ============================================================================
+// Implémentation Mock (développement navigateur)
+// ============================================================================
 
 class MockDeployBridge implements DeployBridge {
-  private stdoutCbs: ((line: string) => void)[] = []
-  private stderrCbs: ((line: string) => void)[] = []
-  private exitCbs: ((code: number | null) => void)[] = []
-  
-  private timeouts: ReturnType<typeof setTimeout>[] = []
-  private cancelled = false
-  
-  private resolveInput: ((val: string) => void) | null = null
+  private cancelled = new Set<string>()
 
-  async getPlatform() {
-    return 'darwin'
-  }
-  
-  async writeEnvToDir(_dir: string, _content: string) {
-    await this.wait(500)
+  async writeEnv() {
+    await delay(400)
     return { success: true }
   }
-  
-  async startDeploy(ipv4: string, sourceDir: string, _sshPassword?: string) {
-    this.cancelled = false
-    
-    try {
-      this.stdout(`Connexion SSH à root@${ipv4}…`)
-      await this.wait(800)
-      if (this.cancelled) return
-      
-      this.stderr(`root@${ipv4}'s password:`)
-      await this.waitForInput()
-      if (this.cancelled) return
-      
-      this.stdout(`Connexion SSH à root@${ipv4}… Authentifié`)
-      await this.wait(600)
-      if (this.cancelled) return
-      
-      this.stdout('Upload du fichier .env…')
-      await this.wait(1200)
-      if (this.cancelled) return
-      this.stdout('Upload du fichier .env : Done')
-      
-      this.stdout(`Synchronisation des fichiers depuis ${sourceDir}…`)
-      await this.wait(1500)
-      if (this.cancelled) return
-      this.stdout('Synchronisation des fichiers : Done')
-      
-      await this.wait(500)
-      if (this.cancelled) return
-      this.stderr('Are you sure you want to continue connecting (yes/no)?')
-      await this.waitForInput()
-      if (this.cancelled) return
-      
-      this.stdout('Configuration de la base de données…')
-      await this.wait(1800)
-      if (this.cancelled) return
-      this.stdout('Configuration de la base de données : Done')
-      
-      this.stdout('Configuration de l\'API…')
-      await this.wait(1400)
-      if (this.cancelled) return
-      this.stdout('Configuration de l\'API : Done')
-      
-      this.stdout('Configuration SSL / Nginx…')
-      await this.wait(2000)
-      if (this.cancelled) return
-      this.stdout('Configuration SSL / Nginx : Done')
-      
-      this.stdout('Démarrage des services Docker…')
-      await this.wait(1600)
-      if (this.cancelled) return
-      this.stdout('Démarrage des services Docker : Done')
-      
-      await this.wait(500)
-      if (this.cancelled) return
-      this.stdout(`Déploiement terminé avec succès !`)
-      
-      this.exitCbs.forEach(cb => cb(0))
-    } catch {
-      if (!this.cancelled) {
-        this.exitCbs.forEach(cb => cb(1))
+
+  async start(kind: 'deploy' | 'restart', request: DeployRequest, handlers: JobHandlers) {
+    this.cancelled.delete(request.jobId)
+
+    // Sans mot de passe, on simule le refus d'authentification pour exercer
+    // le parcours de saisie du mot de passe dans le navigateur.
+    if (!request.credentials.password) {
+      void delay(600).then(() => handlers.onFailed('auth-required', 'Aucune clé SSH acceptée par le serveur'))
+      return { accepted: true }
+    }
+
+    const steps = kind === 'deploy'
+      ? [
+          `Connexion à ${request.credentials.username}@${request.ipv4}`,
+          'Envoi des fichiers vers le serveur',
+          'Préparation du script d\'installation',
+          'Exécution de l\'installation sur le serveur',
+        ]
+      : [`Connexion à ${request.credentials.username}@${request.ipv4}`, 'Redémarrage du conteneur discord_bot']
+
+    void (async () => {
+      for (let i = 0; i < steps.length; i += 1) {
+        if (this.cancelled.has(request.jobId)) return
+        handlers.onStep(steps[i], i + 1, steps.length)
+        await delay(900)
+        if (this.cancelled.has(request.jobId)) return
+        handlers.onStdout(`${steps[i]} : terminé`)
       }
-    }
+      handlers.onDone(0)
+    })()
+
+    return { accepted: true }
   }
 
-  async restartDocker(ipv4: string, _sshPassword?: string) {
-    this.cancelled = false
-
-    try {
-      this.stdout(`Connexion SSH à root@${ipv4}…`)
-      await this.wait(800)
-      if (this.cancelled) return
-
-      this.stdout(`Exécution de docker restart discord_bot...`)
-      await this.wait(1500)
-      if (this.cancelled) return
-
-      this.stdout(`Redémarrage de Docker terminé avec succès !`)
-      this.exitCbs.forEach(cb => cb(0))
-    } catch {
-      if (!this.cancelled) {
-        this.exitCbs.forEach(cb => cb(1))
-      }
-    }
-  }
-  
-  async cancelDeploy() {
-    this.cancelled = true
-    this.timeouts.forEach(clearTimeout)
-    this.timeouts = []
-    if (this.resolveInput) {
-      this.resolveInput('')
-      this.resolveInput = null
-    }
-  }
-  
-  async sendInput(text: string) {
-    if (this.resolveInput) {
-      this.resolveInput(text)
-      this.resolveInput = null
-    }
-  }
-  
-  onStdout(cb: (line: string) => void) {
-    this.stdoutCbs.push(cb)
-    return () => {
-      this.stdoutCbs = this.stdoutCbs.filter(fn => fn !== cb)
-    }
-  }
-  
-  onStderr(cb: (line: string) => void) {
-    this.stderrCbs.push(cb)
-    return () => {
-      this.stderrCbs = this.stderrCbs.filter(fn => fn !== cb)
-    }
-  }
-  
-  onExit(cb: (code: number | null) => void) {
-    this.exitCbs.push(cb)
-    return () => {
-      this.exitCbs = this.exitCbs.filter(fn => fn !== cb)
-    }
-  }
-  
-  onError(_cb: (error: string) => void) {
-    return () => {}
-  }
-  
-  private stdout(msg: string) {
-    this.stdoutCbs.forEach(cb => cb(msg))
-  }
-  
-  private stderr(msg: string) {
-    this.stderrCbs.forEach(cb => cb(msg))
-  }
-  
-  private wait(ms: number): Promise<void> {
-    return new Promise(resolve => {
-      const timeout = setTimeout(resolve, ms)
-      this.timeouts.push(timeout)
-    })
-  }
-  
-  private waitForInput(): Promise<string> {
-    return new Promise(resolve => {
-      this.resolveInput = resolve
-    })
+  async cancel(jobId: string) {
+    this.cancelled.add(jobId)
   }
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// ============================================================================
+
 export function createDeployBridge(): DeployBridge {
-  if (typeof window !== 'undefined' && window.electronAPI && !!window.electronAPI.startDeploy) {
-    return new ElectronDeployBridge()
+  const hasElectron = typeof window !== 'undefined' && !!window.electronAPI?.startDeploy
+  return hasElectron ? new ElectronDeployBridge() : new MockDeployBridge()
+}
+
+/** Identifiant de job. `randomUUID` n'existe pas dans tous les contextes. */
+export function newJobId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
   }
-  return new MockDeployBridge()
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
