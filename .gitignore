@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 /release
+# Artefacts de build Electron
+dist-electron

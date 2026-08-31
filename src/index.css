@@ -514,23 +514,23 @@ body {
 }
 
 .service-config-block__step-number {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-text-muted);
   flex-shrink: 0;
-  width: 40px;
+  width: 30px;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   border-right: 1px solid var(--color-border);
-  padding-right: var(--space-6);
+  padding-right: var(--space-4);
 }
 
 .service-config-block__content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding-left: var(--space-6);
+  padding-left: var(--space-4);
 }
 
 .service-config-block__header {
@@ -557,7 +557,7 @@ body {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   line-height: 1.5;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
 .service-config-block__info-box {
@@ -1619,6 +1619,48 @@ body {
   color: var(--color-text-secondary);
   line-height: 1.7;
   margin-bottom: var(--space-3);
+}
+
+.help-block {
+  margin-left: var(--space-4);
+  margin-bottom: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.help-block p {
+  margin-bottom: 0;
+}
+
+.step-schema {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.help-note {
+  font-size: 12px;
+  color: var(--color-text-tertiary, #888);
+  margin-top: 2px;
+  margin-left: 4px;
+  line-height: 1.5;
+}
+.help-note strong {
+  color: var(--color-text-secondary);
+}
+
+ul.help-note {
+  margin-left: var(--space-4);
+  margin-top: 4px;
+  list-style: disc;
+}
+ul.help-note li {
+  font-size: 12px;
+  color: var(--color-text-tertiary, #888);
 }
 
 /* Active help button state */

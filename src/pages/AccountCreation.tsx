@@ -13,61 +13,105 @@ function HelpContent() {
   if (isEn) {
     return <>
       <h3><Database size={15} /> Supabase</h3>
-      <ol>
-        <li>Go to <strong>supabase.com</strong> and create an account</li>
-        <li>Create a new project (choose a name, password, and region)</li>
-        <li>Go to <strong>Account &gt; Access Tokens</strong> to generate a Personal Access Token</li>
-        <li>Go to <strong>Project Settings &gt; Storage &gt; S3 Access Keys</strong> to generate S3 credentials</li>
-      </ol>
+      <div className="help-block">
+        <p><strong>1. Account & Project:</strong></p>
+        <p className="step-schema"><code>supabase.com</code> ➔ <code>Sign Up / Sign In</code> ➔ <code>New Project</code></p>
+        <p className="help-note">Choose a name, a strong password (no "?" character), and your region.</p>
+        
+        <p><strong>2. Personal Access Token (PAT):</strong></p>
+        <p className="step-schema"><code>Profile icon (top right)</code> ➔ <code>Account</code> ➔ <code>Access Tokens</code></p>
+        <p className="help-note">Or go directly to <strong>supabase.com/dashboard/account/tokens</strong></p>
+        
+        <p><strong>3. S3 Credentials:</strong></p>
+        <p className="step-schema"><code>Storage (left sidebar)</code> ➔ <code>S3 Connection</code> ➔ <code>Generate new key</code></p>
+        <p className="help-note">Copy both the <strong>Access Key ID</strong> and the <strong>Secret Access Key</strong> immediately — the secret is shown only once.</p>
+      </div>
+
       <h3><Mail size={15} /> Resend</h3>
-      <ol>
-        <li>Go to <strong>resend.com</strong> and create an account</li>
-        <li>Verify your email address</li>
-        <li>Go to <strong>API Keys &gt; Create API Key</strong> and copy the key (shown only once!)</li>
-      </ol>
+      <div className="help-block">
+        <p><strong>1. Account Creation:</strong></p>
+        <p className="step-schema"><code>resend.com</code> ➔ <code>Sign Up</code> ➔ <code>Verify Email</code></p>
+        
+        <p><strong>2. API Key:</strong></p>
+        <p className="step-schema"><code>API Keys (left sidebar)</code> ➔ <code>Create API Key</code></p>
+        <p className="help-note">Copy it immediately, it will only be shown once.</p>
+      </div>
+
       <h3><Globe size={15} /> Spaceship</h3>
-      <ol>
-        <li>Go to <strong>spaceship.com</strong> and create an account</li>
-        <li>Purchase or transfer your domain name</li>
-        <li>Go to <strong>API Management</strong> to generate your API Key and Secret</li>
-      </ol>
+      <div className="help-block">
+        <p><strong>1. Domain Registration:</strong></p>
+        <p className="step-schema"><code>spaceship.com</code> ➔ <code>Sign Up</code> ➔ <code>Purchase Domain</code></p>
+        
+        <p><strong>2. API Access:</strong></p>
+        <p className="step-schema"><code>Account icon</code> ➔ <code>API Manager</code> ➔ <code>New API key</code></p>
+        <p className="help-note">Grant at least <strong>domains:read</strong>, <strong>dnsrecords:read</strong>, and <strong>dnsrecords:write</strong> permissions.</p>
+      </div>
+
       <h3><Server size={15} /> Scaleway</h3>
-      <ol>
-        <li>Go to <strong>console.scaleway.com</strong> and create an account</li>
-        <li>Set up a payment method</li>
-        <li>Go to <strong>IAM &gt; API Keys</strong> to generate an Access Key and Secret Key</li>
-        <li>Go to <strong>Project &gt; Settings</strong> to copy your Project ID</li>
-      </ol>
+      <div className="help-block">
+        <p><strong>1. Setup:</strong></p>
+        <p className="step-schema"><code>console.scaleway.com</code> ➔ <code>Sign Up</code> ➔ <code>Add Payment Method</code></p>
+        
+        <p><strong>2. API Keys:</strong></p>
+        <p className="step-schema"><code>Top-right profile menu</code> ➔ <code>IAM & API keys</code> ➔ <code>API keys tab</code> ➔ <code>Generate API key</code></p>
+        <p className="help-note">The secret key is only shown once — save it immediately.</p>
+        
+        <p><strong>3. Project ID:</strong></p>
+        <p className="step-schema"><code>Left sidebar</code> ➔ <code>Select your Project</code> ➔ <code>Project Dashboard</code></p>
+        <p className="help-note">The Project ID is visible in the project overview/settings page.</p>
+      </div>
     </>
   }
 
   return <>
     <h3><Database size={15} /> Supabase</h3>
-    <ol>
-      <li>Allez sur <strong>supabase.com</strong> et créez un compte</li>
-      <li>Créez un nouveau projet (choisissez un nom, un mot de passe et une région)</li>
-      <li>Allez dans <strong>Account &gt; Access Tokens</strong> pour générer un Personal Access Token</li>
-      <li>Allez dans <strong>Project Settings &gt; Storage &gt; S3 Access Keys</strong> pour générer les clés S3</li>
-    </ol>
+    <div className="help-block">
+      <p><strong>1. Compte & Projet :</strong></p>
+      <p className="step-schema"><code>supabase.com</code> ➔ <code>S'inscrire / Se connecter</code> ➔ <code>New Project</code></p>
+      <p className="help-note">Choisissez un nom, un mot de passe fort (sans caractère "?"), et une région.</p>
+      
+      <p><strong>2. Personal Access Token (PAT) :</strong></p>
+      <p className="step-schema"><code>Icône profil (haut droite)</code> ➔ <code>Account</code> ➔ <code>Access Tokens</code></p>
+      <p className="help-note">Ou accédez directement à <strong>supabase.com/dashboard/account/tokens</strong></p>
+      
+      <p><strong>3. Clés S3 (Storage) :</strong></p>
+      <p className="step-schema"><code>Storage (barre de navigation gauche)</code> ➔ <code>S3 Connection</code> ➔ <code>Generate new key</code></p>
+      <p className="help-note">Copiez immédiatement l'<strong>Access Key ID</strong> et la <strong>Secret Access Key</strong> — la clé secrète n'est affichée qu'une seule fois.</p>
+    </div>
+
     <h3><Mail size={15} /> Resend</h3>
-    <ol>
-      <li>Allez sur <strong>resend.com</strong> et créez un compte</li>
-      <li>Vérifiez votre adresse email</li>
-      <li>Allez dans <strong>API Keys &gt; Create API Key</strong> et copiez la clé (affichée une seule fois !)</li>
-    </ol>
+    <div className="help-block">
+      <p><strong>1. Création du compte :</strong></p>
+      <p className="step-schema"><code>resend.com</code> ➔ <code>S'inscrire</code> ➔ <code>Vérifier l'email</code></p>
+      
+      <p><strong>2. Clé API :</strong></p>
+      <p className="step-schema"><code>API Keys (barre de navigation gauche)</code> ➔ <code>Create API Key</code></p>
+      <p className="help-note">La clé n'est affichée qu'une seule fois. Copiez-la immédiatement.</p>
+    </div>
+
     <h3><Globe size={15} /> Spaceship</h3>
-    <ol>
-      <li>Allez sur <strong>spaceship.com</strong> et créez un compte</li>
-      <li>Achetez ou transférez votre nom de domaine</li>
-      <li>Allez dans <strong>API Management</strong> pour générer votre API Key et Secret</li>
-    </ol>
+    <div className="help-block">
+      <p><strong>1. Achat du nom de domaine :</strong></p>
+      <p className="step-schema"><code>spaceship.com</code> ➔ <code>S'inscrire</code> ➔ <code>Acheter un domaine</code></p>
+      
+      <p><strong>2. Accès API :</strong></p>
+      <p className="step-schema"><code>Icône compte</code> ➔ <code>API Manager</code> ➔ <code>New API key</code></p>
+      <p className="help-note">Accordez au minimum les permissions <strong>domains:read</strong>, <strong>dnsrecords:read</strong> et <strong>dnsrecords:write</strong>.</p>
+    </div>
+
     <h3><Server size={15} /> Scaleway</h3>
-    <ol>
-      <li>Allez sur <strong>console.scaleway.com</strong> et créez un compte</li>
-      <li>Configurez un moyen de paiement</li>
-      <li>Allez dans <strong>IAM &gt; API Keys</strong> pour générer un Access Key et Secret Key</li>
-      <li>Allez dans <strong>Project &gt; Settings</strong> pour copier votre Project ID</li>
-    </ol>
+    <div className="help-block">
+      <p><strong>1. Initialisation :</strong></p>
+      <p className="step-schema"><code>console.scaleway.com</code> ➔ <code>S'inscrire</code> ➔ <code>Moyen de paiement</code></p>
+      
+      <p><strong>2. Clés API :</strong></p>
+      <p className="step-schema"><code>Menu profil (haut droite)</code> ➔ <code>IAM & API keys</code> ➔ <code>Onglet API keys</code> ➔ <code>Generate API key</code></p>
+      <p className="help-note">La clé secrète n'est affichée qu'une seule fois — sauvegardez-la immédiatement.</p>
+      
+      <p><strong>3. Project ID :</strong></p>
+      <p className="step-schema"><code>Barre de navigation gauche</code> ➔ <code>Sélectionner votre projet</code> ➔ <code>Tableau de bord du projet</code></p>
+      <p className="help-note">Le Project ID est visible dans la page d'aperçu ou de paramètres du projet.</p>
+    </div>
   </>
 }
 

@@ -10,46 +10,65 @@ function HelpContent() {
   const isEn = state.language === 'en'
   return <>
     <h3><Shield size={15} /> Discord OAuth2</h3>
-    <ol>
-      <li>{isEn ? 'Go to discord.com/developers/applications' : 'Allez sur discord.com/developers/applications'}</li>
-      <li>{isEn ? 'Click "New Application" and give it a name (e.g. "Hackathon_Auth")' : 'Cliquez "New Application" et donnez un nom (ex: "Hackathon_Auth")'}</li>
-      <li>{isEn ? 'In General Information: copy the Application ID → DISCORD_CLIENT_ID' : 'Dans General Information : copiez l\'Application ID → DISCORD_CLIENT_ID'}</li>
-      <li>{isEn ? 'In OAuth2: click "Reset Secret" and copy it → OAUTH2_DISCORD_CLIENT_SECRET' : 'Dans OAuth2 : cliquez "Reset Secret" et copiez → OAUTH2_DISCORD_CLIENT_SECRET'}</li>
-      <li>{isEn ? 'In OAuth2 > Redirects: add the callback URL shown below' : 'Dans OAuth2 > Redirects : ajoutez l\'URL de callback affichée ci-dessous'}</li>
-      <li>{isEn ? 'Click "Save Changes"' : 'Cliquez "Save Changes"'}</li>
-    </ol>
+    <div className="help-block">
+      <p><strong>{isEn ? 'Create the application:' : "Créer l'application :"}</strong></p>
+      <p className="step-schema"><code>discord.com/developers/applications</code> ➔ <code>New Application</code></p>
+      <p className="help-note">{isEn ? 'Give it a name (e.g. "Hackathon_Auth").' : 'Donnez un nom (ex: "Hackathon_Auth").'}</p>
+
+      <p><strong>{isEn ? 'Client ID:' : 'Client ID :'}</strong></p>
+      <p className="step-schema"><code>General Information</code> ➔ <code>Application ID</code></p>
+
+      <p><strong>{isEn ? 'Client Secret:' : 'Client Secret :'}</strong></p>
+      <p className="step-schema"><code>OAuth2</code> ➔ <code>Reset Secret</code></p>
+      <p className="help-note">{isEn ? 'Shown only once — copy it immediately!' : 'Affiché une seule fois — copiez-le immédiatement !'}</p>
+
+      <p><strong>{isEn ? 'Callback URL:' : 'URL de callback :'}</strong></p>
+      <p className="step-schema"><code>OAuth2</code> ➔ <code>Redirects</code> ➔ <code>Add Redirect</code></p>
+      <p className="help-note">{isEn ? 'Paste the callback URL shown in the form below.' : "Collez l'URL de callback affichée dans le formulaire ci-dessous."}</p>
+    </div>
     <div className="info-box warning" style={{ marginTop: '12px' }}>
       <AlertTriangle size={15} className="info-box-icon" />
       <div className="info-box-text">
         <strong>{isEn ? 'Warning' : 'Attention'}</strong> : {isEn
           ? 'Discord only shows the secret once. Copy it immediately!'
-          : 'Discord n\'affiche le secret qu\'une seule fois. Copiez-le immédiatement !'
+          : "Discord n'affiche le secret qu'une seule fois. Copiez-le immédiatement !"
         }
       </div>
     </div>
     <h3><Shield size={15} /> GitHub OAuth2</h3>
-    <ol>
-      <li>{isEn ? 'GitHub > Settings > Developer settings > OAuth Apps' : 'GitHub > Settings > Developer settings > OAuth Apps'}</li>
-      <li>{isEn ? 'Click "New OAuth App"' : 'Cliquez "New OAuth App"'}</li>
-      <li>{isEn ? 'Fill in Application name, Homepage URL, and Callback URL' : 'Remplissez le nom, Homepage URL, et Callback URL'}</li>
-      <li>{isEn ? 'Copy the Client ID → GITHUB_CLIENT_ID' : 'Copiez le Client ID → GITHUB_CLIENT_ID'}</li>
-      <li>{isEn ? 'Generate a new secret → OAUTH2_GITHUB_CLIENT_SECRET' : 'Générez un secret → OAUTH2_GITHUB_CLIENT_SECRET'}</li>
-    </ol>
+    <div className="help-block">
+      <p><strong>{isEn ? 'Navigate to OAuth Apps:' : 'Accéder aux OAuth Apps :'}</strong></p>
+      <p className="step-schema"><code>{isEn ? 'Profile photo (top right)' : 'Photo profil (haut droite)'}</code> ➔ <code>Settings</code> ➔ <code>Developer settings</code> ➔ <code>OAuth Apps</code></p>
+      <p className="help-note">{isEn ? 'Or go directly to github.com/settings/developers' : 'Ou accédez directement à github.com/settings/developers'}</p>
+
+      <p><strong>{isEn ? 'Create the app:' : "Créer l'app :"}</strong></p>
+      <p className="step-schema"><code>New OAuth App</code></p>
+      <p className="help-note">{isEn ? 'Fill in the name, Homepage URL, and Callback URL shown below.' : 'Remplissez le nom, Homepage URL et Callback URL affichés ci-dessous.'}</p>
+
+      <p><strong>{isEn ? 'Credentials:' : 'Identifiants :'}</strong></p>
+      <p className="help-note">{isEn ? 'Copy the Client ID, then click "Generate a new client secret" to get the secret (shown only once).' : 'Copiez le Client ID, puis cliquez "Generate a new client secret" pour obtenir le secret (affiché une seule fois).'}</p>
+    </div>
     <div className="info-box warning" style={{ marginTop: '12px' }}>
       <AlertTriangle size={15} className="info-box-icon" />
       <div className="info-box-text">
         <strong>{isEn ? 'Warning' : 'Attention'}</strong> : {isEn
           ? 'GitHub also only shows the secret once!'
-          : 'GitHub n\'affiche lui aussi le secret qu\'une seule fois !'
+          : "GitHub n'affiche lui aussi le secret qu'une seule fois !"
         }
       </div>
     </div>
     <h3><Shield size={15} /> {isEn ? 'Discord Bot' : 'Bot Discord'}</h3>
-    <ol>
-      <li>{isEn ? 'In your Discord Application, go to the "Bot" section' : 'Dans votre application Discord, allez dans la section "Bot"'}</li>
-      <li>{isEn ? 'Click "Reset Token" and copy the token → BOT_TOKEN' : 'Cliquez "Reset Token" et copiez le token → BOT_TOKEN'}</li>
-      <li>{isEn ? 'Copy your Discord Server ID (right-click the server icon with Developer Mode enabled) → DEV_SERVER_ID and GUILD_ID' : 'Copiez l\'ID de votre serveur Discord (clic droit sur l\'icône du serveur avec le Mode Développeur activé) → DEV_SERVER_ID et GUILD_ID'}</li>
-    </ol>
+    <div className="help-block">
+      <p><strong>{isEn ? 'Bot Token:' : 'Token Bot :'}</strong></p>
+      <p className="step-schema"><code>{isEn ? 'Your Discord Application' : 'Votre application Discord'}</code> ➔ <code>Bot</code> ➔ <code>Reset Token</code></p>
+      <p className="help-note">{isEn ? 'Shown only once — copy it immediately!' : 'Affiché une seule fois — copiez-le immédiatement !'}</p>
+
+      <p><strong>{isEn ? 'Server / Guild ID:' : 'ID Serveur / Guild :'}</strong></p>
+      <p className="help-note">{isEn
+        ? 'Right-click your server icon in Discord → "Copy Server ID" (requires Developer Mode enabled in Settings → Advanced).'
+        : "Clic droit sur l'icône du serveur dans Discord → \"Copier l'identifiant du serveur\" (nécessite le Mode Développeur activé dans Paramètres → Avancé)."
+      }</p>
+    </div>
   </>
 }
 
