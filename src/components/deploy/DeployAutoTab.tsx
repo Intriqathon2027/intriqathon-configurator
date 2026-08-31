@@ -33,7 +33,7 @@ function getGlobalStatusIcon(status: DeploymentStatus) {
 }
 
 export function DeployAutoTab() {
-  const { t, config, setField } = useApp()
+  const { t, config, setField, markStepDone } = useApp()
   const {
     status,
     logs,
@@ -45,6 +45,11 @@ export function DeployAutoTab() {
   } = useDeployment()
 
   const consoleRef = useRef<HTMLDivElement>(null)
+
+  // Validate the deploy step once the deployment succeeds
+  useEffect(() => {
+    if (status === 'completed') markStepDone(3)
+  }, [status])
 
   // Auto-scroll console to bottom
   useEffect(() => {
@@ -84,7 +89,7 @@ export function DeployAutoTab() {
     <>
       <div className="card">
         <div className="card-title">
-          <Terminal size={16} color="var(--color-primary)" />
+          <Terminal size={16} color="var(--color-primary-text)" />
           {t('step6.auto.title')}
         </div>
 
@@ -180,7 +185,7 @@ export function DeployAutoTab() {
       {/* Explanatory card */}
       <div className="card" style={{ marginTop: 'var(--space-5)' }}>
         <div className="card-title">
-          <Info size={16} color="var(--color-primary)" />
+          <Info size={16} color="var(--color-primary-text)" />
           {t('step6.auto.info.title')}
         </div>
         <p className="step-description" style={{ fontSize: 'var(--font-size-sm)' }}>

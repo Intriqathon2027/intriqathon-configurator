@@ -52,7 +52,7 @@ export function BottomNavigation({ currentStep, totalSteps, isFirst, isLast }: B
           </button>
         )}
         {isLast && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', fontSize: '14px', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary-text)', fontSize: '14px', fontWeight: 600 }}>
             <Check size={18} />
             Configuration complète !
           </div>

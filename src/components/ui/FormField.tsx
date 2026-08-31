@@ -1,131 +1,107 @@
-import { useState, type ReactNode } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
-import type { Config } from '../../context/AppContext'
+import { useState, type CSSProperties, type ReactNode } from 'react'
+import { Eye, EyeOff, HelpCircle } from 'lucide-react'
+import { useHelpNav } from '../../context/HelpNavContext'
+import { hasFieldHelp } from '../../i18n/fieldHelp'
 
 interface FormFieldProps {
   id: string
   label: string
-  envKey?: string
   value: string
   onChange: (value: string) => void
   placeholder?: string
-  hint?: string
   type?: string
   disabled?: boolean
-  configKey?: keyof Config
   rightElement?: ReactNode
   multiline?: boolean
+  /** Help section to jump to. Defaults to `id`; the button only shows if a section exists. */
+  helpId?: string
 }
+
+// `-webkit-text-security` masks a textarea the way type="password" masks an input
+const maskedTextareaStyle = { WebkitTextSecurity: 'disc', fontFamily: 'monospace' } as CSSProperties
 
 export function FormField({
   id,
   label,
-  envKey,
   value,
   onChange,
   placeholder,
-  hint,
   type = 'text',
   disabled = false,
   rightElement,
   multiline = false,
+  helpId,
 }: FormFieldProps) {
   const [showPassword, setShowPassword] = useState(false)
+  const { openHelp } = useHelpNav()
+
   const isPassword = type === 'password'
   const inputType = isPassword ? (showPassword ? 'text' : 'password') : type
-
-  const renderPasswordToggle = () => {
-    if (!isPassword) return null
-    return (
-      <button
-        type="button"
-        className="btn btn-icon btn-ghost"
-        style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', padding: '4px', height: 'auto' }}
-        onClick={() => setShowPassword(!showPassword)}
-        title={showPassword ? "Cacher le secret" : "Afficher le secret"}
-      >
-        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-      </button>
-    )
-  }
+  const helpTarget = helpId ?? id
+  const showHelp = hasFieldHelp(helpTarget)
 
   return (
     <div className="form-group">
       <label className="form-label" htmlFor={id}>
         {label}
-        {envKey && <span className="form-label-badge">{envKey}</span>}
       </label>
-      {rightElement ? (
-        <div className="folder-input-row">
+
+      <div className="form-input-row">
+        <div className="form-input-wrap">
           {multiline ? (
-            <div style={{ position: 'relative', flex: 1 }}>
-              <textarea
-                id={id}
-                className="form-input form-textarea"
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                placeholder={placeholder}
-                disabled={disabled}
-                autoComplete="off"
-                spellCheck={false}
-                rows={3}
-                style={isPassword && !showPassword ? { WebkitTextSecurity: 'disc', fontFamily: 'monospace' } as any : {}}
-              />
-              {renderPasswordToggle()}
-            </div>
+            <textarea
+              id={id}
+              className="form-input form-textarea"
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              placeholder={placeholder}
+              disabled={disabled}
+              autoComplete="off"
+              spellCheck={false}
+              rows={3}
+              style={isPassword && !showPassword ? maskedTextareaStyle : undefined}
+            />
           ) : (
-            <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                id={id}
-                type={inputType}
-                className="form-input"
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                placeholder={placeholder}
-                disabled={disabled}
-                autoComplete="off"
-                spellCheck={false}
-                style={isPassword ? { paddingRight: '36px' } : {}}
-              />
-              {renderPasswordToggle()}
-            </div>
+            <input
+              id={id}
+              type={inputType}
+              className="form-input"
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              placeholder={placeholder}
+              disabled={disabled}
+              autoComplete="off"
+              spellCheck={false}
+              style={isPassword ? { paddingRight: '32px' } : {}}
+            />
           )}
-          {rightElement}
+
+          {isPassword && (
+            <button
+              type="button"
+              className="form-input-eye"
+              onClick={() => setShowPassword(!showPassword)}
+              title={showPassword ? 'Cacher le secret' : 'Afficher le secret'}
+            >
+              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          )}
         </div>
-      ) : multiline ? (
-        <div style={{ position: 'relative' }}>
-          <textarea
-            id={id}
-            className="form-input form-textarea"
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            placeholder={placeholder}
-            disabled={disabled}
-            autoComplete="off"
-            spellCheck={false}
-            rows={3}
-            style={isPassword && !showPassword ? { WebkitTextSecurity: 'disc', fontFamily: 'monospace' } as any : {}}
-          />
-          {renderPasswordToggle()}
-        </div>
-      ) : (
-        <div style={{ position: 'relative' }}>
-          <input
-            id={id}
-            type={inputType}
-            className="form-input"
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            placeholder={placeholder}
-            disabled={disabled}
-            autoComplete="off"
-            spellCheck={false}
-            style={isPassword ? { paddingRight: '36px' } : {}}
-          />
-          {renderPasswordToggle()}
-        </div>
-      )}
-      {hint && <div className="form-hint">{hint}</div>}
+
+        {rightElement && <div className="form-input-action">{rightElement}</div>}
+
+        {showHelp && (
+          <button
+            type="button"
+            className="form-help-btn"
+            onClick={() => openHelp(helpTarget)}
+            title="Aide"
+            aria-label="Aide"
+          >
+            <HelpCircle size={15} />
+          </button>
+        )}
+      </div>
     </div>
   )
 }

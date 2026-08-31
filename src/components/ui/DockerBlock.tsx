@@ -14,7 +14,7 @@ export function DockerBlock({ command }: { command: string }) {
 
   return (
     <div className="command-block">
-      <Play size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+      <Play size={14} style={{ color: 'var(--color-primary-text)', flexShrink: 0 }} />
       <span className="command-text">{command}</span>
       <button className={`btn btn-copy ${copied ? 'copied' : ''}`} onClick={handleCopy} style={{ flexShrink: 0 }}>
         {copied

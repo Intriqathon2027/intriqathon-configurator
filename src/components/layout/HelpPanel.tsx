@@ -1,16 +1,58 @@
-import { useState, useCallback, useEffect, type ReactNode } from 'react'
+import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { HelpCircle, X } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
+import type { HelpFocus } from '../../context/HelpNavContext'
 
 interface HelpPanelProps {
   helpOpen: boolean
   setHelpOpen: (open: boolean) => void
   title: string
   helpContent?: ReactNode
+  /** Set by a field's "?" button: section to scroll to and flash. */
+  focus?: HelpFocus | null
 }
 
-export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent }: HelpPanelProps) {
+const FLASH_MS = 2600
+const SCROLL_MS = 420
+
+/**
+ * Animates a container's scroll position.
+ * Native `behavior: 'smooth'` is unreliable inside this nested, transitioned
+ * panel (it silently no-ops), so the tween is driven manually.
+ */
+function smoothScrollTo(container: HTMLElement, to: number): () => void {
+  const from = container.scrollTop
+  const distance = to - from
+  if (Math.abs(distance) < 1) {
+    container.scrollTop = to
+    return () => {}
+  }
+
+  // rAF is suspended while the window is hidden — jump straight there instead
+  if (typeof document !== 'undefined' && document.hidden) {
+    container.scrollTop = to
+    return () => {}
+  }
+
+  let frame = 0
+  const start = performance.now()
+
+  const step = (now: number) => {
+    const progress = Math.min((now - start) / SCROLL_MS, 1)
+    const eased = 1 - Math.pow(1 - progress, 3) // ease-out cubic
+    container.scrollTop = from + distance * eased
+    if (progress < 1) frame = requestAnimationFrame(step)
+  }
+
+  frame = requestAnimationFrame(step)
+  return () => cancelAnimationFrame(frame)
+}
+
+export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent, focus }: HelpPanelProps) {
   const { t } = useApp()
+  const flashedRef = useRef<HTMLElement | null>(null)
+  const bodyRef = useRef<HTMLDivElement | null>(null)
+  const cancelScrollRef = useRef<() => void>(() => {})
 
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem('helpPanelWidth')
@@ -55,6 +97,46 @@ export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent }: HelpPan
     }
   }, [isResizing, resize, stopResizing])
 
+  // Reveal the section a "?" button pointed at, once the panel has expanded
+  useEffect(() => {
+    if (!focus) return
+
+    const scrollTimer = window.setTimeout(() => {
+      const target = document.getElementById(`help-${focus.id}`)
+      const container = bodyRef.current
+      if (!target || !container) return
+
+      const containerRect = container.getBoundingClientRect()
+      const targetRect = target.getBoundingClientRect()
+      const centered = container.scrollTop
+        + (targetRect.top - containerRect.top)
+        - (container.clientHeight - targetRect.height) / 2
+      const maxScroll = container.scrollHeight - container.clientHeight
+      cancelScrollRef.current = smoothScrollTo(
+        container,
+        Math.max(0, Math.min(centered, maxScroll)),
+      )
+
+      // Restart the animation even when the same section is requested twice
+      flashedRef.current?.classList.remove('help-section--flash')
+      target.classList.remove('help-section--flash')
+      void target.offsetWidth
+      target.classList.add('help-section--flash')
+      flashedRef.current = target
+    }, 320) // let the panel finish its width transition
+
+    const clearTimer = window.setTimeout(() => {
+      flashedRef.current?.classList.remove('help-section--flash')
+      flashedRef.current = null
+    }, 320 + FLASH_MS)
+
+    return () => {
+      window.clearTimeout(scrollTimer)
+      window.clearTimeout(clearTimer)
+      cancelScrollRef.current()
+    }
+  }, [focus])
+
   if (!helpContent) return null
 
   return (
@@ -71,14 +153,14 @@ export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent }: HelpPan
       <div className="help-panel-content-wrapper" style={{ width: width, display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div className="help-panel-header">
           <div className="help-panel-title">
-            <HelpCircle size={16} color="var(--color-primary)" />
+            <HelpCircle size={16} color="var(--color-primary-text)" />
             {t('help.title')} — {title}
           </div>
           <button className="btn btn-icon btn-ghost" onClick={() => setHelpOpen(false)} title="Fermer">
             <X size={16} />
           </button>
         </div>
-        <div className="help-panel-body">
+        <div className="help-panel-body" ref={bodyRef}>
           {helpContent}
         </div>
       </div>

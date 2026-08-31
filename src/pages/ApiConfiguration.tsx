@@ -5,6 +5,7 @@ import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
 import { FormField } from '../components/ui/FormField'
 import { CopyRow } from '../components/ui/CopyBlock'
 import { useApp } from '../context/AppContext'
+import { FieldHelpSections } from '../components/ui/HelpSection'
 
 type Status = 'idle' | 'running' | 'done' | 'error'
 
@@ -17,8 +18,8 @@ function HelpContent() {
       <h3><Database size={15} /> Supabase</h3>
       <div className="help-block">
         <p><strong>1. URL & Core Keys:</strong></p>
-        <p className="step-schema"><code>Settings (gear icon, bottom left)</code> ➔ <code>API</code></p>
-        <p className="help-note">Copy the Project URL, the `anon` public key, and the `service_role` secret key.</p>
+        <p className="step-schema"><code>Project Settings</code> ➔ <code>API</code> / <code>API Keys</code></p>
+        <p className="help-note">Copy the Project URL under API. The anon and service_role keys now live under API Keys &gt; Legacy API Keys — Supabase is phasing them out in favour of publishable/secret keys, but the legacy ones still work.</p>
         
         <p><strong>2. Database Connection:</strong></p>
         <p className="step-schema"><code>Connect button (top)</code> ➔ <code>ORMs tab</code></p>
@@ -28,6 +29,7 @@ function HelpContent() {
         <p className="step-schema"><code>Storage (left sidebar)</code> ➔ <code>Buckets</code> ➔ <code>New Bucket</code></p>
         <p className="help-note">Name it <strong>public_files</strong>, check <strong>Public bucket</strong>. Then create 4 folders inside: <code>evaluations</code>, <code>submissions</code>, <code>users</code>, and <code>annonces</code>.</p>
       </div>
+      <FieldHelpSections step={1} group="SUPABASE" />
 
       <h3><Server size={15} /> Scaleway</h3>
       <div className="help-block">
@@ -43,6 +45,7 @@ function HelpContent() {
           <li><strong>Security:</strong> Add your SSH Public Key (<code>cat ~/.ssh/id_ed25519.pub</code>)</li>
         </ul>
       </div>
+      <FieldHelpSections step={1} group="SCALEWAY" />
 
       <h3><Globe size={15} /> Spaceship</h3>
       <div className="help-block">
@@ -61,6 +64,7 @@ function HelpContent() {
         <p className="step-schema"><code>Resend DNS values</code> ➔ <code>Spaceship Advanced DNS</code></p>
         <p className="help-note">Copy exactly the MX and TXT records Resend gives you into Spaceship to verify ownership.</p>
       </div>
+      <FieldHelpSections step={1} group="RESEND" />
     </>
   )
 
@@ -69,8 +73,8 @@ function HelpContent() {
       <h3><Database size={15} /> Supabase</h3>
       <div className="help-block">
         <p><strong>1. URL & Clés Principales :</strong></p>
-        <p className="step-schema"><code>Settings (roue crantée, bas gauche)</code> ➔ <code>API</code></p>
-        <p className="help-note">Copiez l'URL du projet, la clé publique `anon` et la clé secrète `service_role`.</p>
+        <p className="step-schema"><code>Project Settings</code> ➔ <code>API</code> / <code>API Keys</code></p>
+        <p className="help-note">Copiez l'URL du projet dans API. Les clés anon et service_role se trouvent désormais dans API Keys &gt; onglet Legacy API Keys — Supabase les remplace progressivement par les clés publishable/secret, mais les anciennes restent fonctionnelles.</p>
         
         <p><strong>2. Connexion Base de Données :</strong></p>
         <p className="step-schema"><code>Bouton Connect (en haut)</code> ➔ <code>Onglet ORMs</code></p>
@@ -80,6 +84,7 @@ function HelpContent() {
         <p className="step-schema"><code>Storage (barre de navigation gauche)</code> ➔ <code>Buckets</code> ➔ <code>New Bucket</code></p>
         <p className="help-note">Nommez-le <strong>public_files</strong>, cochez <strong>Public bucket</strong>. À l'intérieur, créez les 4 dossiers : <code>evaluations</code>, <code>submissions</code>, <code>users</code>, et <code>annonces</code>.</p>
       </div>
+      <FieldHelpSections step={1} group="SUPABASE" />
 
       <h3><Server size={15} /> Scaleway</h3>
       <div className="help-block">
@@ -95,6 +100,7 @@ function HelpContent() {
           <li><strong>Sécurité :</strong> Ajouter votre clé publique SSH (ex: <code>cat ~/.ssh/id_ed25519.pub</code>)</li>
         </ul>
       </div>
+      <FieldHelpSections step={1} group="SCALEWAY" />
 
       <h3><Globe size={15} /> Spaceship</h3>
       <div className="help-block">
@@ -113,6 +119,7 @@ function HelpContent() {
         <p className="step-schema"><code>Valeurs fournies par Resend</code> ➔ <code>Spaceship Advanced DNS</code></p>
         <p className="help-note">Copiez scrupuleusement les champs MX et TXT affichés par Resend dans l'interface de Spaceship, puis validez.</p>
       </div>
+      <FieldHelpSections step={1} group="RESEND" />
     </>
   )
 }
@@ -171,7 +178,7 @@ export function ApiConfiguration() {
         <ServiceConfigBlock
           stepNumber={1}
           serviceName="SUPABASE"
-          serviceIcon={<Database size={18} color="var(--color-primary)" />}
+          serviceIcon={<Database size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.supabase.desc')}
           status={supabaseStatus}
           onStart={() => handleStart('Supabase')}
@@ -183,11 +190,11 @@ export function ApiConfiguration() {
           <details className="manual-config-details">
             <summary>{t('apiConfig.manualConfig')}</summary>
             <div className="form-section">
-              <FormField id="supabase-url" label={t('apiConfig.supabase.url')} envKey="SUPABASE_URL" value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" hint={t('apiConfig.supabase.url.hint')} />
-              <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} envKey="SUPABASE_ANON_KEY" value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." hint={t('apiConfig.supabase.anonKey.hint')} multiline />
-              <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} envKey="SUPABASE_SERVICE_ROLE_KEY" value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." hint={t('apiConfig.supabase.serviceKey.hint')} type="password" multiline />
-              <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} envKey="DATABASE_URL" value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.databaseUrl.hint')} type="password" multiline />
-              <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} envKey="DIRECT_URL" value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." hint={t('apiConfig.supabase.directUrl.hint')} type="password" multiline />
+              <FormField id="supabase-url" label={t('apiConfig.supabase.url')} value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" />
+              <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." multiline />
+              <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." type="password" multiline />
+              <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." type="password" multiline />
+              <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." type="password" multiline />
 
 
             </div>
@@ -198,7 +205,7 @@ export function ApiConfiguration() {
         <ServiceConfigBlock
           stepNumber={2}
           serviceName="SCALEWAY"
-          serviceIcon={<Server size={18} color="var(--color-primary)" />}
+          serviceIcon={<Server size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.scaleway.desc')}
           status={scalewayStatus}
           onStart={() => handleStart('Scaleway')}
@@ -210,10 +217,10 @@ export function ApiConfiguration() {
           <details className="manual-config-details">
             <summary>{t('apiConfig.manualConfig')}</summary>
             <div className="form-section">
-              <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} envKey="IPV4_INSTANCE" value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" hint={t('apiConfig.spaceship.ipv4.hint')} />
+              <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" />
 
               <div style={{ fontWeight: 600, marginBottom: '12px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Server size={16} color="var(--color-primary)" />
+                <Server size={16} color="var(--color-primary-text)" />
                 {t('step1.specs.title')}
               </div>
               <div className="spec-list">
@@ -235,7 +242,7 @@ export function ApiConfiguration() {
         <ServiceConfigBlock
           stepNumber={3}
           serviceName="SPACESHIP"
-          serviceIcon={<Globe size={18} color="var(--color-primary)" />}
+          serviceIcon={<Globe size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.spaceship.desc')}
           status={spaceshipStatus}
           onStart={() => handleStart('Spaceship')}
@@ -249,7 +256,7 @@ export function ApiConfiguration() {
             <div className="form-section">
               <div>
                 <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Info size={16} color="var(--color-primary)" />
+                  <Info size={16} color="var(--color-primary-text)" />
                   {t('step4.dns.title')}
                 </div>
                 <table className="dns-table">
@@ -265,7 +272,7 @@ export function ApiConfiguration() {
                   <tbody>
                     {dnsRecords.map((rec, i) => (
                       <tr key={i}>
-                        <td><span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{rec.type}</span></td>
+                        <td><span style={{ fontWeight: 600, color: 'var(--color-primary-text)' }}>{rec.type}</span></td>
                         <td>{rec.host}</td>
                         <td>{rec.answer}</td>
                         <td>{rec.ttl}</td>
@@ -294,7 +301,7 @@ export function ApiConfiguration() {
         <ServiceConfigBlock
           stepNumber={4}
           serviceName="RESEND"
-          serviceIcon={<Mail size={18} color="var(--color-primary)" />}
+          serviceIcon={<Mail size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.resend.desc')}
           status={resendStatus}
           onStart={() => handleStart('Resend')}
@@ -308,14 +315,14 @@ export function ApiConfiguration() {
             <div className="form-section">
               <div>
               <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Mail size={16} color="var(--color-primary)" />
+                <Mail size={16} color="var(--color-primary-text)" />
                 {t('step4.subdomain')}
               </div>
               <CopyRow label={t('step4.subdomain')} content={mailSubdomain} />
             </div>
 
-              <FormField id="from-email" label={t('apiConfig.supabase.fromEmail')} envKey="FROM_EMAIL" value={config.FROM_EMAIL} onChange={v => setField('FROM_EMAIL', v)} placeholder="Hackathon Team <onboarding@mail.domain.com>" hint={t('apiConfig.supabase.fromEmail.hint')} />
-              <FormField id="allowed-emails" label={t('apiConfig.supabase.allowedEmails')} envKey="ALLOWED_EMAILS" value={config.ALLOWED_EMAILS} onChange={v => setField('ALLOWED_EMAILS', v)} placeholder="*" hint={t('apiConfig.supabase.allowedEmails.hint')} />
+              <FormField id="from-email" label={t('apiConfig.supabase.fromEmail')} value={config.FROM_EMAIL} onChange={v => setField('FROM_EMAIL', v)} placeholder="Hackathon Team <onboarding@mail.domain.com>" />
+              <FormField id="allowed-emails" label={t('apiConfig.supabase.allowedEmails')} value={config.ALLOWED_EMAILS} onChange={v => setField('ALLOWED_EMAILS', v)} placeholder="*" />
             </div>
           </details>
         </ServiceConfigBlock>

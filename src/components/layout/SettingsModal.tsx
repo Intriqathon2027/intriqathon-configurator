@@ -85,7 +85,7 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
       <div className="modal" style={{ width: '400px' }}>
         <div className="modal-header">
           <div className="modal-title">
-            <Settings size={18} color="var(--color-primary)" />
+            <Settings size={18} color="var(--color-primary-text)" />
             {t('settings.title')}
           </div>
           <button className="modal-close" onClick={() => setSettingsOpen(false)}>
@@ -96,7 +96,7 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
           {/* Dark mode toggle */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text)' }}>
-              {isDark ? <Moon size={16} color="var(--color-primary)" /> : <Sun size={16} color="var(--color-primary)" />}
+              {isDark ? <Moon size={16} color="var(--color-primary-text)" /> : <Sun size={16} color="var(--color-primary-text)" />}
               {isDark ? 'Mode sombre' : 'Mode clair'}
             </div>
             <button

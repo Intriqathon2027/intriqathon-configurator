@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Globe, CheckCircle, Info, Database, Check, Terminal } from 'lucide-react'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { ExternalLinkBtn } from '../components/ui/ExternalLinkBtn'
@@ -91,7 +92,7 @@ function HelpContent() {
 
 
 export function ConfigSite() {
-  const { t, config, state } = useApp()
+  const { t, config, state, markStepDone } = useApp()
   const { status, logs, progress, start, cancel } = useDockerRestart()
   const domain = config.DOMAIN || '<DOMAIN>'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
@@ -106,6 +107,11 @@ export function ConfigSite() {
   const handleRestart = () => {
     start({ ipv4 })
   }
+
+  // Validate the site-config step once the Docker restart succeeds
+  useEffect(() => {
+    if (status === 'completed') markStepDone(4)
+  }, [status])
 
   // map hook status to ServiceConfigBlock status
   let serviceStatus: 'idle' | 'running' | 'done' | 'error' = 'idle'
@@ -131,7 +137,7 @@ export function ConfigSite() {
         <ServiceConfigBlock
           stepNumber={1}
           serviceName="SUPABASE"
-          serviceIcon={<Database size={18} color="var(--color-primary)" />}
+          serviceIcon={<Database size={18} color="var(--color-primary-text)" />}
           description={isEn ? 'Configure your Supabase database.' : 'Configurez votre base de données Supabase.'}
           status="idle"
           btnStartLabel={isEn ? 'Launch' : 'Lancer'}
@@ -150,7 +156,7 @@ export function ConfigSite() {
               <SqlBlock sql={SQL_COMMANDS} />
 
               <div style={{ fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
-                <Check size={16} color="var(--color-primary)" />
+                <Check size={16} color="var(--color-primary-text)" />
                 {isEn ? '2. Other Supabase Actions' : '2. Autres Actions Supabase'}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -174,7 +180,7 @@ export function ConfigSite() {
         <ServiceConfigBlock
           stepNumber={2}
           serviceName="DOCKER RESTART"
-          serviceIcon={<Terminal size={18} color="var(--color-primary)" />}
+          serviceIcon={<Terminal size={18} color="var(--color-primary-text)" />}
           description={t('step7.docker.desc')}
           status={serviceStatus}
           onStart={handleRestart}
@@ -207,7 +213,7 @@ export function ConfigSite() {
         <ServiceConfigBlock
           stepNumber={3}
           serviceName={isEn ? 'NEXT STEPS' : 'PROCHAINES ÉTAPES'}
-          serviceIcon={<Globe size={18} color="var(--color-primary)" />}
+          serviceIcon={<Globe size={18} color="var(--color-primary-text)" />}
           description={isEn ? 'Access your platforms and finish the setup.' : 'Accédez à vos plateformes et terminez la configuration.'}
           status="none"
           btnStartLabel=""
@@ -271,7 +277,7 @@ export function ConfigSite() {
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: '10px',
-          background: 'var(--color-primary-light)', color: 'var(--color-primary)',
+          background: 'var(--color-primary-light)', color: 'var(--color-primary-text)',
           padding: '16px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '16px',
           border: '1px solid rgba(29,180,138,0.3)'
         }}>

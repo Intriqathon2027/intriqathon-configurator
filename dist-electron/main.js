@@ -154,10 +154,10 @@ process.env.VITE_PUBLIC = m ? o.join(process.env.APP_ROOT, "public") : g;
 var _;
 function v() {
 	_ = new e({
-		width: 1100,
-		height: 750,
-		minWidth: 900,
-		minHeight: 600,
+		width: 1320,
+		height: 880,
+		minWidth: 1e3,
+		minHeight: 680,
 		titleBarStyle: "hiddenInset",
 		trafficLightPosition: {
 			x: 16,

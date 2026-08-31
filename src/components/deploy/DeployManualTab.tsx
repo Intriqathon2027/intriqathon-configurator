@@ -47,7 +47,7 @@ export function DeployManualTab() {
     <>
       {/* .env preview + download */}
       <div className="card">
-        <div className="card-title"><FileDown size={16} color="var(--color-primary)" />{t('step6.preview')}</div>
+        <div className="card-title"><FileDown size={16} color="var(--color-primary-text)" />{t('step6.preview')}</div>
         <div className="env-preview">{colorizedEnv}</div>
         <div className="download-section">
           <div className="download-icon">
@@ -66,13 +66,13 @@ export function DeployManualTab() {
 
       {/* Deployment commands */}
       <div className="card">
-        <div className="card-title"><Terminal size={16} color="var(--color-primary)" />{t('step6.commands.title')}</div>
+        <div className="card-title"><Terminal size={16} color="var(--color-primary-text)" />{t('step6.commands.title')}</div>
 
         <CommandBlock label={t('step6.cmd.cd')} command={`cd ${deployPath}`} />
 
         <div style={{ marginBottom: '8px', marginTop: '16px' }}>
           <div className="command-label" style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)', padding: '1px 8px', borderRadius: '4px', fontSize: '11px' }}>{t('step6.label.mac')}</span>
+            <span style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary-text)', padding: '1px 8px', borderRadius: '4px', fontSize: '11px' }}>{t('step6.label.mac')}</span>
           </div>
           <CommandBlock
             command={`rsync -avz --progress ./ root@${ipv4}:~/hackathon-deploy`}

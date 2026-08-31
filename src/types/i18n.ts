@@ -31,6 +31,11 @@ export type TranslationKeys = {
   'btn.download': string
   'btn.downloadEnv': string
   'help.title': string
+  'help.fields.title': string
+  'help.field.discordClientId': string
+  'help.field.discordSecret': string
+  'help.field.githubClientId': string
+  'help.field.githubSecret': string
   'lang.fr': string
   'lang.en': string
   'app.title': string
