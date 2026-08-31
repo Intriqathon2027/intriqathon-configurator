@@ -21,10 +21,17 @@ import {
 } from '../../shared/ipc'
 import { KnownHostsStore } from './KnownHostsStore'
 import {
+  DEPLOY_WEIGHTS,
+  PhaseProgress,
+  RESTART_WEIGHTS,
+  trackInstallProgress,
+} from './DeployProgress'
+import {
   SessionDisposedError,
   SshAuthError,
   SshHostKeyError,
   SshSession,
+  SshTransferError,
   SshUnreachableError,
 } from './SshSession'
 
@@ -97,17 +104,20 @@ export class DeployService {
   private async run(job: ActiveJob, request: DeployRequest, win: BrowserWindow): Promise<void> {
     const emit = (event: DeployEvent) => this.emit(win, event)
     const log = (line: string) => emit({ jobId: job.jobId, type: 'stdout', line })
+    const progress = new PhaseProgress((percent) => emit({ jobId: job.jobId, type: 'progress', percent }))
 
     const total = job.kind === 'deploy' ? 4 : 2
     let step = 0
-    const nextStep = (label: string) => {
+    const nextStep = (label: string, weight: number) => {
       step += 1
+      progress.enter(weight)
       emit({ jobId: job.jobId, type: 'step', label, index: step, total })
     }
 
     try {
       // ── 1. Connexion ────────────────────────────────────────────────────
-      nextStep(`Connexion à ${request.credentials.username}@${request.ipv4}`)
+      const weights = job.kind === 'deploy' ? DEPLOY_WEIGHTS : RESTART_WEIGHTS
+      nextStep(`Connexion à ${request.credentials.username}@${request.ipv4}`, weights.connect)
       await job.session.connect({
         host: request.ipv4,
         username: request.credentials.username,
@@ -115,18 +125,18 @@ export class DeployService {
         onLog: log,
       })
       log('Connexion établie')
+      progress.advance(1)
 
       if (job.kind === 'deploy') {
-        await this.runDeploy(job, request, nextStep, log, emit)
+        await this.runDeploy(job, request, nextStep, log, emit, progress)
       } else {
-        await this.runRestart(job, nextStep, log, emit)
+        await this.runRestart(job, nextStep, log, emit, progress)
       }
     } catch (error) {
       if (job.cancelled || error instanceof SessionDisposedError) {
         emit({ jobId: job.jobId, type: 'failed', reason: 'cancelled', message: 'Job annulé' })
       } else {
-        const { reason, message } = classify(error)
-        emit({ jobId: job.jobId, type: 'failed', reason, message })
+        emit({ jobId: job.jobId, type: 'failed', ...classify(error) })
       }
     } finally {
       job.session.dispose()
@@ -140,64 +150,83 @@ export class DeployService {
   private async runDeploy(
     job: ActiveJob,
     request: DeployRequest,
-    nextStep: (label: string) => void,
+    nextStep: (label: string, weight: number) => void,
     log: (line: string) => void,
     emit: (event: DeployEvent) => void,
+    progress: PhaseProgress,
   ): Promise<void> {
     if (!request.sourceDir) {
       throw new Error('Dossier source manquant')
     }
 
     // ── 2. Envoi des fichiers ─────────────────────────────────────────────
-    nextStep('Envoi des fichiers vers le serveur')
-    let lastPercent = -1
+    nextStep('Envoi des fichiers vers le serveur', DEPLOY_WEIGHTS.upload)
+    let lastLogged = -1
     const count = await job.session.uploadDirectory(request.sourceDir, REMOTE_DIR, (relative, index, fileTotal) => {
+      progress.advance(index / fileTotal)
       const percent = Math.floor((index / fileTotal) * 100)
       // Une ligne par tranche de 10 % plutôt qu'une ligne par fichier.
-      if (percent >= lastPercent + 10 || index === fileTotal) {
-        lastPercent = percent
-        log(`  ${percent}% — ${relative}`)
+      if (percent >= lastLogged + 10 || index === fileTotal) {
+        lastLogged = percent
+        log(`  ${percent}% — ${relative} (${index}/${fileTotal})`)
       }
     })
     log(`${count} fichier(s) transféré(s) vers ~/${REMOTE_DIR}`)
 
     // ── 3. Préparation du script distant ──────────────────────────────────
-    nextStep('Préparation du script d\'installation')
+    nextStep('Préparation du script d\'installation', DEPLOY_WEIGHTS.prepare)
+    const prepareErrors: string[] = []
     const prepare = await job.session.exec(
       `cd ${REMOTE_DIR} && sed -i 's/\\r$//' ${INSTALL_SCRIPT} && chmod +x ${INSTALL_SCRIPT}`,
-      { onStdout: log, onStderr: (line) => emit({ jobId: job.jobId, type: 'stderr', line }) },
+      {
+        onStdout: log,
+        onStderr: (line) => { prepareErrors.push(line); emit({ jobId: job.jobId, type: 'stderr', line }) },
+      },
     )
     if (prepare !== 0) {
-      throw new RemoteFailure(`Préparation du script échouée (code ${prepare})`, prepare)
+      throw new RemoteFailure(
+        `La préparation de ${INSTALL_SCRIPT} a échoué sur le serveur`,
+        prepare,
+        prepareErrors,
+      )
     }
+    progress.advance(1)
 
     // ── 4. Installation ───────────────────────────────────────────────────
-    nextStep('Exécution de l\'installation sur le serveur')
+    nextStep('Exécution de l\'installation sur le serveur', DEPLOY_WEIGHTS.install)
+    const installErrors: string[] = []
     const code = await job.session.exec(`cd ${REMOTE_DIR} && ./${INSTALL_SCRIPT}`, {
-      onStdout: log,
-      onStderr: (line) => emit({ jobId: job.jobId, type: 'stderr', line }),
+      onStdout: (line) => {
+        log(line)
+        trackInstallProgress(line, progress)
+      },
+      onStderr: (line) => { installErrors.push(line); emit({ jobId: job.jobId, type: 'stderr', line }) },
     })
     if (code !== 0) {
-      throw new RemoteFailure(`L'installation distante a échoué (code ${code})`, code)
+      throw new RemoteFailure(`${INSTALL_SCRIPT} a échoué sur le serveur`, code, installErrors)
     }
 
+    progress.advance(1)
     emit({ jobId: job.jobId, type: 'done', exitCode: 0 })
   }
 
   private async runRestart(
     job: ActiveJob,
-    nextStep: (label: string) => void,
+    nextStep: (label: string, weight: number) => void,
     log: (line: string) => void,
     emit: (event: DeployEvent) => void,
+    progress: PhaseProgress,
   ): Promise<void> {
-    nextStep(`Redémarrage du conteneur ${RESTART_CONTAINER}`)
+    nextStep(`Redémarrage du conteneur ${RESTART_CONTAINER}`, RESTART_WEIGHTS.restart)
+    const errors: string[] = []
     const code = await job.session.exec(`docker restart ${RESTART_CONTAINER}`, {
-      onStdout: log,
-      onStderr: (line) => emit({ jobId: job.jobId, type: 'stderr', line }),
+      onStdout: (line) => { log(line); progress.creep(1, 0.15) },
+      onStderr: (line) => { errors.push(line); emit({ jobId: job.jobId, type: 'stderr', line }) },
     })
     if (code !== 0) {
-      throw new RemoteFailure(`Le redémarrage a échoué (code ${code})`, code)
+      throw new RemoteFailure(`Le redémarrage du conteneur ${RESTART_CONTAINER} a échoué`, code, errors)
     }
+    progress.advance(1)
     emit({ jobId: job.jobId, type: 'done', exitCode: 0 })
   }
 
@@ -209,18 +238,77 @@ export class DeployService {
 
 class RemoteFailure extends Error {
   readonly exitCode: number
+  readonly stderrLines: string[]
 
-  constructor(message: string, exitCode: number) {
+  constructor(message: string, exitCode: number, stderrLines: string[] = []) {
     super(message)
     this.name = 'RemoteFailure'
     this.exitCode = exitCode
+    this.stderrLines = stderrLines
   }
 }
 
-function classify(error: unknown): { reason: DeployFailureReason; message: string } {
-  if (error instanceof SshAuthError) return { reason: 'auth-required', message: error.message }
-  if (error instanceof SshHostKeyError) return { reason: 'host-changed', message: error.message }
-  if (error instanceof SshUnreachableError) return { reason: 'unreachable', message: error.message }
-  if (error instanceof RemoteFailure) return { reason: 'remote-failure', message: error.message }
-  return { reason: 'internal', message: error instanceof Error ? error.message : String(error) }
+/**
+ * Traduit une exception en événement `failed` exploitable par l'UI :
+ * un titre lisible, le détail technique, et une piste de résolution.
+ */
+function classify(error: unknown): {
+  reason: DeployFailureReason
+  message: string
+  details?: string
+  hint?: string
+} {
+  if (error instanceof SshAuthError) {
+    return { reason: 'auth-required', message: error.message }
+  }
+
+  if (error instanceof SshHostKeyError) {
+    return {
+      reason: 'host-changed',
+      message: "L'empreinte du serveur ne correspond plus à celle mémorisée",
+      details: error.message,
+      hint: 'Si le serveur a été réinstallé, supprimez son entrée de known-hosts.json '
+        + "dans le dossier de données de l'application. Sinon, ne vous connectez pas.",
+    }
+  }
+
+  if (error instanceof SshUnreachableError) {
+    return {
+      reason: 'unreachable',
+      message: 'Impossible de joindre le serveur',
+      details: error.message,
+      hint: "Vérifiez l'adresse IP, que le serveur est démarré, et que le port 22 est ouvert.",
+    }
+  }
+
+  if (error instanceof SshTransferError) {
+    return {
+      reason: 'transfer-failed',
+      message: error.message,
+      details: [
+        error.localPath ? `Fichier local : ${error.localPath}` : null,
+        `Destination : ~/${error.remotePath}`,
+        error.statusCode !== undefined ? `Code SFTP : ${error.statusCode}` : null,
+      ].filter(Boolean).join('\n'),
+      hint: error.hint,
+    }
+  }
+
+  if (error instanceof RemoteFailure) {
+    return {
+      reason: 'remote-failure',
+      message: `${error.message} (code ${error.exitCode})`,
+      details: error.stderrLines.length > 0
+        ? error.stderrLines.slice(-12).join('\n')
+        : "Le script distant n'a rien écrit sur sa sortie d'erreur.",
+      hint: 'Les lignes ci-dessus viennent du serveur. '
+        + `Vous pouvez rejouer l'étape à la main : ssh puis cd ${REMOTE_DIR} && ./${INSTALL_SCRIPT}`,
+    }
+  }
+
+  return {
+    reason: 'internal',
+    message: error instanceof Error ? error.message : String(error),
+    details: error instanceof Error && error.stack ? error.stack.split('\n').slice(0, 5).join('\n') : undefined,
+  }
 }

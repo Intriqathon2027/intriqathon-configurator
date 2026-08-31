@@ -13,12 +13,21 @@ import type {
   WriteResult,
 } from '../../shared/ipc'
 
+export interface JobFailure {
+  reason: DeployFailureReason
+  message: string
+  details?: string
+  hint?: string
+}
+
 export interface JobHandlers {
   onStdout(line: string): void
   onStderr(line: string): void
   onStep(label: string, index: number, total: number): void
+  /** Avancement global 0–100, déjà pondéré côté main. */
+  onProgress(percent: number): void
   onDone(exitCode: number): void
-  onFailed(reason: DeployFailureReason, message: string): void
+  onFailed(failure: JobFailure): void
 }
 
 export interface DeployBridge {
@@ -45,12 +54,18 @@ class ElectronDeployBridge implements DeployBridge {
         case 'stdout': return handlers.onStdout(event.line)
         case 'stderr': return handlers.onStderr(event.line)
         case 'step': return handlers.onStep(event.label, event.index, event.total)
+        case 'progress': return handlers.onProgress(event.percent)
         case 'done':
           unsubscribe()
           return handlers.onDone(event.exitCode)
         case 'failed':
           unsubscribe()
-          return handlers.onFailed(event.reason, event.message)
+          return handlers.onFailed({
+            reason: event.reason,
+            message: event.message,
+            details: event.details,
+            hint: event.hint,
+          })
       }
     })
 
@@ -83,7 +98,10 @@ class MockDeployBridge implements DeployBridge {
     // Sans mot de passe, on simule le refus d'authentification pour exercer
     // le parcours de saisie du mot de passe dans le navigateur.
     if (!request.credentials.password) {
-      void delay(600).then(() => handlers.onFailed('auth-required', 'Aucune clé SSH acceptée par le serveur'))
+      void delay(600).then(() => handlers.onFailed({
+        reason: 'auth-required',
+        message: 'Aucune clé SSH acceptée par le serveur',
+      }))
       return { accepted: true }
     }
 
@@ -100,8 +118,11 @@ class MockDeployBridge implements DeployBridge {
       for (let i = 0; i < steps.length; i += 1) {
         if (this.cancelled.has(request.jobId)) return
         handlers.onStep(steps[i], i + 1, steps.length)
-        await delay(900)
-        if (this.cancelled.has(request.jobId)) return
+        for (let tick = 1; tick <= 5; tick += 1) {
+          await delay(180)
+          if (this.cancelled.has(request.jobId)) return
+          handlers.onProgress(Math.round(((i + tick / 5) / steps.length) * 100))
+        }
         handlers.onStdout(`${steps[i]} : terminé`)
       }
       handlers.onDone(0)

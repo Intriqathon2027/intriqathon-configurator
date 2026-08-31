@@ -225,6 +225,11 @@ export type TranslationKeys = {
   'step6.dialog.confirm.no': string
   'step6.dialog.choice.title': string
   'step6.dialog.choice.submit': string
+  'step6.dialog.error.title': string
+  'step6.dialog.error.hint': string
+  'step6.dialog.error.copy': string
+  'step6.dialog.error.copied': string
+  'step6.dialog.error.close': string
   'step6.auto.info.title': string
   'step6.auto.info.desc': string
   'step6.auto.info.step1': string

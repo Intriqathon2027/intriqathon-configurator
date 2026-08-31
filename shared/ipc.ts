@@ -55,6 +55,7 @@ export type DeployFailureReason =
   | 'unreachable'
   | 'busy'            // un autre job est déjà en cours
   | 'invalid-input'
+  | 'transfer-failed' // échec SFTP sur un fichier précis
   | 'remote-failure'  // le script distant a renvoyé un code ≠ 0
   | 'cancelled'
   | 'internal'
@@ -71,8 +72,20 @@ export type DeployEvent =
   | { jobId: string; type: 'stdout'; line: string }
   | { jobId: string; type: 'stderr'; line: string }
   | { jobId: string; type: 'step'; label: string; index: number; total: number }
+  /** Avancement global 0–100, pondéré par la durée réelle des phases. */
+  | { jobId: string; type: 'progress'; percent: number }
   | { jobId: string; type: 'done'; exitCode: number }
-  | { jobId: string; type: 'failed'; reason: DeployFailureReason; message: string }
+  | {
+      jobId: string
+      type: 'failed'
+      reason: DeployFailureReason
+      /** Phrase lisible, affichée en titre de la popup d'erreur. */
+      message: string
+      /** Détail technique : chemin du fichier, code SFTP, sortie distante. */
+      details?: string
+      /** Piste de résolution concrète, propre à la cause. */
+      hint?: string
+    }
 
 export interface RecentConfig {
   name: string

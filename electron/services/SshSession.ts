@@ -24,6 +24,60 @@ export class SshAuthError extends Error {}
 export class SshHostKeyError extends Error {}
 export class SshUnreachableError extends Error {}
 
+/**
+ * Échec d'une opération SFTP, avec de quoi agir : quel fichier, où il allait,
+ * et ce que le code de statut du serveur signifie réellement.
+ * Sans ça, ssh2 ne remonte que « Failure » — le libellé du code 4.
+ */
+export class SshTransferError extends Error {
+  readonly localPath?: string
+  readonly remotePath: string
+  readonly statusCode?: number
+  readonly hint: string
+
+  constructor(params: {
+    operation: string
+    remotePath: string
+    localPath?: string
+    cause: unknown
+  }) {
+    const code = (params.cause as { code?: number } | undefined)?.code
+    const raw = params.cause instanceof Error ? params.cause.message : String(params.cause)
+    const status = sftpStatusLabel(code, raw)
+
+    super(`${params.operation} — ${status}`)
+    this.name = 'SshTransferError'
+    this.localPath = params.localPath
+    this.remotePath = params.remotePath
+    this.statusCode = code
+    this.hint = sftpHint(code)
+  }
+}
+
+/** Traduction des codes de statut SFTP (RFC draft-ietf-secsh-filexfer, §7). */
+function sftpStatusLabel(code: number | undefined, raw: string): string {
+  switch (code) {
+    case 2: return 'chemin introuvable sur le serveur (code 2)'
+    case 3: return 'permission refusée par le serveur (code 3)'
+    case 4: return `échec côté serveur (code 4) : souvent un disque plein, un quota atteint ou un dossier non inscriptible — message brut : « ${raw} »`
+    case 5: return 'message SFTP invalide (code 5)'
+    case 6: return 'connexion SFTP absente (code 6)'
+    case 7: return 'connexion perdue pendant le transfert (code 7)'
+    case 8: return 'opération non supportée par le serveur (code 8)'
+    default: return raw
+  }
+}
+
+function sftpHint(code: number | undefined): string {
+  switch (code) {
+    case 2: return 'Vérifiez que le dossier parent existe sur le serveur.'
+    case 3: return "Vérifiez les droits de l'utilisateur SSH sur ~/hackathon-deploy (chown/chmod)."
+    case 4: return 'Vérifiez l\'espace disque du serveur (`df -h`) et les droits d\'écriture sur ~/hackathon-deploy.'
+    case 7: return 'La connexion a été coupée : relancez le déploiement.'
+    default: return 'Consultez les lignes précédentes de la console pour le contexte.'
+  }
+}
+
 export interface SshConnectOptions {
   host: string
   port?: number
@@ -157,8 +211,17 @@ export class SshSession {
         createdDirs.add(remoteParent)
       }
 
+      const localPath = path.join(localDir, relative)
       await new Promise<void>((resolve, reject) => {
-        sftp.fastPut(path.join(localDir, relative), remotePath, (err) => (err ? reject(err) : resolve()))
+        sftp.fastPut(localPath, remotePath, (err) => {
+          if (!err) return resolve()
+          reject(new SshTransferError({
+            operation: `Envoi de « ${relative} »`,
+            localPath,
+            remotePath,
+            cause: err,
+          }))
+        })
       })
 
       onFile?.(relative, index, files.length)
@@ -237,6 +300,15 @@ export class SshSession {
     })
   }
 
+  /**
+   * Crée l'arborescence distante.
+   *
+   * `mkdir` sur un dossier existant remonte selon les serveurs FAILURE (4) ou
+   * FILE_ALREADY_EXISTS (11) — les mêmes codes qu'un échec réel (disque plein,
+   * droits). Plutôt que de deviner d'après le code, on vérifie avec `stat` :
+   * un vrai échec n'est plus avalé et ne se transforme plus en « Failure »
+   * inexplicable au moment du premier fichier.
+   */
   private async mkdirp(sftp: SFTPWrapper, remoteDir: string): Promise<void> {
     const segments = remoteDir.split('/').filter(Boolean)
     const absolute = remoteDir.startsWith('/')
@@ -244,14 +316,22 @@ export class SshSession {
 
     for (const segment of segments) {
       current = current === '' ? `/${segment}` : `${current}/${segment}`
-      await new Promise<void>((resolve, reject) => {
-        sftp.mkdir(current, (err) => {
-          // Un dossier déjà présent remonte selon les serveurs en FAILURE (4)
-          // ou FILE_ALREADY_EXISTS (11) : les deux sont bénins ici.
-          const code = (err as { code?: number } | undefined)?.code
-          if (!err || code === 4 || code === 11) return resolve()
-          reject(err)
-        })
+      const dir = current
+
+      const mkdirError = await new Promise<unknown>((resolve) => {
+        sftp.mkdir(dir, (err) => resolve(err ?? null))
+      })
+      if (!mkdirError) continue
+
+      const alreadyThere = await new Promise<boolean>((resolve) => {
+        sftp.stat(dir, (err, stats) => resolve(!err && stats.isDirectory()))
+      })
+      if (alreadyThere) continue
+
+      throw new SshTransferError({
+        operation: `Création du dossier distant ${dir}`,
+        remotePath: dir,
+        cause: mkdirError,
       })
     }
   }

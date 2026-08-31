@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, LogIn, AlertTriangle, List } from 'lucide-react'
+import { X, LogIn, AlertTriangle, List, XCircle, Copy, Check } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import type { DialogData, DialogResponse } from '../../hooks/useDeployment'
 
@@ -19,7 +19,102 @@ export function DeployDialog({ dialog, onRespond }: DeployDialogProps) {
       return <ConfirmDialog dialog={dialog} onRespond={onRespond} t={t} />
     case 'choice':
       return <ChoiceDialog dialog={dialog} onRespond={onRespond} t={t} />
+    case 'error':
+      return <ErrorDialog dialog={dialog} onRespond={onRespond} t={t} />
   }
+}
+
+// ============================================================
+// ERROR DIALOG
+// ============================================================
+
+function ErrorDialog({
+  dialog,
+  onRespond,
+  t,
+}: {
+  dialog: DialogData & { type: 'error' }
+  onRespond: (r: DialogResponse) => void
+  t: (key: string) => string
+}) {
+  const [copied, setCopied] = useState(false)
+
+  // Tout ce qu'il faut pour diagnostiquer ailleurs, en un seul bloc.
+  const report = [dialog.title, dialog.message, dialog.details, dialog.hint]
+    .filter(Boolean)
+    .join('\n\n')
+
+  const copyReport = async () => {
+    try {
+      await navigator.clipboard.writeText(report)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  const dismiss = () => onRespond({ type: 'error', dismissed: true })
+
+  return createPortal(
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && dismiss()}>
+      <div className="modal deploy-dialog">
+        <div className="modal-header">
+          <div className="modal-title">
+            <XCircle size={18} color="var(--color-danger, #E5484D)" />
+            {dialog.title || t('step6.dialog.error.title')}
+          </div>
+        </div>
+
+        <div className="modal-body">
+          <p className="deploy-dialog-message" style={{ fontWeight: 600 }}>{dialog.message}</p>
+
+          {dialog.details && (
+            <pre
+              style={{
+                marginTop: 'var(--space-3)',
+                padding: '12px',
+                background: '#0B0B0B',
+                color: '#E4E4E4',
+                borderRadius: '8px',
+                fontSize: '12px',
+                lineHeight: 1.5,
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: '220px',
+                overflowY: 'auto',
+              }}
+            >
+              {dialog.details}
+            </pre>
+          )}
+
+          {dialog.hint && (
+            <div className="info-box warning" style={{ marginTop: 'var(--space-3)' }}>
+              <AlertTriangle size={15} className="info-box-icon" />
+              <div className="info-box-text">
+                <div className="info-box-title">{t('step6.dialog.error.hint')}</div>
+                {dialog.hint}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="deploy-dialog-footer">
+          <button className="btn btn-secondary" onClick={copyReport} id="btn-dialog-error-copy">
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? t('step6.dialog.error.copied') : t('step6.dialog.error.copy')}
+          </button>
+          <button className="btn btn-primary" onClick={dismiss} id="btn-dialog-error-close">
+            <X size={14} />
+            {t('step6.dialog.error.close')}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
 }
 
 // ============================================================

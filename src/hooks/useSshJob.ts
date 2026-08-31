@@ -44,12 +44,22 @@ export interface ChoiceDialogData {
   options: { label: string; value: string }[]
 }
 
-export type DialogData = AuthDialogData | ConfirmDialogData | ChoiceDialogData
+/** Popup d'échec : ce qui a cassé, le détail technique, et quoi faire. */
+export interface ErrorDialogData {
+  type: 'error'
+  title: string
+  message: string
+  details?: string
+  hint?: string
+}
+
+export type DialogData = AuthDialogData | ConfirmDialogData | ChoiceDialogData | ErrorDialogData
 
 export type DialogResponse =
   | { type: 'auth'; username: string; password: string }
   | { type: 'confirm'; confirmed: boolean }
   | { type: 'choice'; selectedValue: string }
+  | { type: 'error'; dismissed: true }
 
 export interface SshJobInput {
   ipv4: string
@@ -67,6 +77,7 @@ const FAILURE_LABEL: Record<DeployFailureReason, string> = {
   unreachable: 'Serveur injoignable',
   busy: 'Une autre opération est déjà en cours',
   'invalid-input': 'Paramètres invalides',
+  'transfer-failed': 'Échec du transfert de fichiers',
   'remote-failure': 'Échec côté serveur',
   cancelled: 'Opération annulée',
   internal: 'Erreur interne',
@@ -139,7 +150,10 @@ export function useSshJob(kind: 'deploy' | 'restart') {
         onStep: (label, index, total) => {
           if (!isCurrent()) return
           addLog(`[${index}/${total}] ${label}`, 'running')
-          setProgress(Math.round((index / total) * 90))
+        },
+        onProgress: (percent) => {
+          // Monotone : une phase tardive ne doit jamais faire reculer la barre.
+          if (isCurrent()) setProgress((prev) => Math.max(prev, percent))
         },
         onDone: () => {
           if (!isCurrent()) return
@@ -148,7 +162,7 @@ export function useSshJob(kind: 'deploy' | 'restart') {
           setStatus('completed')
           credentialsRef.current = { username: credentialsRef.current.username }
         },
-        onFailed: (reason, message) => {
+        onFailed: ({ reason, message, details, hint }) => {
           if (!isCurrent()) return
 
           if (reason === 'auth-required') {
@@ -170,14 +184,30 @@ export function useSshJob(kind: 'deploy' | 'restart') {
           }
 
           addLog(`${FAILURE_LABEL[reason]} : ${message}`, 'error')
+          if (details) for (const line of details.split('\n')) addLog(line, 'error')
           setStatus('error')
+
+          // La console défile et se perd ; la cause mérite une popup.
+          setPendingDialog({
+            type: 'error',
+            title: FAILURE_LABEL[reason],
+            message,
+            details,
+            hint,
+          })
         },
       },
     )
 
     if (!result.accepted && isCurrent()) {
-      addLog(`${FAILURE_LABEL[result.reason ?? 'internal']} : ${result.message ?? ''}`, 'error')
+      const reason = result.reason ?? 'internal'
+      addLog(`${FAILURE_LABEL[reason]} : ${result.message ?? ''}`, 'error')
       setStatus('error')
+      setPendingDialog({
+        type: 'error',
+        title: FAILURE_LABEL[reason],
+        message: result.message ?? 'Le job a été refusé.',
+      })
     }
   }, [addLog, kind])
 
@@ -204,6 +234,9 @@ export function useSshJob(kind: 'deploy' | 'restart') {
 
   const respondToDialog = useCallback((response: DialogResponse) => {
     setPendingDialog(null)
+
+    // Fermer la popup d'erreur ne change rien à l'état : le job est déjà fini.
+    if (response.type === 'error') return
 
     if (response.type !== 'auth') {
       cancel()
