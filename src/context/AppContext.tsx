@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react'
+import React, { createContext, useContext, useReducer, useEffect, useState, type ReactNode } from 'react'
 import type { Language } from '../types/i18n'
 import { translations } from '../i18n/translations'
 import { steps } from '../components/layout/steps'
@@ -82,6 +82,27 @@ const defaultConfig: Config = {
 }
 
 // ============================================================
+// THEME
+// ============================================================
+/** What the user picked. 'system' mirrors the OS appearance. */
+export type ThemePreference = 'light' | 'dark' | 'system'
+/** What actually gets written to `data-theme`. */
+export type ResolvedTheme = 'light' | 'dark'
+
+const THEME_KEY = 'intriqathon-theme'
+const DARK_QUERY = '(prefers-color-scheme: dark)'
+
+function loadThemePreference(): ThemePreference {
+  const saved = localStorage.getItem(THEME_KEY)
+  return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system'
+}
+
+function resolveTheme(pref: ThemePreference, prefersDark: boolean): ResolvedTheme {
+  if (pref === 'system') return prefersDark ? 'dark' : 'light'
+  return pref
+}
+
+// ============================================================
 // TOTAL STEPS
 // ============================================================
 const TOTAL_STEPS = 5
@@ -97,7 +118,7 @@ type Action =
   | { type: 'RESET_CONFIG' }
   | { type: 'START_CONFIG' }
   | { type: 'STOP_CONFIG' }
-  | { type: 'SET_THEME'; theme: 'light' | 'dark' }
+  | { type: 'SET_THEME'; theme: ThemePreference }
   | { type: 'MARK_STEP_DONE'; step: number }
 
 // ============================================================
@@ -108,7 +129,8 @@ interface AppState {
   language: Language
   currentStep: number
   hasStarted: boolean
-  theme: 'light' | 'dark'
+  /** What the user picked — 'system' follows the OS appearance. */
+  theme: ThemePreference
   /** Steps validated by an action (deployment, docker restart) rather than by form fields. */
   actionSteps: number[]
 }
@@ -130,7 +152,7 @@ const initialState: AppState = {
   language: 'fr',
   currentStep: 0,
   hasStarted: false,
-  theme: (localStorage.getItem('intriqathon-theme') as 'light' | 'dark') || 'light',
+  theme: loadThemePreference(),
   actionSteps: loadActionSteps(),
 }
 
@@ -182,7 +204,9 @@ interface AppContextType {
   goHome: () => void
   hasSavedConfig: boolean
   totalSteps: number
-  setTheme: (theme: 'light' | 'dark') => void
+  setTheme: (theme: ThemePreference) => void
+  /** The theme actually applied — 'system' resolved against the OS setting. */
+  resolvedTheme: ResolvedTheme
   /** True when every requirement of the given step is satisfied. */
   isStepComplete: (step: number) => boolean
   markStepDone: (step: number) => void
@@ -192,6 +216,9 @@ const AppContext = createContext<AppContextType | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
+    resolveTheme(initialState.theme, window.matchMedia(DARK_QUERY).matches)
+  )
 
   // Load saved config on mount
   useEffect(() => {
@@ -231,16 +258,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(ACTION_STEPS_KEY, JSON.stringify(state.actionSteps))
   }, [state.actionSteps])
 
-  // Apply theme to document
+  // Apply the theme, following the OS appearance while the preference is 'system'
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', state.theme)
     localStorage.setItem('intriqathon-theme', state.theme)
-  }, [state.theme])
 
-  // Initialize theme on mount
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', state.theme)
-  }, [])
+    const media = window.matchMedia(DARK_QUERY)
+    const apply = () => {
+      const resolved = resolveTheme(state.theme, media.matches)
+      document.documentElement.setAttribute('data-theme', resolved)
+      setResolvedTheme(resolved)
+    }
+
+    apply()
+    if (state.theme !== 'system') return
+
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
+  }, [state.theme])
 
   const t = (key: string): string => {
     const dict = translations[state.language] as Record<string, string>
@@ -284,7 +318,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'STOP_CONFIG' })
   }
 
-  const setTheme = (theme: 'light' | 'dark') => {
+  const setTheme = (theme: ThemePreference) => {
     dispatch({ type: 'SET_THEME', theme })
   }
 
@@ -315,6 +349,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       hasSavedConfig,
       totalSteps: TOTAL_STEPS,
       setTheme,
+      resolvedTheme,
       isStepComplete,
       markStepDone,
     }}>

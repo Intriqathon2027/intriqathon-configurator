@@ -15,54 +15,33 @@ function HelpContent() {
     return <>
       <h3><Database size={15} /> Supabase</h3>
       <div className="help-block">
-        <p><strong>1. Account & Project:</strong></p>
+        <p><strong>Account & project:</strong></p>
         <p className="step-schema"><code>supabase.com</code> ➔ <code>Sign Up / Sign In</code> ➔ <code>New Project</code></p>
-        <p className="help-note">Choose a name, a strong password (no "?" character), and your region.</p>
-        
-        <p><strong>2. Personal Access Token (PAT):</strong></p>
-        <p className="step-schema"><code>Profile icon (top right)</code> ➔ <code>Account</code> ➔ <code>Access Tokens</code></p>
-        <p className="help-note">Or go directly to <strong>supabase.com/dashboard/account/tokens</strong></p>
-        
-        <p><strong>3. S3 Credentials:</strong></p>
-        <p className="step-schema"><code>Storage</code> ➔ <code>S3 Configuration</code> ➔ <code>Access keys</code> ➔ <code>New access key</code></p>
-        <p className="help-note">Copy both the <strong>Access Key ID</strong> and the <strong>Secret Access Key</strong> immediately — the secret is shown only once.</p>
+        <p className="help-note">Choose a name, a strong password (no "?" character), and your region. The three values below are then collected from that project.</p>
       </div>
       <FieldHelpSections step={0} group="SUPABASE" />
 
       <h3><Mail size={15} /> Resend</h3>
       <div className="help-block">
-        <p><strong>1. Account Creation:</strong></p>
+        <p><strong>Account creation:</strong></p>
         <p className="step-schema"><code>resend.com</code> ➔ <code>Sign Up</code> ➔ <code>Verify Email</code></p>
-        
-        <p><strong>2. API Key:</strong></p>
-        <p className="step-schema"><code>API Keys (left sidebar)</code> ➔ <code>Create API Key</code></p>
-        <p className="help-note">Copy it immediately, it will only be shown once.</p>
+        <p className="help-note">The sending domain is configured in the next step — only the API key is needed here.</p>
       </div>
       <FieldHelpSections step={0} group="RESEND" />
 
       <h3><Globe size={15} /> Spaceship</h3>
       <div className="help-block">
-        <p><strong>1. Domain Registration:</strong></p>
+        <p><strong>Domain registration:</strong></p>
         <p className="step-schema"><code>spaceship.com</code> ➔ <code>Sign Up</code> ➔ <code>Purchase Domain</code></p>
-        
-        <p><strong>2. API Access:</strong></p>
-        <p className="step-schema"><code>Menu compte</code> ➔ <code>API Manager</code> ➔ <code>New API key</code></p>
-        <p className="help-note">Grant at least <strong>domains:read</strong>, <strong>dnsrecords:read</strong>, and <strong>dnsrecords:write</strong> permissions.</p>
+        <p className="help-note">One domain is enough: the site, the admin panel and the mail subdomains all derive from it.</p>
       </div>
       <FieldHelpSections step={0} group="SPACESHIP" />
 
       <h3><Server size={15} /> Scaleway</h3>
       <div className="help-block">
-        <p><strong>1. Setup:</strong></p>
+        <p><strong>Setup:</strong></p>
         <p className="step-schema"><code>console.scaleway.com</code> ➔ <code>Sign Up</code> ➔ <code>Add Payment Method</code></p>
-        
-        <p><strong>2. API Keys:</strong></p>
-        <p className="step-schema"><code>Top-right profile menu</code> ➔ <code>IAM & API keys</code> ➔ <code>API keys tab</code> ➔ <code>Generate API key</code></p>
-        <p className="help-note">The secret key is only shown once — save it immediately.</p>
-        
-        <p><strong>3. Project ID:</strong></p>
-        <p className="step-schema"><code>Left sidebar</code> ➔ <code>Select your Project</code> ➔ <code>Project dashboard</code></p>
-        <p className="help-note">The Project ID is visible on the Project dashboard.</p>
+        <p className="help-note">A payment method is required before an instance can be created in step 2.</p>
       </div>
       <FieldHelpSections step={0} group="SCALEWAY" />
     </>
@@ -71,54 +50,33 @@ function HelpContent() {
   return <>
     <h3><Database size={15} /> Supabase</h3>
     <div className="help-block">
-      <p><strong>1. Compte & Projet :</strong></p>
+      <p><strong>Compte & projet :</strong></p>
       <p className="step-schema"><code>supabase.com</code> ➔ <code>S'inscrire / Se connecter</code> ➔ <code>New Project</code></p>
-      <p className="help-note">Choisissez un nom, un mot de passe fort (sans caractère "?"), et une région.</p>
-      
-      <p><strong>2. Personal Access Token (PAT) :</strong></p>
-      <p className="step-schema"><code>Icône profil (haut droite)</code> ➔ <code>Account</code> ➔ <code>Access Tokens</code></p>
-      <p className="help-note">Ou accédez directement à <strong>supabase.com/dashboard/account/tokens</strong></p>
-      
-      <p><strong>3. Clés S3 (Storage) :</strong></p>
-      <p className="step-schema"><code>Storage</code> ➔ <code>S3 Configuration</code> ➔ <code>Access keys</code> ➔ <code>New access key</code></p>
-      <p className="help-note">Copiez immédiatement l'<strong>Access Key ID</strong> et la <strong>Secret Access Key</strong> — la clé secrète n'est affichée qu'une seule fois.</p>
+      <p className="help-note">Choisissez un nom, un mot de passe fort (sans caractère "?") et une région. Les trois valeurs ci-dessous se récupèrent ensuite dans ce projet.</p>
     </div>
     <FieldHelpSections step={0} group="SUPABASE" />
 
     <h3><Mail size={15} /> Resend</h3>
     <div className="help-block">
-      <p><strong>1. Création du compte :</strong></p>
+      <p><strong>Création du compte :</strong></p>
       <p className="step-schema"><code>resend.com</code> ➔ <code>S'inscrire</code> ➔ <code>Vérifier l'email</code></p>
-      
-      <p><strong>2. Clé API :</strong></p>
-      <p className="step-schema"><code>API Keys (barre de navigation gauche)</code> ➔ <code>Create API Key</code></p>
-      <p className="help-note">La clé n'est affichée qu'une seule fois. Copiez-la immédiatement.</p>
+      <p className="help-note">Le domaine d'envoi se configure à l'étape suivante : ici, seule la clé API est nécessaire.</p>
     </div>
     <FieldHelpSections step={0} group="RESEND" />
 
     <h3><Globe size={15} /> Spaceship</h3>
     <div className="help-block">
-      <p><strong>1. Achat du nom de domaine :</strong></p>
+      <p><strong>Achat du nom de domaine :</strong></p>
       <p className="step-schema"><code>spaceship.com</code> ➔ <code>S'inscrire</code> ➔ <code>Acheter un domaine</code></p>
-      
-      <p><strong>2. Accès API :</strong></p>
-      <p className="step-schema"><code>Icône compte</code> ➔ <code>API Manager</code> ➔ <code>New API key</code></p>
-      <p className="help-note">Accordez au minimum les permissions <strong>domains:read</strong>, <strong>dnsrecords:read</strong> et <strong>dnsrecords:write</strong>.</p>
+      <p className="help-note">Un seul domaine suffit : les sous-domaines du site, du panneau admin et des emails en découlent.</p>
     </div>
     <FieldHelpSections step={0} group="SPACESHIP" />
 
     <h3><Server size={15} /> Scaleway</h3>
     <div className="help-block">
-      <p><strong>1. Initialisation :</strong></p>
+      <p><strong>Initialisation :</strong></p>
       <p className="step-schema"><code>console.scaleway.com</code> ➔ <code>S'inscrire</code> ➔ <code>Moyen de paiement</code></p>
-      
-      <p><strong>2. Clés API :</strong></p>
-      <p className="step-schema"><code>Menu profil (haut droite)</code> ➔ <code>IAM & API keys</code> ➔ <code>Onglet API keys</code> ➔ <code>Generate API key</code></p>
-      <p className="help-note">La clé secrète n'est affichée qu'une seule fois — sauvegardez-la immédiatement.</p>
-      
-      <p><strong>3. Project ID :</strong></p>
-      <p className="step-schema"><code>Barre de navigation gauche</code> ➔ <code>Sélectionner votre projet</code> ➔ <code>Tableau de bord du projet</code></p>
-      <p className="help-note">Le Project ID est visible sur le tableau de bord du projet.</p>
+      <p className="help-note">Un moyen de paiement est obligatoire avant de pouvoir créer une instance à l'étape 2.</p>
     </div>
     <FieldHelpSections step={0} group="SCALEWAY" />
   </>

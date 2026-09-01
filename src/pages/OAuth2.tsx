@@ -1,4 +1,4 @@
-import { Shield, AlertTriangle } from 'lucide-react'
+import { Shield } from 'lucide-react'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { FormField } from '../components/ui/FormField'
 import { ServiceAccountCard } from '../components/ui/ServiceAccountCard'
@@ -14,63 +14,31 @@ function HelpContent() {
     <div className="help-block">
       <p><strong>{isEn ? 'Create the application:' : "Créer l'application :"}</strong></p>
       <p className="step-schema"><code>discord.com/developers/applications</code> ➔ <code>New Application</code></p>
-      <p className="help-note">{isEn ? 'Give it a name (e.g. "Hackathon_Auth").' : 'Donnez un nom (ex: "Hackathon_Auth").'}</p>
+      <p className="help-note">{isEn
+        ? 'Give it a name (e.g. "Hackathon_Auth"). The same application can serve both the OAuth2 login and the bot.'
+        : 'Donnez-lui un nom (ex : "Hackathon_Auth"). La même application peut servir à la connexion OAuth2 et au bot.'}</p>
 
-      <p><strong>{isEn ? 'Client ID:' : 'Client ID :'}</strong></p>
-      <p className="step-schema"><code>General Information</code> ➔ <code>Application ID</code></p>
-
-      <p><strong>{isEn ? 'Client Secret:' : 'Client Secret :'}</strong></p>
-      <p className="step-schema"><code>OAuth2</code> ➔ <code>Reset Secret</code></p>
-      <p className="help-note">{isEn ? 'Shown only once — copy it immediately!' : 'Affiché une seule fois — copiez-le immédiatement !'}</p>
-
-      <p><strong>{isEn ? 'Callback URL:' : 'URL de callback :'}</strong></p>
+      <p><strong>{isEn ? 'Register the callback URL:' : "Déclarer l'URL de callback :"}</strong></p>
       <p className="step-schema"><code>OAuth2</code> ➔ <code>Redirects</code> ➔ <code>Add Redirect</code></p>
-      <p className="help-note">{isEn ? 'Paste the callback URL shown in the form below.' : "Collez l'URL de callback affichée dans le formulaire ci-dessous."}</p>
+      <p className="help-note">{isEn ? 'Paste the callback URL shown in the form, character for character.' : "Collez l'URL de callback affichée dans le formulaire, à l'identique."}</p>
     </div>
     <FieldHelpSections step={2} group="DISCORD OAUTH2" />
-    <div className="info-box warning" style={{ marginTop: '12px' }}>
-      <AlertTriangle size={15} className="info-box-icon" />
-      <div className="info-box-text">
-        <strong>{isEn ? 'Warning' : 'Attention'}</strong> : {isEn
-          ? 'Discord only shows the secret once. Copy it immediately!'
-          : "Discord n'affiche le secret qu'une seule fois. Copiez-le immédiatement !"
-        }
-      </div>
-    </div>
     <h3><Shield size={15} /> GitHub OAuth2</h3>
     <div className="help-block">
-      <p><strong>{isEn ? 'Navigate to OAuth Apps:' : 'Accéder aux OAuth Apps :'}</strong></p>
-      <p className="step-schema"><code>{isEn ? 'Profile photo (top right)' : 'Photo profil (haut droite)'}</code> ➔ <code>Settings</code> ➔ <code>Developer settings</code> ➔ <code>OAuth Apps</code></p>
-      <p className="help-note">{isEn ? 'Or go directly to github.com/settings/developers' : 'Ou accédez directement à github.com/settings/developers'}</p>
-
-      <p><strong>{isEn ? 'Create the app:' : "Créer l'app :"}</strong></p>
-      <p className="step-schema"><code>New OAuth App</code></p>
-      <p className="help-note">{isEn ? 'Fill in the name, Homepage URL, and Callback URL shown below.' : 'Remplissez le nom, Homepage URL et Callback URL affichés ci-dessous.'}</p>
-
-      <p><strong>{isEn ? 'Credentials:' : 'Identifiants :'}</strong></p>
-      <p className="help-note">{isEn ? 'Copy the Client ID, then click "Generate a new client secret" to get the secret (shown only once).' : 'Copiez le Client ID, puis cliquez "Generate a new client secret" pour obtenir le secret (affiché une seule fois).'}</p>
+      <p><strong>{isEn ? 'Create the OAuth App:' : "Créer l'OAuth App :"}</strong></p>
+      <p className="step-schema"><code>{isEn ? 'Profile photo (top right)' : 'Photo profil (haut droite)'}</code> ➔ <code>Settings</code> ➔ <code>Developer settings</code> ➔ <code>OAuth Apps</code> ➔ <code>New OAuth App</code></p>
+      <p className="help-note">{isEn
+        ? 'Fill in the name, plus the Homepage URL and Callback URL shown in the form.'
+        : 'Renseignez le nom, ainsi que la Homepage URL et la Callback URL affichées dans le formulaire.'}</p>
     </div>
     <FieldHelpSections step={2} group="GITHUB OAUTH2" />
-    <div className="info-box warning" style={{ marginTop: '12px' }}>
-      <AlertTriangle size={15} className="info-box-icon" />
-      <div className="info-box-text">
-        <strong>{isEn ? 'Warning' : 'Attention'}</strong> : {isEn
-          ? 'GitHub also only shows the secret once!'
-          : "GitHub n'affiche lui aussi le secret qu'une seule fois !"
-        }
-      </div>
-    </div>
     <h3><Shield size={15} /> {isEn ? 'Discord Bot' : 'Bot Discord'}</h3>
     <div className="help-block">
-      <p><strong>{isEn ? 'Bot Token:' : 'Token Bot :'}</strong></p>
-      <p className="step-schema"><code>{isEn ? 'Your Discord Application' : 'Votre application Discord'}</code> ➔ <code>Bot</code> ➔ <code>Reset Token</code></p>
-      <p className="help-note">{isEn ? 'Shown only once — copy it immediately!' : 'Affiché une seule fois — copiez-le immédiatement !'}</p>
-
-      <p><strong>{isEn ? 'Server / Guild ID:' : 'ID Serveur / Guild :'}</strong></p>
+      <p><strong>{isEn ? 'Add a bot to the application:' : "Ajouter un bot à l'application :"}</strong></p>
+      <p className="step-schema"><code>discord.com/developers/applications</code> ➔ <code>{isEn ? 'Your application' : 'Votre application'}</code> ➔ <code>Bot</code></p>
       <p className="help-note">{isEn
-        ? 'Right-click your server icon in Discord → "Copy Server ID" (requires Developer Mode enabled in Settings → Advanced).'
-        : "Clic droit sur l'icône du serveur dans Discord → \"Copier l'identifiant du serveur\" (nécessite le Mode Développeur activé dans Paramètres → Avancé)."
-      }</p>
+        ? 'A bot lives inside a Discord application: reuse the OAuth2 one above, or create a second application for it.'
+        : "Le bot vit dans une application Discord : reprenez celle de l'OAuth2 ci-dessus, ou créez-en une seconde."}</p>
     </div>
     <FieldHelpSections step={2} group="BOT DISCORD" />
   </>

@@ -17,26 +17,18 @@ function HelpContent() {
     <>
       <h3><Database size={15} /> Supabase</h3>
       <div className="help-block">
-        <p><strong>1. URL & Core Keys:</strong></p>
-        <p className="step-schema"><code>Project Settings</code> ➔ <code>API</code> / <code>API Keys</code></p>
-        <p className="help-note">Copy the Project URL under API. The anon and service_role keys now live under API Keys &gt; Legacy API Keys — Supabase is phasing them out in favour of publishable/secret keys, but the legacy ones still work.</p>
-        
-        <p><strong>2. Database Connection:</strong></p>
-        <p className="step-schema"><code>Connect button (top)</code> ➔ <code>ORMs tab</code></p>
-        <p className="help-note">Use <strong>Transaction mode (port 6543)</strong> for DATABASE_URL and <strong>Session mode (port 5432)</strong> for DIRECT_URL.</p>
-        
-        <p><strong>3. Storage Buckets (S3):</strong></p>
+        <p><strong>Storage buckets (S3):</strong></p>
         <p className="step-schema"><code>Storage (left sidebar)</code> ➔ <code>Buckets</code> ➔ <code>New Bucket</code></p>
-        <p className="help-note">Name it <strong>public_files</strong>, check <strong>Public bucket</strong>. Then create 4 folders inside: <code>evaluations</code>, <code>submissions</code>, <code>users</code>, and <code>annonces</code>.</p>
+        <p className="help-note">Name it <strong>public_files</strong>, check <strong>Public bucket</strong>. Then create 4 folders inside: <code>evaluations</code>, <code>submissions</code>, <code>users</code>, and <code>annonces</code>. The five values below all come from this same project.</p>
       </div>
       <FieldHelpSections step={1} group="SUPABASE" />
 
       <h3><Server size={15} /> Scaleway</h3>
       <div className="help-block">
-        <p><strong>1. Instance Creation:</strong></p>
+        <p><strong>Instance creation:</strong></p>
         <p className="step-schema"><code>Console</code> ➔ <code>Compute</code> ➔ <code>Instances</code> ➔ <code>Create an Instance</code></p>
         
-        <p><strong>2. Mandatory Settings:</strong></p>
+        <p><strong>Mandatory settings:</strong></p>
         <ul className="help-note">
           <li><strong>Image:</strong> Ubuntu 24.04 LTS</li>
           <li><strong>Specs:</strong> Minimum 4 vCPU & 16 GB RAM (e.g., PRO2-M)</li>
@@ -49,18 +41,18 @@ function HelpContent() {
 
       <h3><Globe size={15} /> Spaceship</h3>
       <div className="help-block">
-        <p><strong>1. DNS Management:</strong></p>
+        <p><strong>DNS management:</strong></p>
         <p className="step-schema"><code>Launchpad</code> ➔ <code>Domain Portfolio</code> ➔ <code>click your domain</code> ➔ <code>Advanced DNS</code></p>
         <p className="help-note">Create A records pointing to your Scaleway IPv4, and add MX + TXT records provided by Resend for email.</p>
       </div>
 
       <h3><Mail size={15} /> Resend</h3>
       <div className="help-block">
-        <p><strong>1. Add Sending Domain:</strong></p>
+        <p><strong>Add the sending domain:</strong></p>
         <p className="step-schema"><code>Domains (left menu)</code> ➔ <code>Add Domain</code></p>
         <p className="help-note">Use a subdomain like <code>mail.yourdomain.com</code>.</p>
         
-        <p><strong>2. Verify with Spaceship:</strong></p>
+        <p><strong>Verify it with Spaceship:</strong></p>
         <p className="step-schema"><code>Resend DNS values</code> ➔ <code>Spaceship Advanced DNS</code></p>
         <p className="help-note">Copy exactly the MX and TXT records Resend gives you into Spaceship to verify ownership.</p>
       </div>
@@ -72,26 +64,18 @@ function HelpContent() {
     <>
       <h3><Database size={15} /> Supabase</h3>
       <div className="help-block">
-        <p><strong>1. URL & Clés Principales :</strong></p>
-        <p className="step-schema"><code>Project Settings</code> ➔ <code>API</code> / <code>API Keys</code></p>
-        <p className="help-note">Copiez l'URL du projet dans API. Les clés anon et service_role se trouvent désormais dans API Keys &gt; onglet Legacy API Keys — Supabase les remplace progressivement par les clés publishable/secret, mais les anciennes restent fonctionnelles.</p>
-        
-        <p><strong>2. Connexion Base de Données :</strong></p>
-        <p className="step-schema"><code>Bouton Connect (en haut)</code> ➔ <code>Onglet ORMs</code></p>
-        <p className="help-note">Utilisez le mode <strong>Transaction (port 6543)</strong> pour DATABASE_URL et le mode <strong>Session (port 5432)</strong> pour DIRECT_URL.</p>
-        
-        <p><strong>3. Storage Buckets (S3) :</strong></p>
+        <p><strong>Buckets de stockage (S3) :</strong></p>
         <p className="step-schema"><code>Storage (barre de navigation gauche)</code> ➔ <code>Buckets</code> ➔ <code>New Bucket</code></p>
-        <p className="help-note">Nommez-le <strong>public_files</strong>, cochez <strong>Public bucket</strong>. À l'intérieur, créez les 4 dossiers : <code>evaluations</code>, <code>submissions</code>, <code>users</code>, et <code>annonces</code>.</p>
+        <p className="help-note">Nommez-le <strong>public_files</strong>, cochez <strong>Public bucket</strong>. À l'intérieur, créez les 4 dossiers : <code>evaluations</code>, <code>submissions</code>, <code>users</code> et <code>annonces</code>. Les cinq valeurs ci-dessous se récupèrent toutes dans ce même projet.</p>
       </div>
       <FieldHelpSections step={1} group="SUPABASE" />
 
       <h3><Server size={15} /> Scaleway</h3>
       <div className="help-block">
-        <p><strong>1. Création de l'Instance :</strong></p>
+        <p><strong>Création de l'instance :</strong></p>
         <p className="step-schema"><code>Console</code> ➔ <code>Compute</code> ➔ <code>Instances</code> ➔ <code>Create an Instance</code></p>
         
-        <p><strong>2. Paramètres Obligatoires :</strong></p>
+        <p><strong>Paramètres obligatoires :</strong></p>
         <ul className="help-note">
           <li><strong>Image :</strong> Ubuntu 24.04 LTS</li>
           <li><strong>Ressources :</strong> Minimum 4 vCPU & 16 Go RAM</li>
@@ -104,18 +88,18 @@ function HelpContent() {
 
       <h3><Globe size={15} /> Spaceship</h3>
       <div className="help-block">
-        <p><strong>1. Gestion DNS :</strong></p>
+        <p><strong>Gestion DNS :</strong></p>
         <p className="step-schema"><code>Launchpad</code> ➔ <code>Domain Portfolio</code> ➔ <code>cliquez votre domaine</code> ➔ <code>Advanced DNS</code></p>
         <p className="help-note">Créez les enregistrements A vers l'IPv4 de Scaleway, et ajoutez les enregistrements MX + TXT fournis par Resend pour l'email.</p>
       </div>
 
       <h3><Mail size={15} /> Resend</h3>
       <div className="help-block">
-        <p><strong>1. Ajouter le domaine d'envoi :</strong></p>
+        <p><strong>Ajouter le domaine d'envoi :</strong></p>
         <p className="step-schema"><code>Domains (menu gauche)</code> ➔ <code>Add Domain</code></p>
         <p className="help-note">Utilisez un sous-domaine dédié comme <code>mail.votredomaine.com</code>.</p>
         
-        <p><strong>2. Vérification DNS :</strong></p>
+        <p><strong>Vérification DNS :</strong></p>
         <p className="step-schema"><code>Valeurs fournies par Resend</code> ➔ <code>Spaceship Advanced DNS</code></p>
         <p className="help-note">Copiez scrupuleusement les champs MX et TXT affichés par Resend dans l'interface de Spaceship, puis validez.</p>
       </div>
@@ -145,6 +129,18 @@ export function ApiConfiguration() {
     { key: 'os', icon: <Monitor size={15} />, label: 'OS', value: t('step1.spec.os') },
     { key: 'storage', icon: <HardDrive size={15} />, label: 'Stockage', value: t('step1.spec.storage') },
   ]
+
+  // Completion checks — a block turns green once its values are all filled in,
+  // whether they came from the automation or from the manual fallback fields.
+  const isSupabaseComplete = !!(
+    config.SUPABASE_URL &&
+    config.SUPABASE_ANON_KEY &&
+    config.SUPABASE_SERVICE_ROLE_KEY &&
+    config.DATABASE_URL &&
+    config.DIRECT_URL
+  )
+  const isScalewayComplete = !!config.IPV4_INSTANCE
+  const isResendComplete = !!(config.FROM_EMAIL && config.ALLOWED_EMAILS)
 
   // For now, hardcode statuses to 'idle' since automation isn't implemented
   const [supabaseStatus] = useState<Status>('idle')
@@ -181,6 +177,7 @@ export function ApiConfiguration() {
           serviceIcon={<Database size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.supabase.desc')}
           status={supabaseStatus}
+          isComplete={isSupabaseComplete}
           onStart={() => handleStart('Supabase')}
           onCancel={() => handleCancel('Supabase')}
           btnStartLabel={t('apiConfig.btnStart')}
@@ -208,6 +205,7 @@ export function ApiConfiguration() {
           serviceIcon={<Server size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.scaleway.desc')}
           status={scalewayStatus}
+          isComplete={isScalewayComplete}
           onStart={() => handleStart('Scaleway')}
           onCancel={() => handleCancel('Scaleway')}
           btnStartLabel={t('apiConfig.btnStart')}
@@ -304,6 +302,7 @@ export function ApiConfiguration() {
           serviceIcon={<Mail size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.resend.desc')}
           status={resendStatus}
+          isComplete={isResendComplete}
           onStart={() => handleStart('Resend')}
           onCancel={() => handleCancel('Resend')}
           btnStartLabel={t('apiConfig.btnStart')}

@@ -132,9 +132,14 @@
 }
 
 /* Dark mode specific component overrides */
-[data-theme="dark"] .service-account-card--complete {
+[data-theme="dark"] .service-account-card--complete,
+[data-theme="dark"] .service-config-block--complete {
   background: rgba(29, 180, 138, 0.07);
   border-color: rgba(29, 180, 138, 0.28);
+}
+
+[data-theme="dark"] .service-config-block--complete .service-config-block__step-number {
+  border-right-color: rgba(29, 180, 138, 0.28);
 }
 
 [data-theme="dark"] .info-box.info {
@@ -223,6 +228,15 @@
 
 [data-theme="dark"] .recent-config-item {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* The segmented track needs to sit darker than the pill that rides on it */
+[data-theme="dark"] .theme-toggle {
+  background: var(--color-input-bg);
+}
+
+[data-theme="dark"] .theme-toggle__btn.active {
+  background: var(--color-surface-hover);
 }
 
 [data-theme="dark"] .landing-team-badge {
@@ -340,8 +354,6 @@ body {
   align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-5);
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-border);
   -webkit-app-region: no-drag;
 }
 
@@ -531,21 +543,15 @@ body {
   border-width: 1px;
 }
 
+.service-account-card--complete .service-account-card__name {
+  color: var(--color-primary-text);
+}
+
 .service-account-card__header {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-3);
-}
-
-.service-account-card__status-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.service-account-card__check {
-  color: var(--color-primary-text);
 }
 
 .service-account-card__service-icon {
@@ -589,6 +595,22 @@ body {
   display: flex;
   align-items: stretch;
   transition: all var(--transition-fast);
+}
+
+/* Completed blocks read like a completed account card: green tint, green
+   border, green service name. */
+.service-config-block--complete {
+  background: var(--color-primary-lighter);
+  border-color: rgba(29, 180, 138, 0.4);
+}
+
+.service-config-block--complete .service-config-block__name,
+.service-config-block--complete .service-config-block__step-number {
+  color: var(--color-primary-text);
+}
+
+.service-config-block--complete .service-config-block__step-number {
+  border-right-color: rgba(29, 180, 138, 0.4);
 }
 
 .service-config-block__step-number {
@@ -1521,6 +1543,29 @@ body {
   color: var(--color-text);
 }
 
+/* Ordered steps (deployment walkthrough): a green-tinted row instead of the
+   grey one — grey against the green icon chip reads badly in light mode. */
+.spec-list--steps {
+  list-style: none;
+}
+
+.spec-list--steps .spec-item {
+  background: var(--color-primary-lighter);
+  border-color: rgba(29, 180, 138, 0.28);
+}
+
+.spec-list--steps .spec-icon {
+  background: var(--color-primary-light);
+  border: 1px solid rgba(29, 180, 138, 0.3);
+}
+
+.spec-list--steps .spec-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--color-text);
+}
+
 /* =============================================
    MODAL (Help)
    ============================================= */
@@ -1773,7 +1818,7 @@ body {
 .help-section {
   scroll-margin-top: var(--space-4);
   padding: var(--space-2) var(--space-3);
-  margin: 0 calc(var(--space-3) * -1) var(--space-2);
+  margin: 0 calc(var(--space-3) * -1) var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   transition: background var(--transition-base), border-color var(--transition-base);
@@ -1803,6 +1848,16 @@ body {
 
 .help-section p {
   margin-bottom: 0;
+}
+
+/* A section carries the click path first, then what the value actually is */
+.help-section .step-schema {
+  margin-top: 3px;
+}
+
+.help-section .help-note {
+  margin-top: var(--space-1);
+  margin-left: 0;
 }
 
 /* Flash ring shown when a field's "?" button jumps here */
@@ -1895,39 +1950,63 @@ ul.help-note li {
 }
 
 /* =============================================
-   SETTINGS THEME TOGGLE
+   THEME PICKER (light / system / dark)
    ============================================= */
-.settings-theme-toggle {
-  width: 44px;
-  height: 24px;
-  border-radius: var(--radius-full);
-  background: var(--color-border);
+.settings-theme {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.settings-theme__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.theme-toggle {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.theme-toggle__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-1);
   border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
   cursor: pointer;
-  position: relative;
-  transition: background var(--transition-base);
-  flex-shrink: 0;
-  padding: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.settings-theme-toggle--dark {
-  background: var(--color-primary);
+.theme-toggle__btn:hover:not(.active) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
 }
 
-.settings-theme-toggle__thumb {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: white;
-  transition: transform var(--transition-base);
-  display: block;
-}
-
-.settings-theme-toggle--dark .settings-theme-toggle__thumb {
-  transform: translateX(20px);
+.theme-toggle__btn.active {
+  background: var(--color-surface);
+  color: var(--color-primary-text);
+  box-shadow: var(--shadow-sm);
 }
 
 /* =============================================

@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { useApp } from '../../context/AppContext'
 import { fieldHelpByStep } from '../../i18n/fieldHelp'
 
@@ -19,6 +19,22 @@ export function HelpSection({ id, title, envKey, children }: HelpSectionProps) {
       </div>
       {children}
     </section>
+  )
+}
+
+/** Renders a `>`-separated navigation path as the usual chain of chips. */
+function PathSchema({ path }: { path: string }) {
+  const parts = path.split('>').map(p => p.trim()).filter(Boolean)
+
+  return (
+    <p className="step-schema">
+      {parts.map((part, i) => (
+        <Fragment key={i}>
+          {i > 0 && <span aria-hidden="true">➔</span>}
+          <code>{part}</code>
+        </Fragment>
+      ))}
+    </p>
   )
 }
 
@@ -48,7 +64,8 @@ export function FieldHelpSections({ step, group }: { step: number; group?: strin
               title={t(field.labelKey)}
               envKey={field.envKey}
             >
-              {field.hintKey && <p>{t(field.hintKey)}</p>}
+              {field.pathKey && <PathSchema path={t(field.pathKey)} />}
+              {field.hintKey && <p className="help-note">{t(field.hintKey)}</p>}
             </HelpSection>
           ))}
         </div>

@@ -1,5 +1,4 @@
 import { type ReactNode } from 'react'
-import { Check } from 'lucide-react'
 import { ExternalLinkBtn } from './ExternalLinkBtn'
 
 interface ServiceAccountCardProps {
@@ -24,11 +23,6 @@ export function ServiceAccountCard({
       className={`service-account-card${isComplete ? ' service-account-card--complete' : ''}`}
     >
       <div className="service-account-card__header">
-        {isComplete && (
-          <span className="service-account-card__status-icon">
-            <Check size={16} className="service-account-card__check" />
-          </span>
-        )}
         <span className="service-account-card__service-icon">{serviceIcon}</span>
         <span className="service-account-card__name">{serviceName}</span>
       </div>

@@ -9,6 +9,11 @@ interface ServiceConfigBlockProps {
   serviceIcon: ReactNode
   description: string
   status: ServiceConfigStatus
+  /**
+   * Marks the block as validated — same green treatment as a completed
+   * ServiceAccountCard. Defaults to `status === 'done'`.
+   */
+  isComplete?: boolean
   logs?: string[]
   progress?: number
   onStart?: () => void
@@ -25,6 +30,7 @@ export function ServiceConfigBlock({
   serviceIcon,
   description,
   status,
+  isComplete,
   logs = [],
   progress = 0,
   onStart,
@@ -34,8 +40,12 @@ export function ServiceConfigBlock({
   statusLabels,
   children,
 }: ServiceConfigBlockProps) {
+  const complete = isComplete ?? status === 'done'
+
   return (
-    <div className={`service-config-block service-config-block--${status}`}>
+    <div
+      className={`service-config-block service-config-block--${status}${complete ? ' service-config-block--complete' : ''}`}
+    >
       <div className="service-config-block__step-number">{stepNumber}</div>
 
       <div className="service-config-block__content">

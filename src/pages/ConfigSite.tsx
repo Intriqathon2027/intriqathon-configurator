@@ -206,10 +206,8 @@ export function ConfigSite() {
             </div>
           </details>
         </ServiceConfigBlock>
-      </div>
 
-      {/* Links & Next Steps */}
-      <div className="api-config-list" style={{ marginTop: '24px' }}>
+        {/* Links & Next Steps */}
         <ServiceConfigBlock
           stepNumber={3}
           serviceName={isEn ? 'NEXT STEPS' : 'PROCHAINES ÉTAPES'}
