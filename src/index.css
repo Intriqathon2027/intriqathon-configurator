@@ -1501,28 +1501,36 @@ body {
 }
 
 /* =============================================
-   SPEC LIST
+   ICON ROW LIST
+   Bordered enumeration rows (instance specs, deployment steps).
+   Recessed neutral row, green icon chip.
    ============================================= */
-.spec-list {
+.icon-row-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  list-style: none;
 }
 
-.spec-item {
+.icon-row-list--spaced {
+  margin-top: var(--space-4);
+}
+
+.icon-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
 
-.spec-icon {
+.icon-row__icon {
   width: 30px;
   height: 30px;
   background: var(--color-primary-light);
+  border: 1px solid rgba(29, 180, 138, 0.3);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -1531,39 +1539,17 @@ body {
   flex-shrink: 0;
 }
 
-.spec-label {
+.icon-row__label {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   font-weight: 500;
 }
 
-.spec-value {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-/* Ordered steps (deployment walkthrough): a green-tinted row instead of the
-   grey one — grey against the green icon chip reads badly in light mode. */
-.spec-list--steps {
-  list-style: none;
-}
-
-.spec-list--steps .spec-item {
-  background: var(--color-primary-lighter);
-  border-color: rgba(29, 180, 138, 0.28);
-}
-
-.spec-list--steps .spec-icon {
-  background: var(--color-primary-light);
-  border: 1px solid rgba(29, 180, 138, 0.3);
-}
-
-.spec-list--steps .spec-label {
+.icon-row__text {
   font-size: var(--font-size-sm);
   font-weight: 500;
-  line-height: 1.45;
   color: var(--color-text);
+  line-height: 1.45;
 }
 
 /* =============================================

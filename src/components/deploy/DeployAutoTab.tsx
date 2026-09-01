@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext'
 import { generateEnvContent } from '../../utils/deploy'
 import { useDeployment } from '../../hooks/useDeployment'
 import { DeployDialog } from './DeployDialog'
+import { IconRowList } from '../ui/IconRowList'
 import type { DeployLogEntry, DeploymentStatus } from '../../hooks/useDeployment'
 
 function getStatusIcon(status: DeployLogEntry['status']) {
@@ -191,24 +192,15 @@ export function DeployAutoTab() {
         <p className="step-description" style={{ fontSize: 'var(--font-size-sm)' }}>
           {t('step6.auto.info.desc')}
         </p>
-        <ul className="spec-list spec-list--steps" style={{ marginTop: 'var(--space-4)' }}>
-          <li className="spec-item">
-            <div className="spec-icon"><Upload size={16} /></div>
-            <div className="spec-label">1. {t('step6.auto.info.step1')}</div>
-          </li>
-          <li className="spec-item">
-            <div className="spec-icon"><Globe size={16} /></div>
-            <div className="spec-label">2. {t('step6.auto.info.step2')}</div>
-          </li>
-          <li className="spec-item">
-            <div className="spec-icon"><Database size={16} /></div>
-            <div className="spec-label">3. {t('step6.auto.info.step3')}</div>
-          </li>
-          <li className="spec-item">
-            <div className="spec-icon"><Rocket size={16} /></div>
-            <div className="spec-label">4. {t('step6.auto.info.step4')}</div>
-          </li>
-        </ul>
+        <IconRowList
+          className="icon-row-list--spaced"
+          items={[
+            { key: 'transfer', icon: <Upload size={16} />, text: `1. ${t('step6.auto.info.step1')}` },
+            { key: 'nginx', icon: <Globe size={16} />, text: `2. ${t('step6.auto.info.step2')}` },
+            { key: 'database', icon: <Database size={16} />, text: `3. ${t('step6.auto.info.step3')}` },
+            { key: 'docker', icon: <Rocket size={16} />, text: `4. ${t('step6.auto.info.step4')}` },
+          ]}
+        />
       </div>
 
       {/* Dialog overlay */}

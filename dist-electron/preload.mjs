@@ -1,1 +1,49 @@
-let e=require("electron");e.contextBridge.exposeInMainWorld(`electronAPI`,{openExternalUrl:t=>e.ipcRenderer.invoke(`open-external-url`,t),openFolderDialog:()=>e.ipcRenderer.invoke(`open-folder-dialog`),saveEnvFile:t=>e.ipcRenderer.invoke(`save-env-file`,t),saveLocalConfig:t=>e.ipcRenderer.invoke(`save-local-config`,t),loadLocalConfig:()=>e.ipcRenderer.invoke(`load-local-config`),exportConfig:t=>e.ipcRenderer.invoke(`export-config`,t),importConfig:()=>e.ipcRenderer.invoke(`import-config`),saveRecentConfigs:t=>e.ipcRenderer.invoke(`save-recent-configs`,t),loadRecentConfigs:()=>e.ipcRenderer.invoke(`load-recent-configs`),readConfigFile:t=>e.ipcRenderer.invoke(`read-config-file`,t),getPlatform:()=>e.ipcRenderer.invoke(`deploy:get-platform`),writeEnvToDir:(t,n)=>e.ipcRenderer.invoke(`deploy:write-env`,t,n),startDeploy:(t,n,r)=>e.ipcRenderer.invoke(`deploy:start`,t,n,r),restartDocker:(t,n)=>e.ipcRenderer.invoke(`deploy:restart`,t,n),cancelDeploy:()=>e.ipcRenderer.invoke(`deploy:cancel`),sendDeployInput:t=>e.ipcRenderer.invoke(`deploy:send-input`,t),onDeployStdout:t=>{let n=(e,n)=>t(n);return e.ipcRenderer.on(`deploy:stdout`,n),()=>{e.ipcRenderer.removeListener(`deploy:stdout`,n)}},onDeployStderr:t=>{let n=(e,n)=>t(n);return e.ipcRenderer.on(`deploy:stderr`,n),()=>{e.ipcRenderer.removeListener(`deploy:stderr`,n)}},onDeployExit:t=>{let n=(e,n)=>t(n);return e.ipcRenderer.on(`deploy:exit`,n),()=>{e.ipcRenderer.removeListener(`deploy:exit`,n)}},onDeployError:t=>{let n=(e,n)=>t(n);return e.ipcRenderer.on(`deploy:error`,n),()=>{e.ipcRenderer.removeListener(`deploy:error`,n)}}});
+let electron = require("electron");
+//#region electron/preload.ts
+electron.contextBridge.exposeInMainWorld("electronAPI", {
+	openExternalUrl: (url) => electron.ipcRenderer.invoke("open-external-url", url),
+	openFolderDialog: () => electron.ipcRenderer.invoke("open-folder-dialog"),
+	saveEnvFile: (content) => electron.ipcRenderer.invoke("save-env-file", content),
+	saveLocalConfig: (config) => electron.ipcRenderer.invoke("save-local-config", config),
+	loadLocalConfig: () => electron.ipcRenderer.invoke("load-local-config"),
+	exportConfig: (config) => electron.ipcRenderer.invoke("export-config", config),
+	importConfig: () => electron.ipcRenderer.invoke("import-config"),
+	saveRecentConfigs: (configs) => electron.ipcRenderer.invoke("save-recent-configs", configs),
+	loadRecentConfigs: () => electron.ipcRenderer.invoke("load-recent-configs"),
+	readConfigFile: (filePath) => electron.ipcRenderer.invoke("read-config-file", filePath),
+	getPlatform: () => electron.ipcRenderer.invoke("deploy:get-platform"),
+	writeEnvToDir: (dir, content) => electron.ipcRenderer.invoke("deploy:write-env", dir, content),
+	startDeploy: (ipv4, sourceDir, sshPassword) => electron.ipcRenderer.invoke("deploy:start", ipv4, sourceDir, sshPassword),
+	restartDocker: (ipv4, sshPassword) => electron.ipcRenderer.invoke("deploy:restart", ipv4, sshPassword),
+	cancelDeploy: () => electron.ipcRenderer.invoke("deploy:cancel"),
+	sendDeployInput: (text) => electron.ipcRenderer.invoke("deploy:send-input", text),
+	onDeployStdout: (cb) => {
+		const handler = (_event, line) => cb(line);
+		electron.ipcRenderer.on("deploy:stdout", handler);
+		return () => {
+			electron.ipcRenderer.removeListener("deploy:stdout", handler);
+		};
+	},
+	onDeployStderr: (cb) => {
+		const handler = (_event, line) => cb(line);
+		electron.ipcRenderer.on("deploy:stderr", handler);
+		return () => {
+			electron.ipcRenderer.removeListener("deploy:stderr", handler);
+		};
+	},
+	onDeployExit: (cb) => {
+		const handler = (_event, code) => cb(code);
+		electron.ipcRenderer.on("deploy:exit", handler);
+		return () => {
+			electron.ipcRenderer.removeListener("deploy:exit", handler);
+		};
+	},
+	onDeployError: (cb) => {
+		const handler = (_event, error) => cb(error);
+		electron.ipcRenderer.on("deploy:error", handler);
+		return () => {
+			electron.ipcRenderer.removeListener("deploy:error", handler);
+		};
+	}
+});
+//#endregion

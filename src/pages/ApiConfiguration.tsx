@@ -6,6 +6,7 @@ import { FormField } from '../components/ui/FormField'
 import { CopyRow } from '../components/ui/CopyBlock'
 import { useApp } from '../context/AppContext'
 import { FieldHelpSections } from '../components/ui/HelpSection'
+import { IconRowList, type IconRowItem } from '../components/ui/IconRowList'
 
 type Status = 'idle' | 'running' | 'done' | 'error'
 
@@ -123,11 +124,11 @@ export function ApiConfiguration() {
   ]
 
 
-  const specs = [
-    { key: 'cpu', icon: <Cpu size={15} />, label: 'CPU', value: t('step1.spec.cpu') },
-    { key: 'ram', icon: <MemoryStick size={15} />, label: 'RAM', value: t('step1.spec.ram') },
-    { key: 'os', icon: <Monitor size={15} />, label: 'OS', value: t('step1.spec.os') },
-    { key: 'storage', icon: <HardDrive size={15} />, label: 'Stockage', value: t('step1.spec.storage') },
+  const specs: IconRowItem[] = [
+    { key: 'cpu', icon: <Cpu size={15} />, label: 'CPU', text: t('step1.spec.cpu') },
+    { key: 'ram', icon: <MemoryStick size={15} />, label: 'RAM', text: t('step1.spec.ram') },
+    { key: 'os', icon: <Monitor size={15} />, label: 'OS', text: t('step1.spec.os') },
+    { key: 'storage', icon: <HardDrive size={15} />, label: 'Stockage', text: t('step1.spec.storage') },
   ]
 
   // Completion checks — a block turns green once its values are all filled in,
@@ -217,21 +218,11 @@ export function ApiConfiguration() {
             <div className="form-section">
               <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" />
 
-              <div style={{ fontWeight: 600, marginBottom: '12px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ fontWeight: 600, marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Server size={16} color="var(--color-primary-text)" />
                 {t('step1.specs.title')}
               </div>
-              <div className="spec-list">
-                {specs.map(spec => (
-                  <div className="spec-item" key={spec.key}>
-                    <div className="spec-icon">{spec.icon}</div>
-                    <div>
-                      <div className="spec-label">{spec.label}</div>
-                      <div className="spec-value">{spec.value}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <IconRowList className="icon-row-list--spaced" items={specs} />
             </div>
           </details>
         </ServiceConfigBlock>
