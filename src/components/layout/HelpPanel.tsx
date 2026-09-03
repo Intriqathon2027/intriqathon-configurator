@@ -16,6 +16,13 @@ const FLASH_MS = 2600
 const SCROLL_MS = 420
 
 /**
+ * Action names are chips that never break across lines, so the panel cannot go
+ * narrower than the longest of them without clipping one.
+ */
+const MIN_WIDTH = 320
+const MAX_WIDTH = 600
+
+/**
  * Animates a container's scroll position.
  * Native `behavior: 'smooth'` is unreliable inside this nested, transitioned
  * panel (it silently no-ops), so the tween is driven manually.
@@ -56,7 +63,9 @@ export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent, focus }: 
 
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem('helpPanelWidth')
-    return saved ? parseInt(saved, 10) : 340
+    if (!saved) return 340
+    // A width stored before MIN_WIDTH went up would still be too narrow
+    return Math.min(Math.max(parseInt(saved, 10) || 340, MIN_WIDTH), MAX_WIDTH)
   })
   const [isResizing, setIsResizing] = useState(false)
 
@@ -75,7 +84,7 @@ export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent, focus }: 
 
   const resize = useCallback((e: MouseEvent) => {
     if (isResizing) {
-      const newWidth = Math.max(250, Math.min(document.documentElement.clientWidth - e.clientX, 600))
+      const newWidth = Math.max(MIN_WIDTH, Math.min(document.documentElement.clientWidth - e.clientX, MAX_WIDTH))
       setWidth(newWidth)
     }
   }, [isResizing])

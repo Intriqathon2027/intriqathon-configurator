@@ -7,108 +7,186 @@ import { CopyRow } from '../components/ui/CopyBlock'
 import { useApp } from '../context/AppContext'
 import { FieldHelpSections } from '../components/ui/HelpSection'
 import { IconRowList, type IconRowItem } from '../components/ui/IconRowList'
+import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
+import { HelpService } from '../components/ui/HelpService'
 
 type Status = 'idle' | 'running' | 'done' | 'error'
 
 function HelpContent() {
-  const { state } = useApp()
+  const { state, config } = useApp()
   const isEn = state.language === 'en'
+  const domain = config.DOMAIN || 'votredomaine.fr'
 
-  if (isEn) return (
-    <>
-      <h3><Database size={15} /> Supabase</h3>
-      <div className="help-block">
-        <p><strong>Storage buckets (S3):</strong></p>
-        <p className="step-schema"><code>Storage (left sidebar)</code> ➔ <code>Buckets</code> ➔ <code>New Bucket</code></p>
-        <p className="help-note">Name it <strong>public_files</strong>, check <strong>Public bucket</strong>. Then create 4 folders inside: <code>evaluations</code>, <code>submissions</code>, <code>users</code>, and <code>annonces</code>. The five values below all come from this same project.</p>
-      </div>
-      <FieldHelpSections step={1} group="SUPABASE" />
+  const supabase: HelpFlowStep[] = [
+    {
+      key: 'buckets',
+      title: isEn ? 'Create the storage buckets' : 'Créer les buckets de stockage',
+      desc: isEn
+        ? <><code>Storage</code> (left sidebar) ➔ <code>New bucket</code>. The app reads and writes <strong>five separate buckets</strong> — create them all, exactly with these names.</>
+        : <><code>Storage</code> (barre latérale gauche) ➔ <code>New bucket</code>. L'application lit et écrit dans <strong>cinq buckets distincts</strong> — créez-les tous, avec exactement ces noms.</>,
+      url: 'https://supabase.com/dashboard/project/_/storage/buckets',
+      copyValues: [
+        { value: 'public_files', note: <>{isEn ? 'tick ' : 'cochez '}<strong>Public bucket</strong> — {isEn ? 'logo, partner logos, media' : 'logo, logos partenaires, médias'}</> },
+        { value: 'annonces', note: isEn ? 'private — announcement attachments' : 'privé — pièces jointes des annonces' },
+        { value: 'users', note: isEn ? 'private — profile pictures' : 'privé — photos de profil' },
+        { value: 'submissions', note: isEn ? 'private — project submissions' : 'privé — livrables des équipes' },
+        { value: 'evaluations', note: isEn ? 'private — jury evaluation files' : "privé — fichiers d'évaluation du jury" },
+      ],
+    },
+    {
+      key: 'connect',
+      title: 'Connect to your project',
+      desc: isEn
+        ? <>The <strong>Connect</strong> button at the top of the project header opens the <em>Connect to your project</em> panel — the fastest way to collect the connection values. <code>App Frameworks</code> shows the Project URL and the publishable/anon key; <code>ORMs</code> shows the two Postgres URLs.</>
+        : <>Le bouton <strong>Connect</strong>, en haut de l'en-tête du projet, ouvre le panneau <em>Connect to your project</em> — c'est le chemin le plus court pour récupérer les valeurs de connexion. L'onglet <code>App Frameworks</code> affiche la Project URL et la clé publishable/anon ; l'onglet <code>ORMs</code> affiche les deux URLs Postgres.</>,
+      url: 'https://supabase.com/dashboard/project/_?showConnect=true',
+      linkLabel: isEn ? 'Open Connect' : 'Ouvrir Connect',
+      extra: (
+        <p className="help-note">
+          {isEn
+            ? 'In the ORMs tab: Transaction mode (port 6543) is DATABASE_URL, Session mode (port 5432) is DIRECT_URL. Both come with a [YOUR-PASSWORD] placeholder to replace with the database password you chose in step 1.'
+            : "Dans l'onglet ORMs : Transaction mode (port 6543) correspond à DATABASE_URL, Session mode (port 5432) à DIRECT_URL. Les deux contiennent un [YOUR-PASSWORD] à remplacer par le mot de passe de base de données choisi à l'étape 1."}
+        </p>
+      ),
+    },
+    {
+      key: 'keys',
+      title: isEn ? 'Copy the API keys' : 'Copier les clés API',
+      desc: isEn
+        ? <><code>Project Settings</code> ➔ <code>API Keys</code>. The deployment expects the JWT-format legacy keys: open the <code>Legacy API keys</code> tab and copy <code>anon public</code> and <code>service_role</code>.</>
+        : <><code>Project Settings</code> ➔ <code>API Keys</code>. Le déploiement attend les clés legacy au format JWT : ouvrez l'onglet <code>Legacy API keys</code> et copiez <code>anon public</code> et <code>service_role</code>.</>,
+      url: 'https://supabase.com/dashboard/project/_/settings/api-keys',
+      extra: (
+        <p className="help-note">
+          {isEn
+            ? 'The service_role key bypasses RLS — it stays on the server, never in the browser and never in a commit.'
+            : "La clé service_role contourne les règles RLS : elle reste côté serveur, jamais dans le navigateur ni dans un commit."}
+        </p>
+      ),
+    },
+  ]
 
-      <h3><Server size={15} /> Scaleway</h3>
-      <div className="help-block">
-        <p><strong>Instance creation:</strong></p>
-        <p className="step-schema"><code>Console</code> ➔ <code>Compute</code> ➔ <code>Instances</code> ➔ <code>Create an Instance</code></p>
-        
-        <p><strong>Mandatory settings:</strong></p>
+  const scaleway: HelpFlowStep[] = [
+    {
+      key: 'create',
+      title: 'Create an Instance',
+      desc: isEn
+        ? <><code>Console</code> ➔ <code>Compute</code> ➔ <code>Instances</code> ➔ <code>Create Instance</code>, in the Project whose ID you filled in at step 1.</>
+        : <><code>Console</code> ➔ <code>Compute</code> ➔ <code>Instances</code> ➔ <code>Create Instance</code>, dans le Projet dont vous avez renseigné l'ID à l'étape 1.</>,
+      url: 'https://console.scaleway.com/instance/servers',
+    },
+    {
+      key: 'settings',
+      title: isEn ? 'Set the mandatory options' : 'Renseigner les options obligatoires',
+      desc: isEn
+        ? 'The whole stack (backend, front, config app, bot, Postgres tooling, Grafana, Prometheus) runs on this single machine.'
+        : "Toute la stack (backend, front, app de config, bot, outils Postgres, Grafana, Prometheus) tourne sur cette seule machine.",
+      extra: (
         <ul className="help-note">
-          <li><strong>Image:</strong> Ubuntu 24.04 LTS</li>
-          <li><strong>Specs:</strong> Minimum 4 vCPU & 16 GB RAM (e.g., PRO2-M)</li>
-          <li><strong>Storage:</strong> Block storage 10GB+</li>
-          <li><strong>Network:</strong> Enable Public IPv4</li>
-          <li><strong>Security:</strong> Add your SSH Public Key (<code>cat ~/.ssh/id_ed25519.pub</code>)</li>
+          <li><strong>Image :</strong> Ubuntu 24.04 LTS</li>
+          <li><strong>{isEn ? 'Specs' : 'Ressources'} :</strong> {isEn ? 'at least' : 'au minimum'} 4 vCPU / 16 {isEn ? 'GB' : 'Go'} RAM</li>
+          <li><strong>{isEn ? 'Storage' : 'Stockage'} :</strong> block storage 10 {isEn ? 'GB' : 'Go'}+</li>
+          <li><strong>{isEn ? 'Network' : 'Réseau'} :</strong> {isEn ? 'enable a public IPv4' : 'activer une IPv4 publique'}</li>
+          <li><strong>{isEn ? 'Security' : 'Sécurité'} :</strong> {isEn ? 'add your SSH public key' : 'ajouter votre clé publique SSH'}</li>
         </ul>
-      </div>
-      <FieldHelpSections step={1} group="SCALEWAY" />
+      ),
+      copyValues: [{ value: 'cat ~/.ssh/id_ed25519.pub', note: isEn ? 'prints your public key' : 'affiche votre clé publique' }],
+    },
+    {
+      key: 'ipv4',
+      title: isEn ? 'Copy the public IPv4' : "Copier l'IPv4 publique",
+      desc: isEn
+        ? <><code>Instances</code> ➔ your instance ➔ <code>Overview</code>. Every DNS A record points at it, and the deployment SSHes into it.</>
+        : <><code>Instances</code> ➔ votre instance ➔ <code>Overview</code>. Tous les enregistrements DNS A pointent dessus, et c'est là que le déploiement se connecte en SSH.</>,
+      url: 'https://console.scaleway.com/instance/servers',
+    },
+  ]
 
-      <h3><Globe size={15} /> Spaceship</h3>
-      <div className="help-block">
-        <p><strong>DNS management:</strong></p>
-        <p className="step-schema"><code>Launchpad</code> ➔ <code>Domain Portfolio</code> ➔ <code>click your domain</code> ➔ <code>Advanced DNS</code></p>
-        <p className="help-note">Create A records pointing to your Scaleway IPv4, and add MX + TXT records provided by Resend for email.</p>
-      </div>
+  const spaceship: HelpFlowStep[] = [
+    {
+      key: 'launchpad',
+      title: 'Launchpad',
+      desc: isEn
+        ? <>Everything in Spaceship is reached through the <strong>Launchpad</strong>, its app launcher: the <code>Launchpad</code> button in the top navigation bar, or the <code>/</code> or <code>⌘ K</code> shortcut. Type <code>Domain Portfolio</code> to open the list of your domains.</>
+        : <>Tout, chez Spaceship, passe par le <strong>Launchpad</strong>, son lanceur d'applications : bouton <code>Launchpad</code> dans la barre de navigation, ou raccourci <code>/</code> ou <code>⌘ K</code>. Tapez <code>Domain Portfolio</code> pour ouvrir la liste de vos domaines.</>,
+    },
+    {
+      key: 'dns',
+      title: 'Advanced DNS',
+      desc: isEn
+        ? <><code>Domain Portfolio</code> ➔ click <code>{domain}</code> ➔ <code>Manage</code> ➔ <code>Advanced DNS</code>. This is where the records below are added.</>
+        : <><code>Domain Portfolio</code> ➔ cliquez sur <code>{domain}</code> ➔ <code>Manage</code> ➔ <code>Advanced DNS</code>. C'est ici que s'ajoutent les enregistrements ci-dessous.</>,
+    },
+    {
+      key: 'records',
+      title: isEn ? 'Add the DNS records' : 'Ajouter les enregistrements DNS',
+      desc: isEn
+        ? <>Two A records pointing at the Scaleway IPv4 — the site and the admin panel — plus the MX and TXT records Resend hands you below.</>
+        : <>Deux enregistrements A vers l'IPv4 Scaleway — le site et le panneau admin — plus les enregistrements MX et TXT fournis par Resend ci-dessous.</>,
+      copyValues: [
+        { value: domain, note: isEn ? 'A record — the site' : 'Enregistrement A — le site' },
+        { value: `config.${domain}`, note: isEn ? 'A record — the admin panel' : "Enregistrement A — le panneau d'administration" },
+      ],
+      extra: (
+        <p className="help-note">
+          {isEn
+            ? 'Propagation can take a few minutes; HTTPS certificates are only issued once the A records resolve.'
+            : "La propagation peut prendre quelques minutes ; les certificats HTTPS ne sont émis qu'une fois les enregistrements A résolus."}
+        </p>
+      ),
+    },
+  ]
 
-      <h3><Mail size={15} /> Resend</h3>
-      <div className="help-block">
-        <p><strong>Add the sending domain:</strong></p>
-        <p className="step-schema"><code>Domains (left menu)</code> ➔ <code>Add Domain</code></p>
-        <p className="help-note">Use a subdomain like <code>mail.yourdomain.com</code>.</p>
-        
-        <p><strong>Verify it with Spaceship:</strong></p>
-        <p className="step-schema"><code>Resend DNS values</code> ➔ <code>Spaceship Advanced DNS</code></p>
-        <p className="help-note">Copy exactly the MX and TXT records Resend gives you into Spaceship to verify ownership.</p>
-      </div>
-      <FieldHelpSections step={1} group="RESEND" />
-    </>
-  )
+  const resend: HelpFlowStep[] = [
+    {
+      key: 'add',
+      title: isEn ? 'Add the sending domain' : "Ajouter le domaine d'envoi",
+      desc: isEn
+        ? <><code>Domains</code> (left menu) ➔ <code>Add Domain</code>. Use a dedicated subdomain, and pick the region closest to your participants.</>
+        : <><code>Domains</code> (menu gauche) ➔ <code>Add Domain</code>. Utilisez un sous-domaine dédié, et choisissez la région la plus proche de vos participants.</>,
+      url: 'https://resend.com/domains',
+      copyValues: [{ value: `mail.${domain}`, note: isEn ? 'sending subdomain' : "sous-domaine d'envoi" }],
+    },
+    {
+      key: 'records',
+      title: isEn ? 'Copy the records into Spaceship' : 'Copier les enregistrements dans Spaceship',
+      desc: isEn
+        ? <>Resend then displays a MX record and TXT records (DKIM, SPF). Copy them character for character into <code>Advanced DNS</code> on Spaceship.</>
+        : <>Resend affiche alors un enregistrement MX et des enregistrements TXT (DKIM, SPF). Recopiez-les à l'identique dans <code>Advanced DNS</code> chez Spaceship.</>,
+    },
+    {
+      key: 'verify',
+      title: isEn ? 'Verify the domain' : 'Vérifier le domaine',
+      desc: isEn
+        ? <>Back on Resend, click <code>Verify DNS Records</code> and wait for the domain to turn <strong>Verified</strong>. Until then, every send fails.</>
+        : <>De retour sur Resend, cliquez sur <code>Verify DNS Records</code> et attendez que le domaine passe en <strong>Verified</strong>. Tant que ce n'est pas le cas, les envois échouent.</>,
+      url: 'https://resend.com/domains',
+    },
+  ]
 
   return (
     <>
-      <h3><Database size={15} /> Supabase</h3>
-      <div className="help-block">
-        <p><strong>Buckets de stockage (S3) :</strong></p>
-        <p className="step-schema"><code>Storage (barre de navigation gauche)</code> ➔ <code>Buckets</code> ➔ <code>New Bucket</code></p>
-        <p className="help-note">Nommez-le <strong>public_files</strong>, cochez <strong>Public bucket</strong>. À l'intérieur, créez les 4 dossiers : <code>evaluations</code>, <code>submissions</code>, <code>users</code> et <code>annonces</code>. Les cinq valeurs ci-dessous se récupèrent toutes dans ce même projet.</p>
-      </div>
-      <FieldHelpSections step={1} group="SUPABASE" />
+      <HelpService id="svc-supabase" icon={<Database size={15} />} title="Supabase">
+        <HelpFlow steps={supabase} />
+        <FieldHelpSections step={1} group="SUPABASE" />
+      </HelpService>
 
-      <h3><Server size={15} /> Scaleway</h3>
-      <div className="help-block">
-        <p><strong>Création de l'instance :</strong></p>
-        <p className="step-schema"><code>Console</code> ➔ <code>Compute</code> ➔ <code>Instances</code> ➔ <code>Create an Instance</code></p>
-        
-        <p><strong>Paramètres obligatoires :</strong></p>
-        <ul className="help-note">
-          <li><strong>Image :</strong> Ubuntu 24.04 LTS</li>
-          <li><strong>Ressources :</strong> Minimum 4 vCPU & 16 Go RAM</li>
-          <li><strong>Stockage :</strong> Block storage de 10 Go ou plus</li>
-          <li><strong>Réseau :</strong> Activer une IPv4 publique</li>
-          <li><strong>Sécurité :</strong> Ajouter votre clé publique SSH (ex: <code>cat ~/.ssh/id_ed25519.pub</code>)</li>
-        </ul>
-      </div>
-      <FieldHelpSections step={1} group="SCALEWAY" />
+      <HelpService id="svc-scaleway" icon={<Server size={15} />} title="Scaleway">
+        <HelpFlow steps={scaleway} />
+        <FieldHelpSections step={1} group="SCALEWAY" />
+      </HelpService>
 
-      <h3><Globe size={15} /> Spaceship</h3>
-      <div className="help-block">
-        <p><strong>Gestion DNS :</strong></p>
-        <p className="step-schema"><code>Launchpad</code> ➔ <code>Domain Portfolio</code> ➔ <code>cliquez votre domaine</code> ➔ <code>Advanced DNS</code></p>
-        <p className="help-note">Créez les enregistrements A vers l'IPv4 de Scaleway, et ajoutez les enregistrements MX + TXT fournis par Resend pour l'email.</p>
-      </div>
+      <HelpService id="svc-spaceship" icon={<Globe size={15} />} title="Spaceship">
+        <HelpFlow steps={spaceship} />
+      </HelpService>
 
-      <h3><Mail size={15} /> Resend</h3>
-      <div className="help-block">
-        <p><strong>Ajouter le domaine d'envoi :</strong></p>
-        <p className="step-schema"><code>Domains (menu gauche)</code> ➔ <code>Add Domain</code></p>
-        <p className="help-note">Utilisez un sous-domaine dédié comme <code>mail.votredomaine.com</code>.</p>
-        
-        <p><strong>Vérification DNS :</strong></p>
-        <p className="step-schema"><code>Valeurs fournies par Resend</code> ➔ <code>Spaceship Advanced DNS</code></p>
-        <p className="help-note">Copiez scrupuleusement les champs MX et TXT affichés par Resend dans l'interface de Spaceship, puis validez.</p>
-      </div>
-      <FieldHelpSections step={1} group="RESEND" />
+      <HelpService id="svc-resend" icon={<Mail size={15} />} title="Resend">
+        <HelpFlow steps={resend} />
+        <FieldHelpSections step={1} group="RESEND" />
+      </HelpService>
     </>
   )
 }
-
 
 export function ApiConfiguration() {
   const { t, config, setField } = useApp()
@@ -184,19 +262,19 @@ export function ApiConfiguration() {
           btnStartLabel={t('apiConfig.btnStart')}
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
+          helpAnchor="svc-supabase"
+          helpHint={t('apiConfig.supabase.helpHint')}
+          manualLabel={t('apiConfig.manualConfig')}
         >
-          <details className="manual-config-details">
-            <summary>{t('apiConfig.manualConfig')}</summary>
-            <div className="form-section">
-              <FormField id="supabase-url" label={t('apiConfig.supabase.url')} value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" />
-              <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." multiline />
-              <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." type="password" multiline />
-              <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." type="password" multiline />
-              <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." type="password" multiline />
+          <div className="form-section">
+            <FormField id="supabase-url" label={t('apiConfig.supabase.url')} value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" />
+            <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." multiline />
+            <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." type="password" multiline />
+            <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." type="password" multiline />
+            <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." type="password" multiline />
 
 
-            </div>
-          </details>
+          </div>
         </ServiceConfigBlock>
 
         {/* Scaleway */}
@@ -212,19 +290,19 @@ export function ApiConfiguration() {
           btnStartLabel={t('apiConfig.btnStart')}
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
+          helpAnchor="svc-scaleway"
+          helpHint={t('apiConfig.scaleway.helpHint')}
+          manualLabel={t('apiConfig.manualConfig')}
         >
-          <details className="manual-config-details">
-            <summary>{t('apiConfig.manualConfig')}</summary>
-            <div className="form-section">
-              <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" />
+          <div className="form-section">
+            <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" />
 
-              <div style={{ fontWeight: 600, marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Server size={16} color="var(--color-primary-text)" />
-                {t('step1.specs.title')}
-              </div>
-              <IconRowList className="icon-row-list--spaced" items={specs} />
+            <div style={{ fontWeight: 600, marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Server size={16} color="var(--color-primary-text)" />
+              {t('step1.specs.title')}
             </div>
-          </details>
+            <IconRowList className="icon-row-list--spaced" items={specs} />
+          </div>
         </ServiceConfigBlock>
 
         {/* Spaceship */}
@@ -239,51 +317,51 @@ export function ApiConfiguration() {
           btnStartLabel={t('apiConfig.btnStart')}
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
+          helpAnchor="svc-spaceship"
+          helpHint={t('apiConfig.spaceship.helpHint')}
+          manualLabel={t('apiConfig.manualConfig')}
         >
-          <details className="manual-config-details">
-            <summary>{t('apiConfig.manualConfig')}</summary>
-            <div className="form-section">
-              <div>
-                <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Info size={16} color="var(--color-primary-text)" />
-                  {t('step4.dns.title')}
-                </div>
-                <table className="dns-table">
-                  <thead>
-                    <tr>
-                      <th>{t('step4.dns.type')}</th>
-                      <th>{t('step4.dns.host')}</th>
-                      <th>{t('step4.dns.answer')}</th>
-                      <th>{t('step4.dns.ttl')}</th>
-                      <th></th>
+          <div className="form-section">
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Info size={16} color="var(--color-primary-text)" />
+                {t('step4.dns.title')}
+              </div>
+              <table className="dns-table">
+                <thead>
+                  <tr>
+                    <th>{t('step4.dns.type')}</th>
+                    <th>{t('step4.dns.host')}</th>
+                    <th>{t('step4.dns.answer')}</th>
+                    <th>{t('step4.dns.ttl')}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dnsRecords.map((rec, i) => (
+                    <tr key={i}>
+                      <td><span style={{ fontWeight: 600, color: 'var(--color-primary-text)' }}>{rec.type}</span></td>
+                      <td>{rec.host}</td>
+                      <td>{rec.answer}</td>
+                      <td>{rec.ttl}</td>
+                      <td>
+                        <button
+                          className="btn btn-copy"
+                          onClick={() => navigator.clipboard.writeText(`${rec.type},${rec.host},${rec.answer},${rec.ttl}`)}
+                        >
+                          Copier
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {dnsRecords.map((rec, i) => (
-                      <tr key={i}>
-                        <td><span style={{ fontWeight: 600, color: 'var(--color-primary-text)' }}>{rec.type}</span></td>
-                        <td>{rec.host}</td>
-                        <td>{rec.answer}</td>
-                        <td>{rec.ttl}</td>
-                        <td>
-                          <button
-                            className="btn btn-copy"
-                            onClick={() => navigator.clipboard.writeText(`${rec.type},${rec.host},${rec.answer},${rec.ttl}`)}
-                          >
-                            Copier
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="info-box warning" style={{ marginTop: '16px' }}>
-                  <AlertTriangle size={15} className="info-box-icon" />
-                  <div className="info-box-text">{t('step4.warning')}</div>
-                </div>
+                  ))}
+                </tbody>
+              </table>
+              <div className="info-box warning" style={{ marginTop: '16px' }}>
+                <AlertTriangle size={15} className="info-box-icon" />
+                <div className="info-box-text">{t('step4.warning')}</div>
               </div>
             </div>
-          </details>
+          </div>
         </ServiceConfigBlock>
 
         {/* Resend */}
@@ -299,22 +377,22 @@ export function ApiConfiguration() {
           btnStartLabel={t('apiConfig.btnStart')}
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
+          helpAnchor="svc-resend"
+          helpHint={t('apiConfig.resend.helpHint')}
+          manualLabel={t('apiConfig.manualConfig')}
         >
-          <details className="manual-config-details">
-            <summary>{t('apiConfig.manualConfig')}</summary>
-            <div className="form-section">
-              <div>
-              <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Mail size={16} color="var(--color-primary-text)" />
-                {t('step4.subdomain')}
-              </div>
-              <CopyRow label={t('step4.subdomain')} content={mailSubdomain} />
+          <div className="form-section">
+            <div>
+            <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Mail size={16} color="var(--color-primary-text)" />
+              {t('step4.subdomain')}
             </div>
+            <CopyRow label={t('step4.subdomain')} content={mailSubdomain} />
+          </div>
 
-              <FormField id="from-email" label={t('apiConfig.supabase.fromEmail')} value={config.FROM_EMAIL} onChange={v => setField('FROM_EMAIL', v)} placeholder="Hackathon Team <onboarding@mail.domain.com>" />
-              <FormField id="allowed-emails" label={t('apiConfig.supabase.allowedEmails')} value={config.ALLOWED_EMAILS} onChange={v => setField('ALLOWED_EMAILS', v)} placeholder="*" />
-            </div>
-          </details>
+            <FormField id="from-email" label={t('apiConfig.supabase.fromEmail')} value={config.FROM_EMAIL} onChange={v => setField('FROM_EMAIL', v)} placeholder="Hackathon Team <onboarding@mail.domain.com>" />
+            <FormField id="allowed-emails" label={t('apiConfig.supabase.allowedEmails')} value={config.ALLOWED_EMAILS} onChange={v => setField('ALLOWED_EMAILS', v)} placeholder="*" />
+          </div>
         </ServiceConfigBlock>
 
       </div>

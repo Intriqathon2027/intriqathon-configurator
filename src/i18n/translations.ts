@@ -28,10 +28,12 @@ export const translations: Translations = {
     'btn.copy': 'Copier',
     'btn.copied': 'Copié !',
     'btn.openLink': 'Ouvrir le lien',
+    'btn.learnMore': 'En savoir plus',
     'btn.browse': 'Parcourir',
     'btn.download': 'Télécharger',
     'btn.downloadEnv': 'Télécharger le .env',
     'help.title': 'Aide',
+    'help.flow.open': 'Ouvrir',
     'lang.fr': 'FR',
     'lang.en': 'EN',
     'app.title': 'Intriqathon',
@@ -74,14 +76,12 @@ export const translations: Translations = {
     'accountCreation.supabase.s3SecretKey': 'S3 Secret Access Key',
     'accountCreation.supabase.s3SecretKey.path': 'Storage > S3 Configuration > Access keys',
     'accountCreation.supabase.s3SecretKey.hint': 'Fournie en même temps que l\'Access Key ID et affichée une seule fois — copiez-la immédiatement, sinon il faudra régénérer la paire.',
-    'accountCreation.supabase.link': 'Supabase',
 
     // Resend
     'accountCreation.resend.title': 'RESEND',
     'accountCreation.resend.apiKey': 'Clé API Resend',
     'accountCreation.resend.apiKey.path': 'API Keys (menu gauche) > Create API Key',
     'accountCreation.resend.apiKey.hint': 'Clé serveur utilisée pour l\'envoi des emails du hackathon (invitations, notifications). Affichée une seule fois — copiez-la immédiatement.',
-    'accountCreation.resend.link': 'Resend',
 
     // Spaceship
     'accountCreation.spaceship.title': 'SPACESHIP',
@@ -89,12 +89,11 @@ export const translations: Translations = {
     'accountCreation.spaceship.domain.hint': 'Le domaine acheté sur Spaceship, sans https:// ni barre finale (ex : hackathon.monecole.fr). Il sert de base à toutes les URLs : le site, le panneau admin (config.votredomaine) et les emails (mail.votredomaine).',
     'accountCreation.spaceship.domain.placeholder': 'monhackathon.fr',
     'accountCreation.spaceship.apiKey': 'API Key',
-    'accountCreation.spaceship.apiKey.path': 'Menu compte > API Manager > New API key',
-    'accountCreation.spaceship.apiKey.hint': 'Identifiant de la clé API qui permet de créer automatiquement les enregistrements DNS. Accordez au minimum les permissions domains:read, dnsrecords:read et dnsrecords:write.',
+    'accountCreation.spaceship.apiKey.path': 'Launchpad > API Manager > New API key',
+    'accountCreation.spaceship.apiKey.hint': 'Identifiant de la clé API qui permet de créer automatiquement les enregistrements DNS. L\'API Manager s\'ouvre depuis le Launchpad (bouton dans la barre de navigation, ou raccourci / ou ⌘ K). Accordez au minimum les scopes domains:read, dnsrecords:read et dnsrecords:write.',
     'accountCreation.spaceship.apiSecret': 'API Secret',
-    'accountCreation.spaceship.apiSecret.path': 'Menu compte > API Manager > New API key',
+    'accountCreation.spaceship.apiSecret.path': 'Launchpad > API Manager > New API key',
     'accountCreation.spaceship.apiSecret.hint': 'Fourni en même temps que l\'API Key et affiché une seule fois.',
-    'accountCreation.spaceship.link': 'Spaceship',
 
     // Scaleway
     'accountCreation.scaleway.title': 'SCALEWAY',
@@ -102,12 +101,11 @@ export const translations: Translations = {
     'accountCreation.scaleway.secretKey.path': 'Menu profil (haut droite) > IAM & API keys > Onglet API keys > Generate API key',
     'accountCreation.scaleway.secretKey.hint': 'Secret de la clé API utilisée pour créer l\'instance et y déposer votre clé SSH. Affiché une seule fois — sauvegardez-le immédiatement.',
     'accountCreation.scaleway.projectId': 'Project ID',
-    'accountCreation.scaleway.projectId.path': 'Barre latérale gauche > Sélectionner votre projet > Tableau de bord du projet',
-    'accountCreation.scaleway.projectId.hint': 'Identifiant du projet Scaleway dans lequel l\'instance sera créée. Il figure sur le tableau de bord du projet.',
+    'accountCreation.scaleway.projectId.path': 'Organization > Projects > Votre projet',
+    'accountCreation.scaleway.projectId.hint': 'Identifiant du projet Scaleway dans lequel l\'instance sera créée. Il se copie depuis console.scaleway.com/organization/projects, où figurent aussi l\'ID d\'organisation.',
     'accountCreation.scaleway.deployPath': 'Chemin du dossier hackathon-deploy',
     'accountCreation.scaleway.deployPath.hint': 'Chemin absolu du dossier hackathon-deploy sur votre machine — c\'est son contenu qui sera envoyé sur le serveur lors du déploiement. Utilisez le bouton Parcourir pour le sélectionner.',
     'accountCreation.scaleway.deployPath.placeholder': '/Users/moi/hackathon-deploy',
-    'accountCreation.scaleway.link': 'Scaleway',
 
     // =============================================
     // API Configuration (Step 2)
@@ -122,10 +120,11 @@ export const translations: Translations = {
     'apiConfig.manualConfig': 'Configuration manuelle',
 
     // Supabase API config
+    'apiConfig.supabase.helpHint': 'Buckets de stockage, bouton Connect et clés API.',
     'apiConfig.supabase.desc': 'Récupération des clés API, configuration de la base de données, activation du Realtime',
     'apiConfig.supabase.url': 'URL Supabase',
-    'apiConfig.supabase.url.path': 'Project Settings > API > Project URL',
-    'apiConfig.supabase.url.hint': 'URL publique du projet, de la forme https://<ref>.supabase.co.',
+    'apiConfig.supabase.url.path': 'Bouton Connect > Onglet App Frameworks > Project URL',
+    'apiConfig.supabase.url.hint': 'URL publique du projet, de la forme https://<ref>.supabase.co. Le bouton Connect, en haut de l\'en-tête du projet, ouvre le panneau « Connect to your project » qui l\'affiche ; elle figure aussi dans Project Settings > Data API.',
     'apiConfig.supabase.anonKey': 'Clé Anon (publique)',
     'apiConfig.supabase.anonKey.path': 'Project Settings > API Keys > Onglet Legacy API Keys > anon public',
     'apiConfig.supabase.anonKey.hint': 'Clé publique utilisée depuis le navigateur, encadrée par les règles RLS. Supabase la remplace progressivement par les clés publishable, mais la clé legacy reste fonctionnelle.',
@@ -133,10 +132,10 @@ export const translations: Translations = {
     'apiConfig.supabase.serviceKey.path': 'Project Settings > API Keys > Onglet Legacy API Keys > service_role',
     'apiConfig.supabase.serviceKey.hint': 'Clé serveur qui contourne les règles RLS : à ne jamais exposer côté client ni committer.',
     'apiConfig.supabase.databaseUrl': 'DATABASE_URL',
-    'apiConfig.supabase.databaseUrl.path': 'Bouton Connect (en haut) > Onglet ORMs > Transaction mode',
+    'apiConfig.supabase.databaseUrl.path': 'Bouton Connect (Connect to your project) > Onglet ORMs > Transaction mode',
     'apiConfig.supabase.databaseUrl.hint': 'URL poolée (port 6543) utilisée par Prisma à l\'exécution. Remplacez [YOUR-PASSWORD] par le mot de passe choisi à la création du projet.',
     'apiConfig.supabase.directUrl': 'DIRECT_URL',
-    'apiConfig.supabase.directUrl.path': 'Bouton Connect (en haut) > Onglet ORMs > Session mode',
+    'apiConfig.supabase.directUrl.path': 'Bouton Connect (Connect to your project) > Onglet ORMs > Session mode',
     'apiConfig.supabase.directUrl.hint': 'Connexion directe (port 5432) requise par les migrations Prisma. Même mot de passe que DATABASE_URL.',
     'apiConfig.supabase.fromEmail': 'Adresse d\'expédition',
     'apiConfig.supabase.fromEmail.hint': 'Adresse d\'expédition des emails, au format Nom <adresse>. Pré-remplie à partir de votre domaine ; le sous-domaine d\'envoi doit être vérifié dans Resend, sinon les emails partiront en erreur.',
@@ -144,15 +143,18 @@ export const translations: Translations = {
     'apiConfig.supabase.allowedEmails.hint': 'Liste blanche des destinataires. "*" autorise toutes les adresses ; sinon séparez-les par des virgules — pratique pour tester sans écrire à de vrais participants.',
 
     // Spaceship API config
+    'apiConfig.spaceship.helpHint': 'Launchpad, Advanced DNS et enregistrements A.',
     'apiConfig.spaceship.desc': 'Configuration des entrées DNS (A records, DMARC, TXT) pour votre domaine',
     'apiConfig.spaceship.ipv4': 'Adresse IPv4 de l\'instance',
     'apiConfig.spaceship.ipv4.path': 'Console Scaleway > Compute > Instances > Votre instance',
     'apiConfig.spaceship.ipv4.hint': 'IPv4 publique de l\'instance. C\'est elle que pointeront les enregistrements DNS A et que le déploiement SSH contactera.',
 
     // Scaleway API config
+    'apiConfig.scaleway.helpHint': 'Création de l\'instance, ressources et IPv4 publique.',
     'apiConfig.scaleway.desc': 'Création de l\'instance Scaleway, upload de la clé SSH, récupération de l\'IP',
 
     // Resend API config
+    'apiConfig.resend.helpHint': 'Domaine d\'envoi, enregistrements DNS et vérification.',
     'apiConfig.resend.desc': 'Ajout du domaine d\'envoi, vérification DNS, création des clés secondaires',
 
     // =============================================
@@ -172,18 +174,17 @@ export const translations: Translations = {
     'step1.spec.storage': '10 Go de stockage',
     'step7.sql.title': 'Permissions SQL à injecter',
     'step7.realtime.title': 'Activer Realtime sur la table Announcements',
-    'step7.realtime.desc': 'Dans Supabase : Table Editor > Announcement > Enable Realtime (en haut à droite)',
+    'step7.realtime.desc': 'Database > Publications > supabase_realtime, puis activez la table Announcement (même interrupteur dans le Table Editor)',
     'step7.dataApi.title': 'Activer la Data API',
-    'step7.dataApi.desc': 'Project Settings > Data API > Activer + ajouter "public" dans Exposed Schemas',
+    'step7.dataApi.desc': 'Project Settings > Data API > Activer + ajouter "public" dans Exposed schemas, et vérifier que les tables y sont exposées',
     'step7.auth.title': 'Désactiver la confirmation par email',
-    'step7.auth.desc': 'Authentication > Sign In / Providers > désactiver "Confirm email"',
+    'step7.auth.desc': 'Authentication > Sign In / Providers > Email > désactiver "Confirm email"',
     'step7.docker.title': 'Redémarrer le bot Discord',
     'step7.docker.desc': 'Exécutez cette commande depuis votre terminal connecté au VPS',
 
     'step3.title': 'Authentification OAuth2',
     'step3.desc': 'Configurez les connexions via Discord et GitHub pour permettre aux participants de s\'authentifier.',
     'step3.section.discord': 'Discord OAuth2',
-    'step3.discord.btn': 'Discord Developers',
     'step3.discord.callback': 'URL de callback à configurer dans Discord',
     'step3.discordClientId': 'Discord Client ID',
     'step3.discordClientId.path': 'Votre application > General Information > Application ID',
@@ -192,7 +193,6 @@ export const translations: Translations = {
     'step3.discordSecret.path': 'Votre application > OAuth2 > Reset Secret',
     'step3.discordSecret.hint': 'Secret de l\'application, affiché une seule fois — copiez-le immédiatement. Pensez aussi à enregistrer l\'URL de callback du formulaire dans OAuth2 > Redirects.',
     'step3.section.github': 'GitHub OAuth2',
-    'step3.github.btn': 'GitHub Developers',
     'step3.github.homepage': 'Homepage URL à configurer dans GitHub',
     'step3.github.callback': 'URL de callback à configurer dans GitHub',
     'step3.githubClientId': 'GitHub Client ID',
@@ -204,7 +204,6 @@ export const translations: Translations = {
 
     // Discord Bot (integrated into step3)
     'step3.section.bot': 'Bot Discord',
-    'step3.bot.btn': 'Discord Developers',
     'step3.botClientId': 'Application ID (Client ID)',
     'step3.botClientId.path': 'Votre application > General Information > Application ID',
     'step3.botClientId.hint': 'Identique au Discord Client ID ci-dessus si vous réutilisez la même application pour l\'OAuth2 et le bot.',
@@ -300,10 +299,12 @@ export const translations: Translations = {
     'btn.copy': 'Copy',
     'btn.copied': 'Copied!',
     'btn.openLink': 'Open link',
+    'btn.learnMore': 'Learn more',
     'btn.browse': 'Browse',
     'btn.download': 'Download',
     'btn.downloadEnv': 'Download .env',
     'help.title': 'Help',
+    'help.flow.open': 'Open',
     'lang.fr': 'FR',
     'lang.en': 'EN',
     'app.title': 'Intriqathon',
@@ -346,14 +347,12 @@ export const translations: Translations = {
     'accountCreation.supabase.s3SecretKey': 'S3 Secret Access Key',
     'accountCreation.supabase.s3SecretKey.path': 'Storage > S3 Configuration > Access keys',
     'accountCreation.supabase.s3SecretKey.hint': 'Issued together with the Access Key ID and shown only once — copy it immediately, or you will have to regenerate the pair.',
-    'accountCreation.supabase.link': 'Supabase',
 
     // Resend
     'accountCreation.resend.title': 'RESEND',
     'accountCreation.resend.apiKey': 'Resend API Key',
     'accountCreation.resend.apiKey.path': 'API Keys (left menu) > Create API Key',
     'accountCreation.resend.apiKey.hint': 'Server key used to send the hackathon emails (invitations, notifications). Shown only once — copy it immediately.',
-    'accountCreation.resend.link': 'Resend',
 
     // Spaceship
     'accountCreation.spaceship.title': 'SPACESHIP',
@@ -361,12 +360,11 @@ export const translations: Translations = {
     'accountCreation.spaceship.domain.hint': 'The domain you bought on Spaceship, without https:// or a trailing slash (e.g. hackathon.myschool.com). Every URL derives from it: the site, the admin panel (config.yourdomain) and email (mail.yourdomain).',
     'accountCreation.spaceship.domain.placeholder': 'myhackathon.com',
     'accountCreation.spaceship.apiKey': 'API Key',
-    'accountCreation.spaceship.apiKey.path': 'Account menu > API Manager > New API key',
-    'accountCreation.spaceship.apiKey.hint': 'Identifier of the API key that creates the DNS records automatically. Grant at least domains:read, dnsrecords:read and dnsrecords:write.',
+    'accountCreation.spaceship.apiKey.path': 'Launchpad > API Manager > New API key',
+    'accountCreation.spaceship.apiKey.hint': 'Identifier of the API key that creates the DNS records automatically. The API Manager opens from the Launchpad (button in the top navigation bar, or the / or ⌘ K shortcut). Grant at least the domains:read, dnsrecords:read and dnsrecords:write scopes.',
     'accountCreation.spaceship.apiSecret': 'API Secret',
-    'accountCreation.spaceship.apiSecret.path': 'Account menu > API Manager > New API key',
+    'accountCreation.spaceship.apiSecret.path': 'Launchpad > API Manager > New API key',
     'accountCreation.spaceship.apiSecret.hint': 'Issued together with the API Key and shown only once.',
-    'accountCreation.spaceship.link': 'Spaceship',
 
     // Scaleway
     'accountCreation.scaleway.title': 'SCALEWAY',
@@ -374,12 +372,11 @@ export const translations: Translations = {
     'accountCreation.scaleway.secretKey.path': 'Profile menu (top right) > IAM & API keys > API keys tab > Generate API key',
     'accountCreation.scaleway.secretKey.hint': 'Secret of the API key used to create the instance and upload your SSH key to it. Shown only once — save it immediately.',
     'accountCreation.scaleway.projectId': 'Project ID',
-    'accountCreation.scaleway.projectId.path': 'Left sidebar > Select your Project > Project dashboard',
-    'accountCreation.scaleway.projectId.hint': 'Identifier of the Scaleway Project the instance will be created in. It is shown on the Project dashboard.',
+    'accountCreation.scaleway.projectId.path': 'Organization > Projects > Your project',
+    'accountCreation.scaleway.projectId.hint': 'Identifier of the Scaleway Project the instance will be created in. Copy it from console.scaleway.com/organization/projects, which also lists the Organization ID.',
     'accountCreation.scaleway.deployPath': 'hackathon-deploy folder path',
     'accountCreation.scaleway.deployPath.hint': 'Absolute path to the hackathon-deploy folder on your machine — its contents are what gets uploaded to the server on deployment. Use the Browse button to pick it.',
     'accountCreation.scaleway.deployPath.placeholder': '/Users/me/hackathon-deploy',
-    'accountCreation.scaleway.link': 'Scaleway',
 
     // =============================================
     // API Configuration (Step 2)
@@ -394,10 +391,11 @@ export const translations: Translations = {
     'apiConfig.manualConfig': 'Manual Configuration',
 
     // Supabase API config
+    'apiConfig.supabase.helpHint': 'Storage buckets, Connect button and API keys.',
     'apiConfig.supabase.desc': 'API key retrieval, database configuration, Realtime activation',
     'apiConfig.supabase.url': 'Supabase URL',
-    'apiConfig.supabase.url.path': 'Project Settings > API > Project URL',
-    'apiConfig.supabase.url.hint': 'Public URL of the project, of the form https://<ref>.supabase.co.',
+    'apiConfig.supabase.url.path': 'Connect button > App Frameworks tab > Project URL',
+    'apiConfig.supabase.url.hint': 'Public URL of the project, of the form https://<ref>.supabase.co. The Connect button at the top of the project header opens the "Connect to your project" panel that shows it; it also appears under Project Settings > Data API.',
     'apiConfig.supabase.anonKey': 'Anon Key (public)',
     'apiConfig.supabase.anonKey.path': 'Project Settings > API Keys > Legacy API Keys tab > anon public',
     'apiConfig.supabase.anonKey.hint': 'Public key used from the browser, constrained by the RLS policies. Supabase is phasing it out in favour of publishable keys, but the legacy one still works.',
@@ -405,10 +403,10 @@ export const translations: Translations = {
     'apiConfig.supabase.serviceKey.path': 'Project Settings > API Keys > Legacy API Keys tab > service_role',
     'apiConfig.supabase.serviceKey.hint': 'Server key that bypasses the RLS policies — never expose it on the client or commit it.',
     'apiConfig.supabase.databaseUrl': 'DATABASE_URL',
-    'apiConfig.supabase.databaseUrl.path': 'Connect button (top) > ORMs tab > Transaction mode',
+    'apiConfig.supabase.databaseUrl.path': 'Connect button (Connect to your project) > ORMs tab > Transaction mode',
     'apiConfig.supabase.databaseUrl.hint': 'Pooled URL (port 6543) Prisma uses at runtime. Replace [YOUR-PASSWORD] with the password you chose when creating the project.',
     'apiConfig.supabase.directUrl': 'DIRECT_URL',
-    'apiConfig.supabase.directUrl.path': 'Connect button (top) > ORMs tab > Session mode',
+    'apiConfig.supabase.directUrl.path': 'Connect button (Connect to your project) > ORMs tab > Session mode',
     'apiConfig.supabase.directUrl.hint': 'Direct connection (port 5432) required by Prisma migrations. Same password as DATABASE_URL.',
     'apiConfig.supabase.fromEmail': 'From email address',
     'apiConfig.supabase.fromEmail.hint': 'Sender address for outgoing emails, in the Name <address> format. Pre-filled from your domain; the sending subdomain must be verified in Resend or emails will fail.',
@@ -416,15 +414,18 @@ export const translations: Translations = {
     'apiConfig.supabase.allowedEmails.hint': 'Recipient allow-list. "*" permits every address; otherwise separate them with commas — handy for testing without emailing real participants.',
 
     // Spaceship API config
+    'apiConfig.spaceship.helpHint': 'Launchpad, Advanced DNS and A records.',
     'apiConfig.spaceship.desc': 'DNS records configuration (A records, DMARC, TXT) for your domain',
     'apiConfig.spaceship.ipv4': 'Instance IPv4 address',
     'apiConfig.spaceship.ipv4.path': 'Scaleway console > Compute > Instances > Your instance',
     'apiConfig.spaceship.ipv4.hint': 'Public IPv4 of the instance. This is what the DNS A records point to and what the SSH deployment connects to.',
 
     // Scaleway API config
+    'apiConfig.scaleway.helpHint': 'Instance creation, specs and public IPv4.',
     'apiConfig.scaleway.desc': 'Scaleway instance creation, SSH key upload, IP retrieval',
 
     // Resend API config
+    'apiConfig.resend.helpHint': 'Sending domain, DNS records and verification.',
     'apiConfig.resend.desc': 'Sending domain addition, DNS verification, secondary key creation',
 
     // =============================================
@@ -444,18 +445,17 @@ export const translations: Translations = {
     'step1.spec.storage': '10 GB storage',
     'step7.sql.title': 'SQL permissions to inject',
     'step7.realtime.title': 'Enable Realtime on Announcements table',
-    'step7.realtime.desc': 'In Supabase: Table Editor > Announcement > Enable Realtime (top right)',
+    'step7.realtime.desc': 'Database > Publications > supabase_realtime, then toggle the Announcement table on (same switch in the Table Editor)',
     'step7.dataApi.title': 'Enable Data API',
-    'step7.dataApi.desc': 'Project Settings > Data API > Enable + add "public" in Exposed Schemas',
+    'step7.dataApi.desc': 'Project Settings > Data API > Enable + add "public" to Exposed schemas, and check the tables are exposed there',
     'step7.auth.title': 'Disable email confirmation',
-    'step7.auth.desc': 'Authentication > Sign In / Providers > disable "Confirm email"',
+    'step7.auth.desc': 'Authentication > Sign In / Providers > Email > disable "Confirm email"',
     'step7.docker.title': 'Restart Discord bot',
     'step7.docker.desc': 'Run this command from your terminal connected to the VPS',
 
     'step3.title': 'OAuth2 Authentication',
     'step3.desc': 'Configure Discord and GitHub login to allow participants to authenticate.',
     'step3.section.discord': 'Discord OAuth2',
-    'step3.discord.btn': 'Discord Developers',
     'step3.discord.callback': 'Callback URL to set in Discord',
     'step3.discordClientId': 'Discord Client ID',
     'step3.discordClientId.path': 'Your application > General Information > Application ID',
@@ -464,7 +464,6 @@ export const translations: Translations = {
     'step3.discordSecret.path': 'Your application > OAuth2 > Reset Secret',
     'step3.discordSecret.hint': 'Secret of the application, shown only once — copy it immediately. Remember to register the callback URL from the form under OAuth2 > Redirects.',
     'step3.section.github': 'GitHub OAuth2',
-    'step3.github.btn': 'GitHub Developers',
     'step3.github.homepage': 'Homepage URL to set in GitHub',
     'step3.github.callback': 'Callback URL to set in GitHub',
     'step3.githubClientId': 'GitHub Client ID',
@@ -476,7 +475,6 @@ export const translations: Translations = {
 
     // Discord Bot (integrated into step3)
     'step3.section.bot': 'Discord Bot',
-    'step3.bot.btn': 'Discord Developers',
     'step3.botClientId': 'Application ID (Client ID)',
     'step3.botClientId.path': 'Your application > General Information > Application ID',
     'step3.botClientId.hint': 'Same as the Discord Client ID above if you reuse one application for both OAuth2 and the bot.',

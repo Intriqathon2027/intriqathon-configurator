@@ -27,10 +27,12 @@ export type TranslationKeys = {
   'btn.copy': string
   'btn.copied': string
   'btn.openLink': string
+  'btn.learnMore': string
   'btn.browse': string
   'btn.download': string
   'btn.downloadEnv': string
   'help.title': string
+  'help.flow.open': string
   'lang.fr': string
   'lang.en': string
   'app.title': string
@@ -73,14 +75,12 @@ export type TranslationKeys = {
   'accountCreation.supabase.s3SecretKey': string
   'accountCreation.supabase.s3SecretKey.path': string
   'accountCreation.supabase.s3SecretKey.hint': string
-  'accountCreation.supabase.link': string
 
   // Resend
   'accountCreation.resend.title': string
   'accountCreation.resend.apiKey': string
   'accountCreation.resend.apiKey.path': string
   'accountCreation.resend.apiKey.hint': string
-  'accountCreation.resend.link': string
 
   // Spaceship
   'accountCreation.spaceship.title': string
@@ -93,7 +93,6 @@ export type TranslationKeys = {
   'accountCreation.spaceship.apiSecret': string
   'accountCreation.spaceship.apiSecret.path': string
   'accountCreation.spaceship.apiSecret.hint': string
-  'accountCreation.spaceship.link': string
 
   // Scaleway
   'accountCreation.scaleway.title': string
@@ -106,7 +105,6 @@ export type TranslationKeys = {
   'accountCreation.scaleway.deployPath': string
   'accountCreation.scaleway.deployPath.hint': string
   'accountCreation.scaleway.deployPath.placeholder': string
-  'accountCreation.scaleway.link': string
 
   // =============================================
   // API Configuration (Step 2)
@@ -122,6 +120,7 @@ export type TranslationKeys = {
 
   // Supabase API config
   'apiConfig.supabase.desc': string
+  'apiConfig.supabase.helpHint': string
   'apiConfig.supabase.url': string
   'apiConfig.supabase.url.path': string
   'apiConfig.supabase.url.hint': string
@@ -144,15 +143,18 @@ export type TranslationKeys = {
 
   // Spaceship API config
   'apiConfig.spaceship.desc': string
+  'apiConfig.spaceship.helpHint': string
   'apiConfig.spaceship.ipv4': string
   'apiConfig.spaceship.ipv4.path': string
   'apiConfig.spaceship.ipv4.hint': string
 
   // Scaleway API config
   'apiConfig.scaleway.desc': string
+  'apiConfig.scaleway.helpHint': string
 
   // Resend API config
   'apiConfig.resend.desc': string
+  'apiConfig.resend.helpHint': string
 
   // =============================================
   // Step 3 — OAuth2 + Discord Bot
@@ -182,7 +184,6 @@ export type TranslationKeys = {
   'step3.title': string
   'step3.desc': string
   'step3.section.discord': string
-  'step3.discord.btn': string
   'step3.discord.callback': string
   'step3.discordClientId': string
   'step3.discordClientId.path': string
@@ -191,7 +192,6 @@ export type TranslationKeys = {
   'step3.discordSecret.path': string
   'step3.discordSecret.hint': string
   'step3.section.github': string
-  'step3.github.btn': string
   'step3.github.homepage': string
   'step3.github.callback': string
   'step3.githubClientId': string
@@ -203,7 +203,6 @@ export type TranslationKeys = {
 
   // Discord Bot (integrated into step3)
   'step3.section.bot': string
-  'step3.bot.btn': string
   'step3.botClientId': string
   'step3.botClientId.path': string
   'step3.botClientId.hint': string

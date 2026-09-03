@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { Check, Play, XCircle, Loader, AlertTriangle } from 'lucide-react'
+import { HelpAnchorBtn } from './HelpAnchorBtn'
 
 type ServiceConfigStatus = 'idle' | 'running' | 'done' | 'error' | 'none'
 
@@ -21,6 +22,19 @@ interface ServiceConfigBlockProps {
   btnStartLabel: string
   btnCancelLabel: string
   statusLabels: { done: string; running: string; error: string }
+  /**
+   * `HelpService` block documenting this service. Rendered at the top of the
+   * manual-configuration dropdown as a one-line summary plus a button that
+   * opens the help panel on that walkthrough.
+   */
+  helpAnchor?: string
+  /** The one line shown next to that button. */
+  helpHint?: string
+  /**
+   * Label of the collapsible that wraps `children`. Omit to render the
+   * children plainly, without a dropdown.
+   */
+  manualLabel?: string
   children?: ReactNode
 }
 
@@ -38,6 +52,9 @@ export function ServiceConfigBlock({
   btnStartLabel,
   btnCancelLabel,
   statusLabels,
+  helpAnchor,
+  helpHint,
+  manualLabel,
   children,
 }: ServiceConfigBlockProps) {
   const complete = isComplete ?? status === 'done'
@@ -125,10 +142,21 @@ export function ServiceConfigBlock({
           </button>
         )}
 
-        {/* Children (manual fallback fields) */}
-        {children && (
+        {/* Manual fallback: the dropdown leads with a pointer to the panel */}
+        {children && (manualLabel ? (
+          <details className="manual-config-details">
+            <summary>{manualLabel}</summary>
+            {helpAnchor && (
+              <div className="service-config-block__help">
+                <HelpAnchorBtn anchor={helpAnchor} />
+                {helpHint && <span className="service-help-hint">{helpHint}</span>}
+              </div>
+            )}
+            {children}
+          </details>
+        ) : (
           <div className="service-config-block__children">{children}</div>
-        )}
+        ))}
       </div>
     </div>
   )

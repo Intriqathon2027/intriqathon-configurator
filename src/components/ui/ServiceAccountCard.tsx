@@ -1,11 +1,15 @@
 import { type ReactNode } from 'react'
-import { ExternalLinkBtn } from './ExternalLinkBtn'
+import { HelpAnchorBtn } from './HelpAnchorBtn'
 
 interface ServiceAccountCardProps {
   serviceName: string
   serviceIcon: ReactNode
-  externalUrl: string
-  externalLabel: string
+  /**
+   * `HelpService` block this card documents. The footer button opens the help
+   * panel there rather than jumping straight to the provider — the walkthrough
+   * carries the provider links, in the order they are needed.
+   */
+  helpAnchor: string
   isComplete: boolean
   children: ReactNode
 }
@@ -13,8 +17,7 @@ interface ServiceAccountCardProps {
 export function ServiceAccountCard({
   serviceName,
   serviceIcon,
-  externalUrl,
-  externalLabel,
+  helpAnchor,
   isComplete,
   children,
 }: ServiceAccountCardProps) {
@@ -30,7 +33,7 @@ export function ServiceAccountCard({
       <div className="service-account-card__body">{children}</div>
 
       <div className="service-account-card__footer">
-        <ExternalLinkBtn url={externalUrl} label={externalLabel} />
+        <HelpAnchorBtn anchor={helpAnchor} />
       </div>
     </div>
   )
