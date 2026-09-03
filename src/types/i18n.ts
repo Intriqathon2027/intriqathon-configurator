@@ -39,6 +39,8 @@ export type TranslationKeys = {
   'app.subtitle': string
   'settings.title': string
   'settings.theme': string
+  'settings.textSize': string
+  'settings.textSize.reset': string
   'settings.theme.light': string
   'settings.theme.system': string
   'settings.theme.dark': string

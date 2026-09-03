@@ -212,7 +212,7 @@ export function ConfigSite() {
           manualLabel={isEn ? 'Manual Configuration' : 'Configuration manuelle'}
         >
           <div className="form-section">
-            <div style={{ marginBottom: '8px', fontSize: '14px', lineHeight: '1.5' }}>
+            <div style={{ marginBottom: '8px', fontSize: 'var(--font-size-md)', lineHeight: '1.5' }}>
               <strong>{isEn ? "1. Inject this SQL directly in your Supabase SQL Editor:" : "1. Injectez ce SQL directement dans le SQL Editor de Supabase :"}</strong>
               <p className="text-muted" style={{ margin: '4px 0 0' }}>
                 {isEn ? "Go to SQL Editor ➔ Paste and Run. This ensures your database has the proper default privileges." : "Allez dans SQL Editor ➔ Coller et Run. Permet d'octroyer les permissions adéquates sur la base de données."}
@@ -281,7 +281,7 @@ export function ConfigSite() {
           statusLabels={statusLabels}
         >
           <div className="form-section">
-            <p className="text-muted" style={{ margin: '0 0 12px', fontSize: '13px', lineHeight: 1.5 }}>
+            <p className="text-muted" style={{ margin: '0 0 12px', fontSize: 'var(--font-size-base)', lineHeight: 1.5 }}>
               {t('step8.tip')}
             </p>
             <div className="link-buttons-row" style={{ marginBottom: '24px' }}>
@@ -437,7 +437,7 @@ export function ConfigSite() {
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: '10px',
           background: 'var(--color-primary-light)', color: 'var(--color-primary-text)',
-          padding: '16px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '16px',
+          padding: '16px 28px', borderRadius: '12px', fontWeight: 700, fontSize: 'var(--font-size-lg)',
           border: '1px solid rgba(29,180,138,0.3)'
         }}>
           <CheckCircle size={22} />

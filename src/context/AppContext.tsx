@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, useState, type
 import type { Language } from '../types/i18n'
 import { translations } from '../i18n/translations'
 import { steps } from '../components/layout/steps'
+import { FONT_SCALE_KEY, clampFontScale, loadFontScale } from '../utils/fontScale'
 
 // ============================================================
 // CONFIG STATE
@@ -119,6 +120,7 @@ type Action =
   | { type: 'START_CONFIG' }
   | { type: 'STOP_CONFIG' }
   | { type: 'SET_THEME'; theme: ThemePreference }
+  | { type: 'SET_FONT_SCALE'; scale: number }
   | { type: 'MARK_STEP_DONE'; step: number }
 
 // ============================================================
@@ -131,6 +133,8 @@ interface AppState {
   hasStarted: boolean
   /** What the user picked — 'system' follows the OS appearance. */
   theme: ThemePreference
+  /** Multiplier applied to every typography token. 1 is the design default. */
+  fontScale: number
   /** Steps validated by an action (deployment, docker restart) rather than by form fields. */
   actionSteps: number[]
 }
@@ -153,6 +157,7 @@ const initialState: AppState = {
   currentStep: 0,
   hasStarted: false,
   theme: loadThemePreference(),
+  fontScale: loadFontScale(),
   actionSteps: loadActionSteps(),
 }
 
@@ -180,6 +185,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, hasStarted: false }
     case 'SET_THEME':
       return { ...state, theme: action.theme }
+    case 'SET_FONT_SCALE':
+      return { ...state, fontScale: clampFontScale(action.scale) }
     case 'MARK_STEP_DONE':
       if (state.actionSteps.includes(action.step)) return state
       return { ...state, actionSteps: [...state.actionSteps, action.step] }
@@ -205,6 +212,7 @@ interface AppContextType {
   hasSavedConfig: boolean
   totalSteps: number
   setTheme: (theme: ThemePreference) => void
+  setFontScale: (scale: number) => void
   /** The theme actually applied — 'system' resolved against the OS setting. */
   resolvedTheme: ResolvedTheme
   /** True when every requirement of the given step is satisfied. */
@@ -276,6 +284,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => media.removeEventListener('change', apply)
   }, [state.theme])
 
+  // Drive the typography tokens from the user's text-size preference
+  useEffect(() => {
+    localStorage.setItem(FONT_SCALE_KEY, String(state.fontScale))
+    document.documentElement.style.setProperty('--font-scale', String(state.fontScale))
+  }, [state.fontScale])
+
   const t = (key: string): string => {
     const dict = translations[state.language] as Record<string, string>
     return dict[key] ?? key
@@ -318,6 +332,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'STOP_CONFIG' })
   }
 
+  const setFontScale = (scale: number) => {
+    dispatch({ type: 'SET_FONT_SCALE', scale })
+  }
+
   const setTheme = (theme: ThemePreference) => {
     dispatch({ type: 'SET_THEME', theme })
   }
@@ -349,6 +367,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       hasSavedConfig,
       totalSteps: TOTAL_STEPS,
       setTheme,
+      setFontScale,
       resolvedTheme,
       isStepComplete,
       markStepDone,

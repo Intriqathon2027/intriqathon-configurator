@@ -1,5 +1,11 @@
-import { Settings, Upload, Download, Trash2, Moon, Sun, Monitor } from 'lucide-react'
+import { Settings, Upload, Download, Trash2, Moon, Sun, Monitor, RotateCcw, Type } from 'lucide-react'
 import { useApp, type ThemePreference } from '../../context/AppContext'
+import {
+  FONT_SCALE_MIN,
+  FONT_SCALE_MAX,
+  FONT_SCALE_STEP,
+  FONT_SCALE_DEFAULT,
+} from '../../utils/fontScale'
 import toast from 'react-hot-toast'
 
 const THEME_OPTIONS: { value: ThemePreference; Icon: typeof Sun; labelKey: string }[] = [
@@ -14,7 +20,7 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalProps) {
-  const { state, dispatch, t, setTheme, resolvedTheme } = useApp()
+  const { state, dispatch, t, setTheme, resolvedTheme, setFontScale } = useApp()
 
   if (!settingsOpen) return null
 
@@ -122,6 +128,45 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
               ))}
             </div>
           </div>
+
+          {/* Text size: scales every typography token */}
+          <div className="settings-font">
+            <div className="settings-font__header">
+              <div className="settings-theme__label">
+                <Type size={16} color="var(--color-primary-text)" />
+                {t('settings.textSize')}
+              </div>
+              <div className="settings-font__value">
+                <span>{Math.round(state.fontScale * 100)}%</span>
+                {state.fontScale !== FONT_SCALE_DEFAULT && (
+                  <button
+                    type="button"
+                    className="btn btn-icon btn-ghost"
+                    onClick={() => setFontScale(FONT_SCALE_DEFAULT)}
+                    title={t('settings.textSize.reset')}
+                    aria-label={t('settings.textSize.reset')}
+                  >
+                    <RotateCcw size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="settings-font__slider">
+              <span className="settings-font__tick settings-font__tick--sm">A</span>
+              <input
+                type="range"
+                id="font-scale"
+                min={FONT_SCALE_MIN}
+                max={FONT_SCALE_MAX}
+                step={FONT_SCALE_STEP}
+                value={state.fontScale}
+                onChange={e => setFontScale(parseFloat(e.target.value))}
+                aria-label={t('settings.textSize')}
+              />
+              <span className="settings-font__tick settings-font__tick--lg">A</span>
+            </div>
+          </div>
+
           <div style={{ height: '1px', background: 'var(--color-border)', margin: '4px 0' }} />
           <button
             className="btn btn-secondary"

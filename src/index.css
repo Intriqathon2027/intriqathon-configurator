@@ -68,16 +68,18 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
 
-  /* Typography */
+  /* Typography — every size derives from --font-scale, which the text-size
+     slider in Settings drives (see AppContext) */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-size-xs: 10.5px;
-  --font-size-sm: 12.5px;
-  --font-size-base: 13.5px;
-  --font-size-md: 14.5px;
-  --font-size-lg: 17px;
-  --font-size-xl: 20.5px;
-  --font-size-2xl: 26px;
-  --font-size-mono: 11.5px;
+  --font-scale: 1;
+  --font-size-xs: calc(10.5px * var(--font-scale));
+  --font-size-sm: calc(12.5px * var(--font-scale));
+  --font-size-base: calc(13.5px * var(--font-scale));
+  --font-size-md: calc(14.5px * var(--font-scale));
+  --font-size-lg: calc(17px * var(--font-scale));
+  --font-size-xl: calc(20.5px * var(--font-scale));
+  --font-size-2xl: calc(26px * var(--font-scale));
+  --font-size-mono: calc(11.5px * var(--font-scale));
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -1228,7 +1230,7 @@ body {
 
 .manual-config-details > summary::before {
   content: "▶";
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   transition: transform 0.2s;
   color: inherit;
 }
@@ -2238,6 +2240,104 @@ ul.help-note li {
 /* =============================================
    THEME PICKER (light / system / dark)
    ============================================= */
+/* =============================================
+   TEXT SIZE SLIDER (Settings)
+   Drives --font-scale, which every typography token derives from
+   ============================================= */
+.settings-font {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.settings-font__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.settings-font__value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary-text);
+}
+
+.settings-font__slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* The A/A endpoints stay a fixed size — they are the scale's own legend */
+.settings-font__tick {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  line-height: 1;
+  user-select: none;
+}
+
+.settings-font__tick--sm {
+  font-size: 11px;
+}
+
+.settings-font__tick--lg {
+  font-size: 19px;
+}
+
+.settings-font__slider input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.settings-font__slider input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  border: 2px solid var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.settings-font__slider input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.settings-font__slider input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  border: 2px solid var(--color-surface);
+  cursor: pointer;
+}
+
+.settings-font__slider input[type="range"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
 .settings-theme {
   display: flex;
   flex-direction: column;
@@ -2970,7 +3070,7 @@ ul.help-note li {
 .deploy-log-icon.info {
   color: #63B3ED;
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--font-size-md);
   line-height: 1;
   display: inline-flex;
   align-items: center;

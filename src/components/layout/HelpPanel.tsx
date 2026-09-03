@@ -20,7 +20,11 @@ const SCROLL_MS = 420
  * narrower than the longest of them without clipping one.
  */
 const MIN_WIDTH = 320
-const MAX_WIDTH = 600
+
+/** The panel stretches to at most half the window. */
+function maxWidth(): number {
+  return Math.max(MIN_WIDTH, Math.floor(document.documentElement.clientWidth / 2))
+}
 
 /**
  * Animates a container's scroll position.
@@ -63,9 +67,9 @@ export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent, focus }: 
 
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem('helpPanelWidth')
-    if (!saved) return 340
-    // A width stored before MIN_WIDTH went up would still be too narrow
-    return Math.min(Math.max(parseInt(saved, 10) || 340, MIN_WIDTH), MAX_WIDTH)
+    // A stored width can fall outside the bounds — the minimum has changed, or
+    // the window is now smaller than it was
+    return Math.min(Math.max(parseInt(saved ?? '', 10) || 340, MIN_WIDTH), maxWidth())
   })
   const [isResizing, setIsResizing] = useState(false)
 
@@ -84,10 +88,17 @@ export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent, focus }: 
 
   const resize = useCallback((e: MouseEvent) => {
     if (isResizing) {
-      const newWidth = Math.max(MIN_WIDTH, Math.min(document.documentElement.clientWidth - e.clientX, MAX_WIDTH))
+      const newWidth = Math.max(MIN_WIDTH, Math.min(document.documentElement.clientWidth - e.clientX, maxWidth()))
       setWidth(newWidth)
     }
   }, [isResizing])
+
+  // Half the window moves with the window: pull the panel back in when it shrinks
+  useEffect(() => {
+    const onResize = () => setWidth(w => Math.min(w, maxWidth()))
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   useEffect(() => {
     if (isResizing) {
