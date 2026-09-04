@@ -1,7 +1,8 @@
 import { type ReactNode } from 'react'
 import { Check, Play, XCircle, Loader, AlertTriangle } from 'lucide-react'
+import { HelpAnchorBtn } from './HelpAnchorBtn'
 
-type ServiceConfigStatus = 'idle' | 'running' | 'done' | 'error'
+type ServiceConfigStatus = 'idle' | 'running' | 'done' | 'error' | 'none'
 
 interface ServiceConfigBlockProps {
   stepNumber: number
@@ -9,6 +10,11 @@ interface ServiceConfigBlockProps {
   serviceIcon: ReactNode
   description: string
   status: ServiceConfigStatus
+  /**
+   * Marks the block as validated — same green treatment as a completed
+   * ServiceAccountCard. Defaults to `status === 'done'`.
+   */
+  isComplete?: boolean
   logs?: string[]
   progress?: number
   onStart?: () => void
@@ -16,6 +22,19 @@ interface ServiceConfigBlockProps {
   btnStartLabel: string
   btnCancelLabel: string
   statusLabels: { done: string; running: string; error: string }
+  /**
+   * `HelpService` block documenting this service. Rendered at the top of the
+   * manual-configuration dropdown as a one-line summary plus a button that
+   * opens the help panel on that walkthrough.
+   */
+  helpAnchor?: string
+  /** The one line shown next to that button. */
+  helpHint?: string
+  /**
+   * Label of the collapsible that wraps `children`. Omit to render the
+   * children plainly, without a dropdown.
+   */
+  manualLabel?: string
   children?: ReactNode
 }
 
@@ -25,6 +44,7 @@ export function ServiceConfigBlock({
   serviceIcon,
   description,
   status,
+  isComplete,
   logs = [],
   progress = 0,
   onStart,
@@ -32,10 +52,17 @@ export function ServiceConfigBlock({
   btnStartLabel,
   btnCancelLabel,
   statusLabels,
+  helpAnchor,
+  helpHint,
+  manualLabel,
   children,
 }: ServiceConfigBlockProps) {
+  const complete = isComplete ?? status === 'done'
+
   return (
-    <div className={`service-config-block service-config-block--${status}`}>
+    <div
+      className={`service-config-block service-config-block--${status}${complete ? ' service-config-block--complete' : ''}`}
+    >
       <div className="service-config-block__step-number">{stepNumber}</div>
 
       <div className="service-config-block__content">
@@ -115,10 +142,21 @@ export function ServiceConfigBlock({
           </button>
         )}
 
-        {/* Children (manual fallback fields) */}
-        {children && (
+        {/* Manual fallback: the dropdown leads with a pointer to the panel */}
+        {children && (manualLabel ? (
+          <details className="manual-config-details">
+            <summary>{manualLabel}</summary>
+            {helpAnchor && (
+              <div className="service-config-block__help">
+                <HelpAnchorBtn anchor={helpAnchor} />
+                {helpHint && <span className="service-help-hint">{helpHint}</span>}
+              </div>
+            )}
+            {children}
+          </details>
+        ) : (
           <div className="service-config-block__children">{children}</div>
-        )}
+        ))}
       </div>
     </div>
   )

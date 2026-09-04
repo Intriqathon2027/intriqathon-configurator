@@ -1,6 +1,18 @@
-import { Settings, Upload, Download, Trash2, Moon, Sun } from 'lucide-react'
-import { useApp } from '../../context/AppContext'
+import { Settings, Upload, Download, Trash2, Moon, Sun, Monitor, RotateCcw, Type } from 'lucide-react'
+import { useApp, type ThemePreference } from '../../context/AppContext'
+import {
+  FONT_SCALE_MIN,
+  FONT_SCALE_MAX,
+  FONT_SCALE_STEP,
+  FONT_SCALE_DEFAULT,
+} from '../../utils/fontScale'
 import toast from 'react-hot-toast'
+
+const THEME_OPTIONS: { value: ThemePreference; Icon: typeof Sun; labelKey: string }[] = [
+  { value: 'light', Icon: Sun, labelKey: 'settings.theme.light' },
+  { value: 'system', Icon: Monitor, labelKey: 'settings.theme.system' },
+  { value: 'dark', Icon: Moon, labelKey: 'settings.theme.dark' },
+]
 
 interface SettingsModalProps {
   settingsOpen: boolean
@@ -8,8 +20,7 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalProps) {
-  const { state, dispatch, t, setTheme } = useApp()
-  const isDark = state.theme === 'dark'
+  const { state, dispatch, t, setTheme, resolvedTheme, setFontScale } = useApp()
 
   if (!settingsOpen) return null
 
@@ -85,7 +96,7 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
       <div className="modal" style={{ width: '400px' }}>
         <div className="modal-header">
           <div className="modal-title">
-            <Settings size={18} color="var(--color-primary)" />
+            <Settings size={18} color="var(--color-primary-text)" />
             {t('settings.title')}
           </div>
           <button className="modal-close" onClick={() => setSettingsOpen(false)}>
@@ -93,20 +104,69 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
           </button>
         </div>
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* Dark mode toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text)' }}>
-              {isDark ? <Moon size={16} color="var(--color-primary)" /> : <Sun size={16} color="var(--color-primary)" />}
-              {isDark ? 'Mode sombre' : 'Mode clair'}
+          {/* Appearance: light / system / dark */}
+          <div className="settings-theme">
+            <div className="settings-theme__label">
+              {resolvedTheme === 'dark'
+                ? <Moon size={16} color="var(--color-primary-text)" />
+                : <Sun size={16} color="var(--color-primary-text)" />}
+              {t('settings.theme')}
             </div>
-            <button
-              className={`settings-theme-toggle ${isDark ? 'settings-theme-toggle--dark' : ''}`}
-              onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
-            >
-              <span className="settings-theme-toggle__thumb" />
-            </button>
+            <div className="theme-toggle" role="group" aria-label={t('settings.theme')}>
+              {THEME_OPTIONS.map(({ value, Icon, labelKey }) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`theme-toggle__btn ${state.theme === value ? 'active' : ''}`}
+                  onClick={() => setTheme(value)}
+                  aria-pressed={state.theme === value}
+                  id={`btn-theme-${value}`}
+                >
+                  <Icon size={14} />
+                  {t(labelKey)}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Text size: scales every typography token */}
+          <div className="settings-font">
+            <div className="settings-font__header">
+              <div className="settings-theme__label">
+                <Type size={16} color="var(--color-primary-text)" />
+                {t('settings.textSize')}
+              </div>
+              <div className="settings-font__value">
+                <span>{Math.round(state.fontScale * 100)}%</span>
+                {state.fontScale !== FONT_SCALE_DEFAULT && (
+                  <button
+                    type="button"
+                    className="btn btn-icon btn-ghost"
+                    onClick={() => setFontScale(FONT_SCALE_DEFAULT)}
+                    title={t('settings.textSize.reset')}
+                    aria-label={t('settings.textSize.reset')}
+                  >
+                    <RotateCcw size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="settings-font__slider">
+              <span className="settings-font__tick settings-font__tick--sm">A</span>
+              <input
+                type="range"
+                id="font-scale"
+                min={FONT_SCALE_MIN}
+                max={FONT_SCALE_MAX}
+                step={FONT_SCALE_STEP}
+                value={state.fontScale}
+                onChange={e => setFontScale(parseFloat(e.target.value))}
+                aria-label={t('settings.textSize')}
+              />
+              <span className="settings-font__tick settings-font__tick--lg">A</span>
+            </div>
+          </div>
+
           <div style={{ height: '1px', background: 'var(--color-border)', margin: '4px 0' }} />
           <button
             className="btn btn-secondary"
