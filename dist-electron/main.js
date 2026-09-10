@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
+import crypto from "node:crypto";
 //#region src/electron/services/PlatformService.ts
 var PlatformService = class {
 	static getPlatform() {
@@ -197,6 +198,352 @@ function registerDeployHandlers(getWin) {
 	ipcMain.handle("deploy:send-input", (_event, text) => deployService.sendInput(text));
 }
 //#endregion
+//#region src/electron/crypto/cryptoService.ts
+var KDF_ITERATIONS = 1e5;
+var KEY_LENGTH = 32;
+var CryptoService = class {
+	static sessionPassword = null;
+	static getVaultPath() {
+		return path.join(app.getPath("userData"), "vault.enc");
+	}
+	static getLegacyConfigPath() {
+		return path.join(app.getPath("userData"), "local-config.json");
+	}
+	/**
+	* Derive a 256-bit AES key from password and salt using PBKDF2-SHA512
+	*/
+	static deriveKey(password, salt) {
+		return crypto.pbkdf2Sync(password, salt, KDF_ITERATIONS, KEY_LENGTH, "sha512");
+	}
+	/**
+	* Encrypt a JavaScript object / string using AES-256-GCM
+	*/
+	static encrypt(data, password) {
+		const salt = crypto.randomBytes(16);
+		const iv = crypto.randomBytes(12);
+		const key = this.deriveKey(password, salt);
+		const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+		const plaintext = typeof data === "string" ? data : JSON.stringify(data);
+		let ciphertext = cipher.update(plaintext, "utf8", "hex");
+		ciphertext += cipher.final("hex");
+		const tag = cipher.getAuthTag().toString("hex");
+		return {
+			version: 1,
+			algorithm: "aes-256-gcm",
+			kdf: "pbkdf2",
+			kdfIterations: KDF_ITERATIONS,
+			salt: salt.toString("hex"),
+			iv: iv.toString("hex"),
+			tag,
+			ciphertext
+		};
+	}
+	/**
+	* Decrypt an encrypted payload using the provided password
+	*/
+	static decrypt(payload, password) {
+		if (payload.algorithm !== "aes-256-gcm") throw new Error(`Algorithme non supporté: ${payload.algorithm}`);
+		const salt = Buffer.from(payload.salt, "hex");
+		const iv = Buffer.from(payload.iv, "hex");
+		const tag = Buffer.from(payload.tag, "hex");
+		const key = this.deriveKey(password, salt);
+		const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+		decipher.setAuthTag(tag);
+		let decrypted = decipher.update(payload.ciphertext, "hex", "utf8");
+		decrypted += decipher.final("utf8");
+		try {
+			return JSON.parse(decrypted);
+		} catch {
+			return decrypted;
+		}
+	}
+	/**
+	* Check if vault file exists
+	*/
+	static vaultExists() {
+		return fs.existsSync(this.getVaultPath());
+	}
+	/**
+	* Check if there is an active session (password held in memory)
+	*/
+	static isUnlocked() {
+		return this.sessionPassword !== null;
+	}
+	/**
+	* Lock the session by forgetting the master password
+	*/
+	static lock() {
+		this.sessionPassword = null;
+	}
+	/**
+	* Create a new vault with a password and initial data
+	*/
+	static createVault(password, initialData = {}) {
+		const legacyPath = this.getLegacyConfigPath();
+		let dataToSave = initialData;
+		if (fs.existsSync(legacyPath)) try {
+			dataToSave = {
+				...JSON.parse(fs.readFileSync(legacyPath, "utf8")),
+				...initialData
+			};
+		} catch {}
+		const encrypted = this.encrypt(dataToSave, password);
+		fs.writeFileSync(this.getVaultPath(), JSON.stringify(encrypted, null, 2), "utf8");
+		if (fs.existsSync(legacyPath)) try {
+			fs.unlinkSync(legacyPath);
+		} catch {}
+		this.sessionPassword = password;
+		return true;
+	}
+	/**
+	* Unlock the vault with the password and return decrypted config
+	*/
+	static unlockVault(password) {
+		const vaultPath = this.getVaultPath();
+		if (!fs.existsSync(vaultPath)) return {
+			success: false,
+			error: "Vault introuvable"
+		};
+		try {
+			const raw = fs.readFileSync(vaultPath, "utf8");
+			const payload = JSON.parse(raw);
+			const data = this.decrypt(payload, password);
+			this.sessionPassword = password;
+			return {
+				success: true,
+				data
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: "Mot de passe incorrect ou données corrompues"
+			};
+		}
+	}
+	/**
+	* Save configuration to the vault using the active session password
+	*/
+	static saveVault(config, password) {
+		const pwd = password || this.sessionPassword;
+		if (!pwd) throw new Error("Vault verrouillé : impossible de sauvegarder sans mot de passe");
+		const encrypted = this.encrypt(config, pwd);
+		fs.writeFileSync(this.getVaultPath(), JSON.stringify(encrypted, null, 2), "utf8");
+		return true;
+	}
+	/**
+	* Reset / delete the vault and any legacy configuration completely
+	*/
+	static resetVault() {
+		this.sessionPassword = null;
+		const vaultPath = this.getVaultPath();
+		if (fs.existsSync(vaultPath)) try {
+			fs.unlinkSync(vaultPath);
+		} catch {}
+		const legacyPath = this.getLegacyConfigPath();
+		if (fs.existsSync(legacyPath)) try {
+			fs.unlinkSync(legacyPath);
+		} catch {}
+		return true;
+	}
+	/**
+	* Change master password of the vault
+	*/
+	static changePassword(oldPassword, newPassword) {
+		const unlockResult = this.unlockVault(oldPassword);
+		if (!unlockResult.success || !unlockResult.data) throw new Error("Ancien mot de passe incorrect");
+		this.sessionPassword = newPassword;
+		return this.saveVault(unlockResult.data, newPassword);
+	}
+	/**
+	* Get active session password (for export encryption)
+	*/
+	static getSessionPassword() {
+		return this.sessionPassword;
+	}
+	/**
+	* Retrieve decrypted data if currently unlocked in memory
+	*/
+	static getVaultData() {
+		if (!this.sessionPassword) return null;
+		const result = this.unlockVault(this.sessionPassword);
+		return result.success && result.data ? result.data : null;
+	}
+};
+//#endregion
+//#region src/electron/ipc/vaultHandlers.ts
+function registerVaultHandlers(getWin) {
+	ipcMain.handle("vault:exists", () => {
+		return CryptoService.vaultExists();
+	});
+	ipcMain.handle("vault:is-unlocked", () => {
+		return CryptoService.isUnlocked();
+	});
+	ipcMain.handle("vault:create", (_event, password, initialData) => {
+		try {
+			return { success: CryptoService.createVault(password, initialData || {}) };
+		} catch (err) {
+			return {
+				success: false,
+				error: err.message || "Erreur lors de la création du coffre"
+			};
+		}
+	});
+	ipcMain.handle("vault:unlock", (_event, password) => {
+		return CryptoService.unlockVault(password);
+	});
+	ipcMain.handle("vault:save", (_event, config) => {
+		try {
+			return { success: CryptoService.saveVault(config) };
+		} catch (err) {
+			return {
+				success: false,
+				error: err.message || "Impossible de sauvegarder dans le coffre"
+			};
+		}
+	});
+	ipcMain.handle("vault:lock", () => {
+		CryptoService.lock();
+		return { success: true };
+	});
+	ipcMain.handle("vault:reset", () => {
+		return { success: CryptoService.resetVault() };
+	});
+	ipcMain.handle("vault:change-password", (_event, oldPassword, newPassword) => {
+		try {
+			return { success: CryptoService.changePassword(oldPassword, newPassword) };
+		} catch (err) {
+			return {
+				success: false,
+				error: err.message || "Erreur lors du changement de mot de passe"
+			};
+		}
+	});
+	ipcMain.handle("vault:decrypt-file", (_event, payload, password) => {
+		try {
+			return {
+				success: true,
+				data: CryptoService.decrypt(payload, password)
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: "Mot de passe incorrect pour déchiffrer ce fichier"
+			};
+		}
+	});
+	ipcMain.handle("export-config", async (_event, config) => {
+		const win = getWin();
+		const result = await dialog.showSaveDialog(win, {
+			title: "Exporter la configuration chiffrée",
+			defaultPath: "intriqathon-config.enc.json",
+			filters: [{
+				name: "Fichiers JSON chiffrés",
+				extensions: ["json"]
+			}]
+		});
+		if (!result.canceled && result.filePath) {
+			const pwd = CryptoService.getSessionPassword();
+			if (!pwd) return {
+				success: false,
+				error: "Coffre non déverrouillé pour chiffrer l'export"
+			};
+			const encrypted = CryptoService.encrypt(config, pwd);
+			fs.writeFileSync(result.filePath, JSON.stringify(encrypted, null, 2), "utf-8");
+			return {
+				success: true,
+				path: result.filePath
+			};
+		}
+		return { success: false };
+	});
+	ipcMain.handle("import-config", async () => {
+		const win = getWin();
+		const result = await dialog.showOpenDialog(win, {
+			title: "Importer la configuration",
+			properties: ["openFile"],
+			filters: [{
+				name: "Fichiers JSON",
+				extensions: ["json"]
+			}]
+		});
+		if (!result.canceled && result.filePaths.length > 0) {
+			const filePath = result.filePaths[0];
+			try {
+				const raw = fs.readFileSync(filePath, "utf-8");
+				const parsed = JSON.parse(raw);
+				if (parsed && parsed.algorithm === "aes-256-gcm" && parsed.ciphertext) {
+					const pwd = CryptoService.getSessionPassword();
+					if (pwd) try {
+						return {
+							data: CryptoService.decrypt(parsed, pwd),
+							path: filePath
+						};
+					} catch {
+						return {
+							requiresPassword: true,
+							path: filePath,
+							encryptedData: parsed
+						};
+					}
+					return {
+						requiresPassword: true,
+						path: filePath,
+						encryptedData: parsed
+					};
+				}
+				return {
+					data: parsed,
+					path: filePath
+				};
+			} catch {
+				return null;
+			}
+		}
+		return null;
+	});
+	ipcMain.handle("read-config-file", async (_event, filePath) => {
+		if (fs.existsSync(filePath)) try {
+			const raw = fs.readFileSync(filePath, "utf-8");
+			const parsed = JSON.parse(raw);
+			if (parsed && parsed.algorithm === "aes-256-gcm" && parsed.ciphertext) {
+				const pwd = CryptoService.getSessionPassword();
+				if (pwd) try {
+					return CryptoService.decrypt(parsed, pwd);
+				} catch {
+					return {
+						requiresPassword: true,
+						path: filePath,
+						encryptedData: parsed
+					};
+				}
+				return {
+					requiresPassword: true,
+					path: filePath,
+					encryptedData: parsed
+				};
+			}
+			return parsed;
+		} catch {
+			return null;
+		}
+		return null;
+	});
+	ipcMain.handle("save-local-config", async (_event, config) => {
+		if (CryptoService.isUnlocked()) {
+			CryptoService.saveVault(config);
+			return { success: true };
+		}
+		return {
+			success: false,
+			error: "Vault non déverrouillé"
+		};
+	});
+	ipcMain.handle("load-local-config", async () => {
+		if (CryptoService.isUnlocked()) return CryptoService.getVaultData() ?? {};
+		return {};
+	});
+}
+//#endregion
 //#region electron/main.ts
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
@@ -259,59 +606,6 @@ ipcMain.handle("save-env-file", async (_event, content) => {
 	}
 	return { success: false };
 });
-ipcMain.handle("save-local-config", async (_event, config) => {
-	const configPath = path.join(app.getPath("userData"), "local-config.json");
-	fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
-	return { success: true };
-});
-ipcMain.handle("load-local-config", async () => {
-	const configPath = path.join(app.getPath("userData"), "local-config.json");
-	if (fs.existsSync(configPath)) {
-		const raw = fs.readFileSync(configPath, "utf-8");
-		return JSON.parse(raw);
-	}
-	return {};
-});
-ipcMain.handle("export-config", async (_event, config) => {
-	const result = await dialog.showSaveDialog(win, {
-		title: "Exporter la configuration",
-		defaultPath: "intriqathon-config.json",
-		filters: [{
-			name: "JSON Files",
-			extensions: ["json"]
-		}]
-	});
-	if (!result.canceled && result.filePath) {
-		fs.writeFileSync(result.filePath, JSON.stringify(config, null, 2), "utf-8");
-		return {
-			success: true,
-			path: result.filePath
-		};
-	}
-	return { success: false };
-});
-ipcMain.handle("import-config", async () => {
-	const result = await dialog.showOpenDialog(win, {
-		title: "Importer la configuration",
-		properties: ["openFile"],
-		filters: [{
-			name: "JSON Files",
-			extensions: ["json"]
-		}]
-	});
-	if (!result.canceled && result.filePaths.length > 0) {
-		const raw = fs.readFileSync(result.filePaths[0], "utf-8");
-		try {
-			return {
-				data: JSON.parse(raw),
-				path: result.filePaths[0]
-			};
-		} catch (e) {
-			return null;
-		}
-	}
-	return null;
-});
 ipcMain.handle("save-recent-configs", async (_event, configs) => {
 	const configPath = path.join(app.getPath("userData"), "recent-configs.json");
 	fs.writeFileSync(configPath, JSON.stringify(configs, null, 2), "utf-8");
@@ -329,17 +623,6 @@ ipcMain.handle("load-recent-configs", async () => {
 	}
 	return [];
 });
-ipcMain.handle("read-config-file", async (_event, filePath) => {
-	if (fs.existsSync(filePath)) {
-		const raw = fs.readFileSync(filePath, "utf-8");
-		try {
-			return JSON.parse(raw);
-		} catch {
-			return null;
-		}
-	}
-	return null;
-});
 app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") {
 		app.quit();
@@ -350,6 +633,7 @@ app.on("activate", () => {
 	if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 registerDeployHandlers(() => win);
+registerVaultHandlers(() => win);
 app.whenReady().then(createWindow);
 //#endregion
 export { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL };

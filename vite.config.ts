@@ -9,9 +9,19 @@ export default defineConfig({
     electron({
       main: {
         entry: 'electron/main.ts',
+        vite: {
+          build: {
+            minify: false,
+          },
+        },
       },
       preload: {
         input: path.join(__dirname, 'electron/preload.ts'),
+        vite: {
+          build: {
+            minify: false,
+          },
+        },
       },
       renderer: process.env.NODE_ENV === 'test' ? undefined : {},
     }),

@@ -1298,6 +1298,71 @@ body {
   transform: none;
 }
 
+/* Inline prompt shown while a pasted value still holds a literal placeholder —
+   Supabase's Postgres URLs arrive with [YOUR-PASSWORD] left inside them. */
+.token-fill {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border: 1px dashed var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-light);
+}
+
+.token-fill__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-primary-text);
+  line-height: 1.4;
+}
+
+.token-fill__label svg {
+  flex-shrink: 0;
+}
+
+.token-fill__row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.token-fill__row .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.token-fill__row .btn {
+  flex-shrink: 0;
+}
+
+/* Bucket names reproduced verbatim in the manual-configuration card */
+.bucket-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.bucket-list li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.bucket-list__note {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  line-height: 1.5;
+  min-width: 0;
+}
+
 /* Per-field help button — opens the help panel on the matching section */
 .form-help-btn {
   flex-shrink: 0;
@@ -1944,13 +2009,18 @@ ul.help-note li {
    (action name on top, how to reach it underneath,
    plus a deep link when the provider offers one)
    ============================================= */
-.help-panel-body .help-flow {
+.help-flow {
   list-style: none;
-  margin: 0 0 var(--space-5) var(--space-4);
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+/* Inside the panel the chain is indented and separated from the next service */
+.help-panel-body .help-flow {
+  margin: 0 0 var(--space-5) var(--space-4);
 }
 
 .help-flow__card {
@@ -2039,7 +2109,7 @@ ul.help-note li {
 }
 
 /* Copyable literals inside an action card — values that must be typed exactly */
-.help-panel-body .help-flow__copy-list {
+.help-flow__copy-list {
   list-style: none;
   margin: 0;
   padding: 0;

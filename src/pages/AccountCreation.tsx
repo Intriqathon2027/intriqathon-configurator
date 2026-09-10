@@ -28,7 +28,10 @@ function HelpContent() {
       desc: isEn
         ? 'From the dashboard, click New project. Pick a name, a region close to your participants, and a strong database password without the "?" character.'
         : "Depuis le dashboard, cliquez sur New project. Choisissez un nom, une région proche de vos participants et un mot de passe de base de données fort, sans caractère \"?\".",
-      url: 'https://supabase.com/dashboard/new',
+      // Both /dashboard/new and /dashboard/projects bounce to the organization
+      // list. This is where database.new resolves to: the New project form,
+      // already scoped to the organization the account last opened.
+      url: 'https://supabase.com/dashboard/new/last-visited-org',
       extra: (
         <p className="help-note">
           {isEn
@@ -97,6 +100,8 @@ function HelpContent() {
       desc: isEn
         ? <>The <strong>Launchpad</strong> is Spaceship's app launcher — everything else is reached through it. Open it with the <code>Launchpad</code> button in the top navigation bar, or with the <code>/</code> or <code>⌘ K</code> shortcut, then type the name of the app you want.</>
         : <>Le <strong>Launchpad</strong> est le lanceur d'applications de Spaceship : tout le reste passe par lui. Ouvrez-le avec le bouton <code>Launchpad</code> de la barre de navigation, ou par le raccourci <code>/</code> ou <code>⌘ K</code>, puis tapez le nom de l'app voulue.</>,
+      url: 'https://www.spaceship.com/application/launchpad/',
+      linkLabel: 'Launchpad',
     },
     {
       key: 'apikey',

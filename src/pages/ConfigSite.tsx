@@ -20,21 +20,19 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon,
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO
     postgres, anon, authenticated, service_role;`
 
-function HelpContent() {
-  const { state, config } = useApp()
-  const isEn = state.language === 'en'
-  const domain = config.DOMAIN || '<DOMAIN>'
+/** Deep link to the SQL editor, next to the block the reader has to paste. */
+const SQL_EDITOR_URL = 'https://supabase.com/dashboard/project/_/sql/new'
 
-  const supabase: HelpFlowStep[] = [
-    {
-      key: 'sql',
-      title: 'SQL Editor ➔ Run',
-      desc: isEn
-        ? <>Paste the SQL block from the page into a new query and click <code>Run</code>. It grants the schema privileges the API roles need.</>
-        : <>Collez le bloc SQL de la page dans une nouvelle requête et cliquez sur <code>Run</code>. Il octroie au schéma les privilèges dont les rôles de l'API ont besoin.</>,
-      url: 'https://supabase.com/dashboard/project/_/sql/new',
-      linkLabel: 'SQL Editor',
-    },
+/** Where the config panel's admin account is created. */
+const ADMIN_LOGIN_URL = 'https://unheard.cfd/admin-login'
+
+/**
+ * The Supabase settings that have to be flipped by hand once the stack is up.
+ * They live in the card itself — each one is a click away in the dashboard, so
+ * burying them behind the help panel only added a detour.
+ */
+function supabaseFinalSteps(isEn: boolean): HelpFlowStep[] {
+  return [
     {
       key: 'dataapi',
       title: isEn ? 'Expose the public schema' : 'Exposer le schéma public',
@@ -90,6 +88,12 @@ function HelpContent() {
       linkLabel: 'Table Editor',
     },
   ]
+}
+
+function HelpContent() {
+  const { state, config } = useApp()
+  const isEn = state.language === 'en'
+  const domain = config.DOMAIN || '<DOMAIN>'
 
   const site: HelpFlowStep[] = [
     {
@@ -132,14 +136,6 @@ function HelpContent() {
   return (
     <>
       <HelpService
-        id="svc-supabase"
-        icon={<Database size={15} />}
-        title={isEn ? 'Supabase — final setup' : 'Supabase — configuration finale'}
-      >
-        <HelpFlow steps={supabase} />
-      </HelpService>
-
-      <HelpService
         id="svc-site"
         icon={<Globe size={15} />}
         title={isEn ? 'Site configuration' : 'Configuration du site'}
@@ -159,12 +155,6 @@ export function ConfigSite() {
   // The two values config.<domain> asks for on its first screen
   const supabaseUrl = config.SUPABASE_URL
   const serviceKey = config.SUPABASE_SERVICE_ROLE_KEY
-
-  const checklist = [
-    { key: 'realtime', title: t('step7.realtime.title'), desc: t('step7.realtime.desc') },
-    { key: 'dataApi', title: t('step7.dataApi.title'), desc: t('step7.dataApi.desc') },
-    { key: 'auth', title: t('step7.auth.title'), desc: t('step7.auth.desc') },
-  ]
 
   const handleRestart = () => {
     start({ ipv4 })
@@ -205,10 +195,6 @@ export function ConfigSite() {
           btnStartLabel={isEn ? 'Launch' : 'Lancer'}
           btnCancelLabel={isEn ? 'Cancel' : 'Annuler'}
           statusLabels={statusLabels}
-          helpAnchor="svc-supabase"
-          helpHint={isEn
-            ? 'SQL, exposed schemas, Realtime, email confirmation and RLS.'
-            : "SQL, schémas exposés, Realtime, confirmation d'email et RLS."}
           manualLabel={isEn ? 'Manual Configuration' : 'Configuration manuelle'}
         >
           <div className="form-section">
@@ -219,24 +205,15 @@ export function ConfigSite() {
               </p>
             </div>
             <SqlBlock sql={SQL_COMMANDS} />
+            <div className="link-buttons-row" style={{ marginTop: '12px' }}>
+              <ExternalLinkBtn url={SQL_EDITOR_URL} label="SQL Editor" />
+            </div>
 
-            <div style={{ fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
+            <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
               <Check size={16} color="var(--color-primary-text)" />
               {isEn ? '2. Other Supabase Actions' : '2. Autres Actions Supabase'}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {checklist.map(item => (
-                <div key={item.key} className="info-box info">
-                  <div className="info-box-icon" style={{ marginTop: '0' }}>
-                    <Database size={15} />
-                  </div>
-                  <div className="info-box-text">
-                    <div className="info-box-title">{item.title}</div>
-                    {item.desc}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <HelpFlow steps={supabaseFinalSteps(isEn)} />
           </div>
         </ServiceConfigBlock>
 
@@ -293,6 +270,10 @@ export function ConfigSite() {
               <ExternalLinkBtn
                 url={`https://${domain}/`}
                 label={`${t('step8.site.btn')} — ${domain}`}
+              />
+              <ExternalLinkBtn
+                url={ADMIN_LOGIN_URL}
+                label={t('step8.adminLogin.btn')}
               />
             </div>
 
@@ -357,6 +338,9 @@ export function ConfigSite() {
                           ? 'This is what creates the ORGANIZER account you then sign in with on the site — nothing else does.'
                           : "C'est ce qui crée le compte ORGANIZER avec lequel vous vous connecterez ensuite au site — rien d'autre ne le fait."}
                       </div>
+                    </div>
+                    <div className="link-buttons-row" style={{ marginTop: '8px' }}>
+                      <ExternalLinkBtn url={ADMIN_LOGIN_URL} label={t('step8.adminLogin.btn')} />
                     </div>
                   </div>
                 </li>

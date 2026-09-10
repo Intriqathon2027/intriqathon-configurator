@@ -1,5 +1,8 @@
-import { Settings, Upload, Download, Trash2, Moon, Sun, Monitor, RotateCcw, Type } from 'lucide-react'
+import { useState } from 'react'
+import { Settings, Upload, Download, Trash2, Moon, Sun, Monitor, RotateCcw, Type, Lock, KeyRound } from 'lucide-react'
 import { useApp, type ThemePreference } from '../../context/AppContext'
+import { ChangePasswordModal } from '../vault/ChangePasswordModal'
+import { ImportPasswordModal } from '../vault/ImportPasswordModal'
 import {
   FONT_SCALE_MIN,
   FONT_SCALE_MAX,
@@ -20,33 +23,62 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalProps) {
-  const { state, dispatch, t, setTheme, resolvedTheme, setFontScale } = useApp()
+  const { state, dispatch, t, setTheme, resolvedTheme, setFontScale, resetVault, lockVault } = useApp()
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [importModal, setImportModal] = useState<{
+    isOpen: boolean
+    filePath: string
+    encryptedData: any
+  }>({
+    isOpen: false,
+    filePath: '',
+    encryptedData: null,
+  })
 
   if (!settingsOpen) return null
+
+  const handleImportSuccess = async (data: Record<string, string>, filePath: string) => {
+    dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
+    if (window.electronAPI && window.electronAPI.vaultSave) {
+      await window.electronAPI.vaultSave(data)
+    }
+
+    if (window.electronAPI) {
+      const recentConfigs = await window.electronAPI.loadRecentConfigs()
+      const name = filePath.split('/').pop()?.replace('.json', '') || 'Configuration'
+      const newEntry = { name, path: filePath, savedAt: new Date().toISOString() }
+      const filtered = (recentConfigs || []).filter((c: { path: string }) => c.path !== filePath)
+      const updated = [newEntry, ...filtered].slice(0, 20)
+      await window.electronAPI.saveRecentConfigs(updated)
+    }
+
+    setImportModal(prev => ({ ...prev, isOpen: false }))
+    setSettingsOpen(false)
+    toast.success(t('toast.imported'), {
+      position: 'top-center',
+      style: {
+        color: 'var(--text-primary)',
+        border: '1px solid var(--border-light)',
+      },
+    })
+  }
 
   const handleImport = async () => {
     if (window.electronAPI) {
       const result = await window.electronAPI.importConfig()
-      if (result && result.data) {
-        dispatch({ type: 'LOAD_SAVED', config: result.data as unknown as Partial<typeof state.config> })
-        await window.electronAPI.saveLocalConfig(result.data)
-        
-        // Add to recent configs
-        const recentConfigs = await window.electronAPI.loadRecentConfigs()
-        const name = result.path.split('/').pop()?.replace('.json', '') || 'Configuration'
-        const newEntry = { name, path: result.path, savedAt: new Date().toISOString() }
-        const filtered = (recentConfigs || []).filter((c: { path: string }) => c.path !== result.path)
-        const updated = [newEntry, ...filtered].slice(0, 20)
-        await window.electronAPI.saveRecentConfigs(updated)
+      if (!result) return
 
-        setSettingsOpen(false)
-        toast.success(t('toast.imported'), {
-          position: 'top-center',
-          style: {
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-light)',
-          },
+      if (result.requiresPassword && result.encryptedData) {
+        setImportModal({
+          isOpen: true,
+          filePath: result.path,
+          encryptedData: result.encryptedData,
         })
+        return
+      }
+
+      if (result.data) {
+        await handleImportSuccess(result.data, result.path)
       }
     } else {
       alert('Non supporté sur le web')
@@ -73,13 +105,7 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
 
   const handleReset = async () => {
     if (confirm(t('settings.reset.confirm'))) {
-      dispatch({ type: 'RESET_CONFIG' })
-      if (window.electronAPI) {
-        // Save an empty object to reset local config
-        await window.electronAPI.saveLocalConfig({})
-      } else {
-        localStorage.removeItem('intriqathon-config')
-      }
+      await resetVault()
       setSettingsOpen(false)
       toast.success(t('toast.reset'), {
         position: 'top-center',
@@ -184,6 +210,27 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
             <Download size={16} />
             {t('settings.export')}
           </button>
+          <button
+            className="btn btn-secondary"
+            style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+            onClick={async () => {
+              setSettingsOpen(false)
+              await lockVault()
+            }}
+            id="btn-lock-vault"
+          >
+            <Lock size={16} />
+            {t('vault.btn.lock')}
+          </button>
+          <button
+            className="btn btn-secondary"
+            style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+            onClick={() => setChangePasswordOpen(true)}
+            id="btn-open-change-password"
+          >
+            <KeyRound size={16} />
+            {t('vault.btn.changePassword')}
+          </button>
           <div style={{ height: '1px', background: 'var(--color-border)', margin: '8px 0' }} />
           <button
             className="btn"
@@ -195,6 +242,17 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
           </button>
         </div>
       </div>
+      <ChangePasswordModal
+        isOpen={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
+      <ImportPasswordModal
+        isOpen={importModal.isOpen}
+        filePath={importModal.filePath}
+        encryptedData={importModal.encryptedData}
+        onSuccess={handleImportSuccess}
+        onClose={() => setImportModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

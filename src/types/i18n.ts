@@ -52,6 +52,47 @@ export type TranslationKeys = {
   'toast.imported': string
   'toast.reset': string
 
+  // Vault
+  'vault.title.unlock': string
+  'vault.title.create': string
+  'vault.subtitle.unlock': string
+  'vault.subtitle.create': string
+  'vault.password.label': string
+  'vault.password.placeholder': string
+  'vault.confirmPassword.label': string
+  'vault.confirmPassword.placeholder': string
+  'vault.btn.unlock': string
+  'vault.btn.create': string
+  'vault.btn.reset': string
+  'vault.btn.lock': string
+  'vault.error.wrongPassword': string
+  'vault.error.mismatch': string
+  'vault.error.tooShort': string
+  'vault.reset.confirm': string
+  'vault.reset.title': string
+  'vault.reset.desc': string
+  'vault.reset.btnConfirm': string
+  'vault.reset.btnCancel': string
+  'vault.import.pwdTitle': string
+  'vault.import.pwdDesc': string
+  'vault.import.pwdError': string
+  'vault.import.fileLabel': string
+  'vault.import.btnSubmit': string
+  'vault.import.passwordPlaceholder': string
+  'vault.toast.resetSuccess': string
+  'vault.toast.created': string
+  'vault.toast.unlocked': string
+  'vault.btn.changePassword': string
+  'vault.changePassword.title': string
+  'vault.changePassword.desc': string
+  'vault.changePassword.old': string
+  'vault.changePassword.new': string
+  'vault.changePassword.confirm': string
+  'vault.changePassword.btnSubmit': string
+  'vault.changePassword.btnCancel': string
+  'vault.error.samePassword': string
+  'vault.toast.passwordChanged': string
+
   // Steps labels (5 steps)
   'step1.label': string
   'step2.label': string
@@ -142,10 +183,19 @@ export type TranslationKeys = {
   'apiConfig.supabase.fromEmail.hint': string
   'apiConfig.supabase.allowedEmails': string
   'apiConfig.supabase.allowedEmails.hint': string
+  'apiConfig.supabase.buckets.title': string
+  'apiConfig.supabase.buckets.desc': string
+  'apiConfig.supabase.buckets.public': string
+  'apiConfig.supabase.buckets.private': string
+  'apiConfig.supabase.buckets.btn': string
+  'apiConfig.supabase.pwFill.label': string
+  'apiConfig.supabase.pwFill.placeholder': string
+  'apiConfig.supabase.pwFill.btn': string
 
   // Spaceship API config
   'apiConfig.spaceship.desc': string
   'apiConfig.spaceship.helpHint': string
+  'apiConfig.spaceship.dnsPath': string
   'apiConfig.spaceship.ipv4': string
   'apiConfig.spaceship.ipv4.path': string
   'apiConfig.spaceship.ipv4.hint': string
@@ -174,12 +224,6 @@ export type TranslationKeys = {
   'step1.spec.os': string
   'step1.spec.storage': string
   'step7.sql.title': string
-  'step7.realtime.title': string
-  'step7.realtime.desc': string
-  'step7.dataApi.title': string
-  'step7.dataApi.desc': string
-  'step7.auth.title': string
-  'step7.auth.desc': string
   'step7.docker.title': string
   'step7.docker.desc': string
 
@@ -269,6 +313,7 @@ export type TranslationKeys = {
   'step8.desc': string
   'step8.config.btn': string
   'step8.site.btn': string
+  'step8.adminLogin.btn': string
   'step8.tip': string
   'step8.tip2': string
 }
