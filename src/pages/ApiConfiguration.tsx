@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor } from 'lucide-react'
+import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus } from 'lucide-react'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
 import { FormField } from '../components/ui/FormField'
-import { CopyRow } from '../components/ui/CopyBlock'
+import { CopyRow, CopyChip } from '../components/ui/CopyBlock'
+import { ExternalLinkBtn } from '../components/ui/ExternalLinkBtn'
 import { useApp } from '../context/AppContext'
 import { FieldHelpSections } from '../components/ui/HelpSection'
 import { IconRowList, type IconRowItem } from '../components/ui/IconRowList'
@@ -11,6 +12,21 @@ import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
 
 type Status = 'idle' | 'running' | 'done' | 'error'
+
+/**
+ * The five storage buckets the app reads and writes. Single source of truth for
+ * both the help walkthrough and the manual-configuration card, so the names
+ * shown in the two places can never drift apart.
+ */
+const STORAGE_BUCKETS = [
+  { name: 'public_files', isPublic: true, fr: 'logo, logos partenaires, médias', en: 'logo, partner logos, media' },
+  { name: 'annonces', isPublic: false, fr: 'pièces jointes des annonces', en: 'announcement attachments' },
+  { name: 'users', isPublic: false, fr: 'photos de profil', en: 'profile pictures' },
+  { name: 'submissions', isPublic: false, fr: 'livrables des équipes', en: 'project submissions' },
+  { name: 'evaluations', isPublic: false, fr: "fichiers d'évaluation du jury", en: 'jury evaluation files' },
+]
+
+const BUCKETS_URL = 'https://supabase.com/dashboard/project/_/storage/buckets'
 
 function HelpContent() {
   const { state, config } = useApp()
@@ -24,14 +40,13 @@ function HelpContent() {
       desc: isEn
         ? <><code>Storage</code> (left sidebar) ➔ <code>New bucket</code>. The app reads and writes <strong>five separate buckets</strong> — create them all, exactly with these names.</>
         : <><code>Storage</code> (barre latérale gauche) ➔ <code>New bucket</code>. L'application lit et écrit dans <strong>cinq buckets distincts</strong> — créez-les tous, avec exactement ces noms.</>,
-      url: 'https://supabase.com/dashboard/project/_/storage/buckets',
-      copyValues: [
-        { value: 'public_files', note: <>{isEn ? 'tick ' : 'cochez '}<strong>Public bucket</strong> — {isEn ? 'logo, partner logos, media' : 'logo, logos partenaires, médias'}</> },
-        { value: 'annonces', note: isEn ? 'private — announcement attachments' : 'privé — pièces jointes des annonces' },
-        { value: 'users', note: isEn ? 'private — profile pictures' : 'privé — photos de profil' },
-        { value: 'submissions', note: isEn ? 'private — project submissions' : 'privé — livrables des équipes' },
-        { value: 'evaluations', note: isEn ? 'private — jury evaluation files' : "privé — fichiers d'évaluation du jury" },
-      ],
+      url: BUCKETS_URL,
+      copyValues: STORAGE_BUCKETS.map(b => ({
+        value: b.name,
+        note: b.isPublic
+          ? <>{isEn ? 'tick ' : 'cochez '}<strong>Public bucket</strong> — {isEn ? b.en : b.fr}</>
+          : <>{isEn ? 'private — ' : 'privé — '}{isEn ? b.en : b.fr}</>,
+      })),
     },
     {
       key: 'connect',
@@ -109,6 +124,8 @@ function HelpContent() {
       desc: isEn
         ? <>Everything in Spaceship is reached through the <strong>Launchpad</strong>, its app launcher: the <code>Launchpad</code> button in the top navigation bar, or the <code>/</code> or <code>⌘ K</code> shortcut. Type <code>Domain Portfolio</code> to open the list of your domains.</>
         : <>Tout, chez Spaceship, passe par le <strong>Launchpad</strong>, son lanceur d'applications : bouton <code>Launchpad</code> dans la barre de navigation, ou raccourci <code>/</code> ou <code>⌘ K</code>. Tapez <code>Domain Portfolio</code> pour ouvrir la liste de vos domaines.</>,
+      url: 'https://www.spaceship.com/application/launchpad/',
+      linkLabel: 'Launchpad',
     },
     {
       key: 'dns',
@@ -116,6 +133,8 @@ function HelpContent() {
       desc: isEn
         ? <><code>Domain Portfolio</code> ➔ click <code>{domain}</code> ➔ <code>Manage</code> ➔ <code>Advanced DNS</code>. This is where the records below are added.</>
         : <><code>Domain Portfolio</code> ➔ cliquez sur <code>{domain}</code> ➔ <code>Manage</code> ➔ <code>Advanced DNS</code>. C'est ici que s'ajoutent les enregistrements ci-dessous.</>,
+      url: 'https://www.spaceship.com/application/domain-portfolio/',
+      linkLabel: 'Domain Portfolio',
     },
     {
       key: 'records',
@@ -189,7 +208,8 @@ function HelpContent() {
 }
 
 export function ApiConfiguration() {
-  const { t, config, setField } = useApp()
+  const { t, config, setField, state } = useApp()
+  const isEn = state.language === 'en'
 
   const domain = config.DOMAIN || '<DOMAIN>'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4_INSTANCE>'
@@ -220,6 +240,15 @@ export function ApiConfiguration() {
   )
   const isScalewayComplete = !!config.IPV4_INSTANCE
   const isResendComplete = !!(config.FROM_EMAIL && config.ALLOWED_EMAILS)
+
+  // Supabase copies its Postgres URLs out with `[YOUR-PASSWORD]` still in them;
+  // both fields offer to substitute the database password on the spot.
+  const pwFill = {
+    token: '[YOUR-PASSWORD]',
+    label: t('apiConfig.supabase.pwFill.label'),
+    inputPlaceholder: t('apiConfig.supabase.pwFill.placeholder'),
+    btnLabel: t('apiConfig.supabase.pwFill.btn'),
+  }
 
   // For now, hardcode statuses to 'idle' since automation isn't implemented
   const [supabaseStatus] = useState<Status>('idle')
@@ -267,11 +296,38 @@ export function ApiConfiguration() {
           manualLabel={t('apiConfig.manualConfig')}
         >
           <div className="form-section">
+            {/* The buckets have to exist before anything is uploaded — same
+                walkthrough as the help panel, kept at hand in the card. */}
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FolderPlus size={16} color="var(--color-primary-text)" />
+                {t('apiConfig.supabase.buckets.title')}
+              </div>
+              <p className="text-muted" style={{ margin: '0 0 12px', fontSize: 'var(--font-size-base)', lineHeight: 1.5 }}>
+                {t('apiConfig.supabase.buckets.desc')}
+              </p>
+              <ul className="bucket-list">
+                {STORAGE_BUCKETS.map(b => (
+                  <li key={b.name}>
+                    <CopyChip value={b.name} />
+                    <span className="bucket-list__note">
+                      {b.isPublic
+                        ? <><strong>{t('apiConfig.supabase.buckets.public')}</strong> — {isEn ? b.en : b.fr}</>
+                        : <>{t('apiConfig.supabase.buckets.private')} — {isEn ? b.en : b.fr}</>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="link-buttons-row" style={{ margin: '12px 0 20px' }}>
+                <ExternalLinkBtn url={BUCKETS_URL} label={t('apiConfig.supabase.buckets.btn')} />
+              </div>
+            </div>
+
             <FormField id="supabase-url" label={t('apiConfig.supabase.url')} value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" />
             <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." multiline />
             <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." type="password" multiline />
-            <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." type="password" multiline />
-            <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." type="password" multiline />
+            <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." type="password" multiline tokenFill={pwFill} />
+            <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." type="password" multiline tokenFill={pwFill} />
 
 
           </div>
@@ -326,6 +382,13 @@ export function ApiConfiguration() {
               <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Info size={16} color="var(--color-primary-text)" />
                 {t('step4.dns.title')}
+              </div>
+              <p className="text-muted" style={{ margin: '0 0 12px', fontSize: 'var(--font-size-base)', lineHeight: 1.5 }}>
+                {t('apiConfig.spaceship.dnsPath')}
+              </p>
+              <div className="link-buttons-row" style={{ marginBottom: '16px' }}>
+                <ExternalLinkBtn url="https://www.spaceship.com/application/launchpad/" label="Launchpad" />
+                <ExternalLinkBtn url="https://www.spaceship.com/application/domain-portfolio/" label="Domain Portfolio" />
               </div>
               <table className="dns-table">
                 <thead>

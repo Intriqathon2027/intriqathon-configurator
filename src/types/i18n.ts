@@ -183,10 +183,19 @@ export type TranslationKeys = {
   'apiConfig.supabase.fromEmail.hint': string
   'apiConfig.supabase.allowedEmails': string
   'apiConfig.supabase.allowedEmails.hint': string
+  'apiConfig.supabase.buckets.title': string
+  'apiConfig.supabase.buckets.desc': string
+  'apiConfig.supabase.buckets.public': string
+  'apiConfig.supabase.buckets.private': string
+  'apiConfig.supabase.buckets.btn': string
+  'apiConfig.supabase.pwFill.label': string
+  'apiConfig.supabase.pwFill.placeholder': string
+  'apiConfig.supabase.pwFill.btn': string
 
   // Spaceship API config
   'apiConfig.spaceship.desc': string
   'apiConfig.spaceship.helpHint': string
+  'apiConfig.spaceship.dnsPath': string
   'apiConfig.spaceship.ipv4': string
   'apiConfig.spaceship.ipv4.path': string
   'apiConfig.spaceship.ipv4.hint': string
@@ -215,12 +224,6 @@ export type TranslationKeys = {
   'step1.spec.os': string
   'step1.spec.storage': string
   'step7.sql.title': string
-  'step7.realtime.title': string
-  'step7.realtime.desc': string
-  'step7.dataApi.title': string
-  'step7.dataApi.desc': string
-  'step7.auth.title': string
-  'step7.auth.desc': string
   'step7.docker.title': string
   'step7.docker.desc': string
 
@@ -310,6 +313,7 @@ export type TranslationKeys = {
   'step8.desc': string
   'step8.config.btn': string
   'step8.site.btn': string
+  'step8.adminLogin.btn': string
   'step8.tip': string
   'step8.tip2': string
 }
