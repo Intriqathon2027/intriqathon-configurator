@@ -1,12 +1,15 @@
 import { type ReactNode } from 'react'
-import { Check, Circle } from 'lucide-react'
-import { ExternalLinkBtn } from './ExternalLinkBtn'
+import { HelpAnchorBtn } from './HelpAnchorBtn'
 
 interface ServiceAccountCardProps {
   serviceName: string
   serviceIcon: ReactNode
-  externalUrl: string
-  externalLabel: string
+  /**
+   * `HelpService` block this card documents. The footer button opens the help
+   * panel there rather than jumping straight to the provider — the walkthrough
+   * carries the provider links, in the order they are needed.
+   */
+  helpAnchor: string
   isComplete: boolean
   children: ReactNode
 }
@@ -14,8 +17,7 @@ interface ServiceAccountCardProps {
 export function ServiceAccountCard({
   serviceName,
   serviceIcon,
-  externalUrl,
-  externalLabel,
+  helpAnchor,
   isComplete,
   children,
 }: ServiceAccountCardProps) {
@@ -24,13 +26,6 @@ export function ServiceAccountCard({
       className={`service-account-card${isComplete ? ' service-account-card--complete' : ''}`}
     >
       <div className="service-account-card__header">
-        <span className="service-account-card__status-icon">
-          {isComplete ? (
-            <Check size={16} className="service-account-card__check" />
-          ) : (
-            <Circle size={16} className="service-account-card__circle" />
-          )}
-        </span>
         <span className="service-account-card__service-icon">{serviceIcon}</span>
         <span className="service-account-card__name">{serviceName}</span>
       </div>
@@ -38,7 +33,7 @@ export function ServiceAccountCard({
       <div className="service-account-card__body">{children}</div>
 
       <div className="service-account-card__footer">
-        <ExternalLinkBtn url={externalUrl} label={externalLabel} />
+        <HelpAnchorBtn anchor={helpAnchor} />
       </div>
     </div>
   )

@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react'
+import React, { createContext, useContext, useReducer, useEffect, useState, type ReactNode } from 'react'
 import type { Language } from '../types/i18n'
 import { translations } from '../i18n/translations'
+import { steps } from '../components/layout/steps'
+import { FONT_SCALE_KEY, clampFontScale, loadFontScale } from '../utils/fontScale'
 
 // ============================================================
 // CONFIG STATE
@@ -81,6 +83,27 @@ const defaultConfig: Config = {
 }
 
 // ============================================================
+// THEME
+// ============================================================
+/** What the user picked. 'system' mirrors the OS appearance. */
+export type ThemePreference = 'light' | 'dark' | 'system'
+/** What actually gets written to `data-theme`. */
+export type ResolvedTheme = 'light' | 'dark'
+
+const THEME_KEY = 'intriqathon-theme'
+const DARK_QUERY = '(prefers-color-scheme: dark)'
+
+function loadThemePreference(): ThemePreference {
+  const saved = localStorage.getItem(THEME_KEY)
+  return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system'
+}
+
+function resolveTheme(pref: ThemePreference, prefersDark: boolean): ResolvedTheme {
+  if (pref === 'system') return prefersDark ? 'dark' : 'light'
+  return pref
+}
+
+// ============================================================
 // TOTAL STEPS
 // ============================================================
 const TOTAL_STEPS = 5
@@ -96,7 +119,9 @@ type Action =
   | { type: 'RESET_CONFIG' }
   | { type: 'START_CONFIG' }
   | { type: 'STOP_CONFIG' }
-  | { type: 'SET_THEME'; theme: 'light' | 'dark' }
+  | { type: 'SET_THEME'; theme: ThemePreference }
+  | { type: 'SET_FONT_SCALE'; scale: number }
+  | { type: 'MARK_STEP_DONE'; step: number }
 
 // ============================================================
 // STATE
@@ -106,7 +131,24 @@ interface AppState {
   language: Language
   currentStep: number
   hasStarted: boolean
-  theme: 'light' | 'dark'
+  /** What the user picked — 'system' follows the OS appearance. */
+  theme: ThemePreference
+  /** Multiplier applied to every typography token. 1 is the design default. */
+  fontScale: number
+  /** Steps validated by an action (deployment, docker restart) rather than by form fields. */
+  actionSteps: number[]
+}
+
+const ACTION_STEPS_KEY = 'intriqathon-action-steps'
+
+function loadActionSteps(): number[] {
+  try {
+    const raw = localStorage.getItem(ACTION_STEPS_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed.filter((n): n is number => typeof n === 'number') : []
+  } catch {
+    return []
+  }
 }
 
 const initialState: AppState = {
@@ -114,7 +156,9 @@ const initialState: AppState = {
   language: 'fr',
   currentStep: 0,
   hasStarted: false,
-  theme: (localStorage.getItem('intriqathon-theme') as 'light' | 'dark') || 'light',
+  theme: loadThemePreference(),
+  fontScale: loadFontScale(),
+  actionSteps: loadActionSteps(),
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -134,13 +178,18 @@ function reducer(state: AppState, action: Action): AppState {
         config: { ...state.config, ...action.config },
       }
     case 'RESET_CONFIG':
-      return { ...state, config: defaultConfig }
+      return { ...state, config: defaultConfig, actionSteps: [] }
     case 'START_CONFIG':
       return { ...state, hasStarted: true }
     case 'STOP_CONFIG':
       return { ...state, hasStarted: false }
     case 'SET_THEME':
       return { ...state, theme: action.theme }
+    case 'SET_FONT_SCALE':
+      return { ...state, fontScale: clampFontScale(action.scale) }
+    case 'MARK_STEP_DONE':
+      if (state.actionSteps.includes(action.step)) return state
+      return { ...state, actionSteps: [...state.actionSteps, action.step] }
     default:
       return state
   }
@@ -162,13 +211,22 @@ interface AppContextType {
   goHome: () => void
   hasSavedConfig: boolean
   totalSteps: number
-  setTheme: (theme: 'light' | 'dark') => void
+  setTheme: (theme: ThemePreference) => void
+  setFontScale: (scale: number) => void
+  /** The theme actually applied — 'system' resolved against the OS setting. */
+  resolvedTheme: ResolvedTheme
+  /** True when every requirement of the given step is satisfied. */
+  isStepComplete: (step: number) => boolean
+  markStepDone: (step: number) => void
 }
 
 const AppContext = createContext<AppContextType | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
+    resolveTheme(initialState.theme, window.matchMedia(DARK_QUERY).matches)
+  )
 
   // Load saved config on mount
   useEffect(() => {
@@ -203,16 +261,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [state.config.DOMAIN])
 
-  // Apply theme to document
+  // Persist action-validated steps
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', state.theme)
+    localStorage.setItem(ACTION_STEPS_KEY, JSON.stringify(state.actionSteps))
+  }, [state.actionSteps])
+
+  // Apply the theme, following the OS appearance while the preference is 'system'
+  useEffect(() => {
     localStorage.setItem('intriqathon-theme', state.theme)
+
+    const media = window.matchMedia(DARK_QUERY)
+    const apply = () => {
+      const resolved = resolveTheme(state.theme, media.matches)
+      document.documentElement.setAttribute('data-theme', resolved)
+      setResolvedTheme(resolved)
+    }
+
+    apply()
+    if (state.theme !== 'system') return
+
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
   }, [state.theme])
 
-  // Initialize theme on mount
+  // Drive the typography tokens from the user's text-size preference
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', state.theme)
-  }, [])
+    localStorage.setItem(FONT_SCALE_KEY, String(state.fontScale))
+    document.documentElement.style.setProperty('--font-scale', String(state.fontScale))
+  }, [state.fontScale])
 
   const t = (key: string): string => {
     const dict = translations[state.language] as Record<string, string>
@@ -256,8 +332,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'STOP_CONFIG' })
   }
 
-  const setTheme = (theme: 'light' | 'dark') => {
+  const setFontScale = (scale: number) => {
+    dispatch({ type: 'SET_FONT_SCALE', scale })
+  }
+
+  const setTheme = (theme: ThemePreference) => {
     dispatch({ type: 'SET_THEME', theme })
+  }
+
+  const markStepDone = (step: number) => {
+    dispatch({ type: 'MARK_STEP_DONE', step })
+  }
+
+  const isStepComplete = (step: number): boolean => {
+    const fields = steps[step]?.requiredFields ?? []
+    if (fields.length === 0) return state.actionSteps.includes(step)
+    return fields.every(key => (state.config[key] ?? '').trim() !== '')
   }
 
   const hasSavedConfig = Object.entries(state.config).some(([k, v]) => k !== 'ALLOWED_EMAILS' && v !== '')
@@ -277,6 +367,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       hasSavedConfig,
       totalSteps: TOTAL_STEPS,
       setTheme,
+      setFontScale,
+      resolvedTheme,
+      isStepComplete,
+      markStepDone,
     }}>
       {children}
     </AppContext.Provider>

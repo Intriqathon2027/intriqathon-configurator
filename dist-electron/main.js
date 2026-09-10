@@ -1,19 +1,216 @@
-import { BrowserWindow as e, app as t, dialog as n, ipcMain as r, shell as i } from "electron";
-import { fileURLToPath as a } from "node:url";
-import o from "node:path";
-import s from "node:fs";
+import { BrowserWindow, app, dialog, ipcMain, shell } from "electron";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import fs from "node:fs";
+import { spawn } from "node:child_process";
+//#region src/electron/services/PlatformService.ts
+var PlatformService = class {
+	static getPlatform() {
+		return process.platform;
+	}
+	static isWindows() {
+		return process.platform === "win32";
+	}
+	static writeEnvFile(dirPath, content) {
+		try {
+			fs.writeFileSync(path.join(dirPath, ".env"), content);
+			return { success: true };
+		} catch (err) {
+			return {
+				success: false,
+				error: err.message
+			};
+		}
+	}
+};
+//#endregion
+//#region src/electron/services/DeployService.ts
+var __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
+var DeployService = class {
+	childProcess = null;
+	getScriptPath(scriptNameBase = "script") {
+		const scriptName = PlatformService.isWindows() ? `${scriptNameBase}.bat` : `${scriptNameBase}.sh`;
+		if (__dirname$1.includes("app.asar") && process.resourcesPath) return path.join(process.resourcesPath, "src/cmd_scripts", scriptName);
+		return path.join(process.env.APP_ROOT, "src/cmd_scripts", scriptName);
+	}
+	debug(win, msg) {
+		win.webContents.send("deploy:stdout", `[DEBUG] ${msg}`);
+	}
+	start(ipv4, sourceDir, win, sshPassword) {
+		this.cancel();
+		const scriptPath = this.getScriptPath();
+		const isWin = PlatformService.isWindows();
+		this.debug(win, `Plateforme : ${process.platform}`);
+		this.debug(win, `Script : ${scriptPath}`);
+		this.debug(win, `Existe : ${fs.existsSync(scriptPath)}`);
+		this.debug(win, `IPV4 : ${ipv4}`);
+		this.debug(win, `SOURCE_DIR : ${sourceDir}`);
+		if (!fs.existsSync(scriptPath)) {
+			win.webContents.send("deploy:error", `Script introuvable : ${scriptPath}`);
+			return;
+		}
+		if (!isWin) try {
+			fs.chmodSync(scriptPath, 493);
+			this.debug(win, "chmod 755 appliqué au script");
+		} catch (e) {
+			this.debug(win, `chmod échoué (non bloquant) : ${String(e)}`);
+		}
+		const env = {
+			...process.env,
+			DISPLAY: ""
+		};
+		if (sshPassword) {
+			env.SSHPASS = sshPassword;
+			this.debug(win, `SSHPASS configuré pour l'authentification`);
+		}
+		const args = isWin ? ["cmd.exe", [
+			"/c",
+			scriptPath,
+			ipv4,
+			sourceDir
+		]] : ["bash", [
+			scriptPath,
+			ipv4,
+			sourceDir
+		]];
+		this.debug(win, `Commande : ${args[0]} ${args[1].join(" ")}`);
+		const spawnOpts = {
+			env,
+			stdio: [
+				"pipe",
+				"pipe",
+				"pipe"
+			]
+		};
+		this.childProcess = spawn(args[0], args[1], spawnOpts);
+		this.debug(win, `PID : ${this.childProcess?.pid ?? "N/A"}`);
+		this.childProcess?.stdout?.on("data", (data) => {
+			const lines = data.toString().split("\n");
+			for (const line of lines) if (line.trim()) win.webContents.send("deploy:stdout", line.trimEnd());
+		});
+		this.childProcess?.stderr?.on("data", (data) => {
+			const lines = data.toString().split("\n");
+			for (const line of lines) if (line.trim()) win.webContents.send("deploy:stderr", line.trimEnd());
+		});
+		this.childProcess?.on("close", (code, signal) => {
+			this.debug(win, `Processus terminé — code: ${code}, signal: ${signal}`);
+			win.webContents.send("deploy:exit", code);
+			this.childProcess = null;
+		});
+		this.childProcess?.on("error", (err) => {
+			this.debug(win, `Erreur spawn : ${err.message}`);
+			win.webContents.send("deploy:error", err.message);
+			this.childProcess = null;
+		});
+	}
+	startRestart(ipv4, win, sshPassword) {
+		this.cancel();
+		const scriptPath = this.getScriptPath("restart_docker");
+		const isWin = PlatformService.isWindows();
+		this.debug(win, `Plateforme : ${process.platform}`);
+		this.debug(win, `Script : ${scriptPath}`);
+		this.debug(win, `Existe : ${fs.existsSync(scriptPath)}`);
+		this.debug(win, `IPV4 : ${ipv4}`);
+		if (!fs.existsSync(scriptPath)) {
+			win.webContents.send("deploy:error", `Script introuvable : ${scriptPath}`);
+			return;
+		}
+		if (!isWin) try {
+			fs.chmodSync(scriptPath, 493);
+			this.debug(win, "chmod 755 appliqué au script");
+		} catch (e) {
+			this.debug(win, `chmod échoué (non bloquant) : ${String(e)}`);
+		}
+		const env = {
+			...process.env,
+			DISPLAY: ""
+		};
+		if (sshPassword) {
+			env.SSHPASS = sshPassword;
+			this.debug(win, `SSHPASS configuré pour l'authentification`);
+		}
+		const args = isWin ? ["cmd.exe", [
+			"/c",
+			scriptPath,
+			ipv4
+		]] : ["bash", [scriptPath, ipv4]];
+		this.debug(win, `Commande : ${args[0]} ${args[1].join(" ")}`);
+		const spawnOpts = {
+			env,
+			stdio: [
+				"pipe",
+				"pipe",
+				"pipe"
+			]
+		};
+		this.childProcess = spawn(args[0], args[1], spawnOpts);
+		this.debug(win, `PID : ${this.childProcess?.pid ?? "N/A"}`);
+		this.childProcess?.stdout?.on("data", (data) => {
+			const lines = data.toString().split("\n");
+			for (const line of lines) if (line.trim()) win.webContents.send("deploy:stdout", line.trimEnd());
+		});
+		this.childProcess?.stderr?.on("data", (data) => {
+			const lines = data.toString().split("\n");
+			for (const line of lines) if (line.trim()) win.webContents.send("deploy:stderr", line.trimEnd());
+		});
+		this.childProcess?.on("close", (code, signal) => {
+			this.debug(win, `Processus terminé — code: ${code}, signal: ${signal}`);
+			win.webContents.send("deploy:exit", code);
+			this.childProcess = null;
+		});
+		this.childProcess?.on("error", (err) => {
+			this.debug(win, `Erreur spawn : ${err.message}`);
+			win.webContents.send("deploy:error", err.message);
+			this.childProcess = null;
+		});
+	}
+	cancel() {
+		if (this.childProcess) {
+			this.childProcess.kill("SIGTERM");
+			this.childProcess = null;
+		}
+	}
+	sendInput(text) {
+		if (this.childProcess?.stdin?.writable) this.childProcess.stdin.write(text);
+	}
+	isRunning() {
+		return this.childProcess !== null;
+	}
+};
+//#endregion
+//#region src/electron/ipc/deployHandlers.ts
+function registerDeployHandlers(getWin) {
+	const deployService = new DeployService();
+	ipcMain.handle("deploy:get-platform", () => PlatformService.getPlatform());
+	ipcMain.handle("deploy:write-env", (_event, dirPath, content) => PlatformService.writeEnvFile(dirPath, content));
+	ipcMain.handle("deploy:start", (_event, ipv4, sourceDir, sshPassword) => {
+		const win = getWin();
+		if (!win) throw new Error("No active window");
+		deployService.start(ipv4, sourceDir, win, sshPassword);
+	});
+	ipcMain.handle("deploy:restart", (_event, ipv4, sshPassword) => {
+		const win = getWin();
+		if (!win) throw new Error("No active window");
+		deployService.startRestart(ipv4, win, sshPassword);
+	});
+	ipcMain.handle("deploy:cancel", () => deployService.cancel());
+	ipcMain.handle("deploy:send-input", (_event, text) => deployService.sendInput(text));
+}
+//#endregion
 //#region electron/main.ts
-var c = o.dirname(a(import.meta.url));
-process.env.APP_ROOT = o.join(c, "..");
-var l = process.env.VITE_DEV_SERVER_URL, u = o.join(process.env.APP_ROOT, "dist-electron"), d = o.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = l ? o.join(process.env.APP_ROOT, "public") : d;
-var f;
-function p() {
-	f = new e({
-		width: 1100,
-		height: 750,
-		minWidth: 900,
-		minHeight: 600,
+var __dirname = path.dirname(fileURLToPath(import.meta.url));
+process.env.APP_ROOT = path.join(__dirname, "..");
+var VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
+var MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
+var RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
+var win;
+function createWindow() {
+	win = new BrowserWindow({
+		width: 1320,
+		height: 880,
+		minWidth: 1e3,
+		minHeight: 680,
 		titleBarStyle: "hiddenInset",
 		trafficLightPosition: {
 			x: 16,
@@ -21,25 +218,31 @@ function p() {
 		},
 		backgroundColor: "#F8FAF9",
 		webPreferences: {
-			preload: o.join(c, "preload.mjs"),
-			nodeIntegration: !1,
-			contextIsolation: !0
+			preload: path.join(__dirname, "preload.mjs"),
+			nodeIntegration: false,
+			contextIsolation: true
 		},
-		icon: o.join(process.env.VITE_PUBLIC, "electron-vite.svg")
-	}), f.webContents.on("did-finish-load", () => {
-		f?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toISOString());
-	}), l ? f.loadURL(l) : f.loadFile(o.join(d, "index.html"));
+		icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg")
+	});
+	win.webContents.on("did-finish-load", () => {
+		win?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toISOString());
+	});
+	if (VITE_DEV_SERVER_URL) win.loadURL(VITE_DEV_SERVER_URL);
+	else win.loadFile(path.join(RENDERER_DIST, "index.html"));
 }
-r.handle("open-external-url", async (e, t) => {
-	await i.openExternal(t);
-}), r.handle("open-folder-dialog", async () => {
-	let e = await n.showOpenDialog(f, {
+ipcMain.handle("open-external-url", async (_event, url) => {
+	await shell.openExternal(url);
+});
+ipcMain.handle("open-folder-dialog", async () => {
+	const result = await dialog.showOpenDialog(win, {
 		properties: ["openDirectory"],
 		title: "Sélectionner le dossier de déploiement"
 	});
-	return !e.canceled && e.filePaths.length > 0 ? e.filePaths[0] : null;
-}), r.handle("save-env-file", async (e, t) => {
-	let r = await n.showSaveDialog(f, {
+	if (!result.canceled && result.filePaths.length > 0) return result.filePaths[0];
+	return null;
+});
+ipcMain.handle("save-env-file", async (_event, content) => {
+	const result = await dialog.showSaveDialog(win, {
 		title: "Sauvegarder le fichier .env",
 		defaultPath: ".env",
 		filters: [{
@@ -47,22 +250,30 @@ r.handle("open-external-url", async (e, t) => {
 			extensions: ["env"]
 		}]
 	});
-	return !r.canceled && r.filePath ? (s.writeFileSync(r.filePath, t, "utf-8"), {
-		success: !0,
-		path: r.filePath
-	}) : { success: !1 };
-}), r.handle("save-local-config", async (e, n) => {
-	let r = o.join(t.getPath("userData"), "local-config.json");
-	return s.writeFileSync(r, JSON.stringify(n, null, 2), "utf-8"), { success: !0 };
-}), r.handle("load-local-config", async () => {
-	let e = o.join(t.getPath("userData"), "local-config.json");
-	if (s.existsSync(e)) {
-		let t = s.readFileSync(e, "utf-8");
-		return JSON.parse(t);
+	if (!result.canceled && result.filePath) {
+		fs.writeFileSync(result.filePath, content, "utf-8");
+		return {
+			success: true,
+			path: result.filePath
+		};
+	}
+	return { success: false };
+});
+ipcMain.handle("save-local-config", async (_event, config) => {
+	const configPath = path.join(app.getPath("userData"), "local-config.json");
+	fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+	return { success: true };
+});
+ipcMain.handle("load-local-config", async () => {
+	const configPath = path.join(app.getPath("userData"), "local-config.json");
+	if (fs.existsSync(configPath)) {
+		const raw = fs.readFileSync(configPath, "utf-8");
+		return JSON.parse(raw);
 	}
 	return {};
-}), r.handle("export-config", async (e, t) => {
-	let r = await n.showSaveDialog(f, {
+});
+ipcMain.handle("export-config", async (_event, config) => {
+	const result = await dialog.showSaveDialog(win, {
 		title: "Exporter la configuration",
 		defaultPath: "intriqathon-config.json",
 		filters: [{
@@ -70,12 +281,17 @@ r.handle("open-external-url", async (e, t) => {
 			extensions: ["json"]
 		}]
 	});
-	return !r.canceled && r.filePath ? (s.writeFileSync(r.filePath, JSON.stringify(t, null, 2), "utf-8"), {
-		success: !0,
-		path: r.filePath
-	}) : { success: !1 };
-}), r.handle("import-config", async () => {
-	let e = await n.showOpenDialog(f, {
+	if (!result.canceled && result.filePath) {
+		fs.writeFileSync(result.filePath, JSON.stringify(config, null, 2), "utf-8");
+		return {
+			success: true,
+			path: result.filePath
+		};
+	}
+	return { success: false };
+});
+ipcMain.handle("import-config", async () => {
+	const result = await dialog.showOpenDialog(win, {
 		title: "Importer la configuration",
 		properties: ["openFile"],
 		filters: [{
@@ -83,46 +299,57 @@ r.handle("open-external-url", async (e, t) => {
 			extensions: ["json"]
 		}]
 	});
-	if (!e.canceled && e.filePaths.length > 0) {
-		let t = s.readFileSync(e.filePaths[0], "utf-8");
+	if (!result.canceled && result.filePaths.length > 0) {
+		const raw = fs.readFileSync(result.filePaths[0], "utf-8");
 		try {
 			return {
-				data: JSON.parse(t),
-				path: e.filePaths[0]
+				data: JSON.parse(raw),
+				path: result.filePaths[0]
 			};
-		} catch {
+		} catch (e) {
 			return null;
 		}
 	}
 	return null;
-}), r.handle("save-recent-configs", async (e, n) => {
-	let r = o.join(t.getPath("userData"), "recent-configs.json");
-	return s.writeFileSync(r, JSON.stringify(n, null, 2), "utf-8"), { success: !0 };
-}), r.handle("load-recent-configs", async () => {
-	let e = o.join(t.getPath("userData"), "recent-configs.json");
-	if (s.existsSync(e)) {
-		let t = s.readFileSync(e, "utf-8");
+});
+ipcMain.handle("save-recent-configs", async (_event, configs) => {
+	const configPath = path.join(app.getPath("userData"), "recent-configs.json");
+	fs.writeFileSync(configPath, JSON.stringify(configs, null, 2), "utf-8");
+	return { success: true };
+});
+ipcMain.handle("load-recent-configs", async () => {
+	const configPath = path.join(app.getPath("userData"), "recent-configs.json");
+	if (fs.existsSync(configPath)) {
+		const raw = fs.readFileSync(configPath, "utf-8");
 		try {
-			return JSON.parse(t);
+			return JSON.parse(raw);
 		} catch {
 			return [];
 		}
 	}
 	return [];
-}), r.handle("read-config-file", async (e, t) => {
-	if (s.existsSync(t)) {
-		let e = s.readFileSync(t, "utf-8");
+});
+ipcMain.handle("read-config-file", async (_event, filePath) => {
+	if (fs.existsSync(filePath)) {
+		const raw = fs.readFileSync(filePath, "utf-8");
 		try {
-			return JSON.parse(e);
+			return JSON.parse(raw);
 		} catch {
 			return null;
 		}
 	}
 	return null;
-}), t.on("window-all-closed", () => {
-	process.platform !== "darwin" && (t.quit(), f = null);
-}), t.on("activate", () => {
-	e.getAllWindows().length === 0 && p();
-}), t.whenReady().then(p);
+});
+app.on("window-all-closed", () => {
+	if (process.platform !== "darwin") {
+		app.quit();
+		win = null;
+	}
+});
+app.on("activate", () => {
+	if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+registerDeployHandlers(() => win);
+app.whenReady().then(createWindow);
 //#endregion
-export { u as MAIN_DIST, d as RENDERER_DIST, l as VITE_DEV_SERVER_URL };
+export { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL };

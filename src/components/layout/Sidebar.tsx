@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Check, Settings, Zap, PanelLeftClose, PanelLeft } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
-import { steps } from './WizardLayout'
+import { steps } from './steps'
 
 interface SidebarProps {
   setSettingsOpen: (v: boolean) => void
@@ -9,8 +9,12 @@ interface SidebarProps {
 }
 
 export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
-  const { state, t, goToStep, goHome } = useApp()
+  const { state, t, goToStep, goHome, isStepComplete } = useApp()
   const { currentStep } = state
+
+  const isMac = typeof navigator !== 'undefined'
+    && navigator.platform.toUpperCase().indexOf('MAC') >= 0
+    && typeof window !== 'undefined' && !!window.electronAPI
 
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem('sidebarWidth')
@@ -97,7 +101,8 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
   if (isCollapsed) {
     return (
       <aside className="sidebar sidebar--collapsed" style={{ transition: 'width 0.3s ease' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', paddingTop: '24px' }}>
+        {isMac && <div className="sidebar-drag-strip" />}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', paddingTop: isMac ? '4px' : '14px' }}>
           <div className="sidebar-logo-icon" onClick={goHome} style={{ cursor: 'pointer' }}>
             <Zap size={18} />
           </div>
@@ -106,32 +111,35 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
           </button>
         </div>
 
-        <nav className="sidebar-steps" style={{ marginTop: '32px' }}>
+        <nav className="sidebar-steps" style={{ marginTop: '20px' }}>
           {steps.map((step, index) => {
-            const status =
-              index < currentStep ? 'completed' :
-              index === currentStep ? 'active' : 'pending'
+            const isActive = index === currentStep
+            const isDone = isStepComplete(index)
+            const indicator = isActive ? 'active' : isDone ? 'completed' : 'pending'
+            const StepIcon = step.Icon
 
             return (
               <button
                 key={index}
-                className={`sidebar-step ${status}`}
+                className={`sidebar-step sidebar-step--collapsed ${isActive ? 'active' : ''} ${isDone ? 'completed' : ''}`}
                 onClick={() => goToStep(index)}
                 title={t(step.labelKey)}
-                style={{ justifyContent: 'center', padding: '12px 0' }}
+                style={{ justifyContent: 'center', padding: '8px 0' }}
               >
-                <div className={`step-indicator ${status}`} style={{ margin: 0 }}>
-                  {status === 'completed'
-                    ? <Check size={13} />
-                    : <span>{index + 1}</span>
-                  }
+                <div className={`step-indicator ${indicator}`} style={{ margin: 0 }}>
+                  <StepIcon size={17} />
                 </div>
+                {isDone && (
+                  <span className="sidebar-step__check" aria-label="Configuration terminée">
+                    <Check size={11} strokeWidth={3} />
+                  </span>
+                )}
               </button>
             )
           })}
         </nav>
 
-        <div className="sidebar-bottom" style={{ marginTop: 'auto', display: 'flex', justifyContent: 'center', paddingBottom: '24px' }}>
+        <div className="sidebar-bottom" style={{ marginTop: 'auto', display: 'flex', justifyContent: 'center', paddingBottom: '16px' }}>
           <button
             className="btn btn-icon btn-ghost"
             onClick={() => setSettingsOpen(true)}
@@ -144,11 +152,10 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
     )
   }
 
-  const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0 && typeof window !== 'undefined' && !!window.electronAPI
-
   return (
     <aside className="sidebar" style={{ width, transition: isResizing ? 'none' : 'width 0.3s ease', position: 'relative', willChange: 'width' }}>
-      <div className="sidebar-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: isMac ? '16px' : '0' }}>
+      {isMac && <div className="sidebar-drag-strip" />}
+      <div className="sidebar-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div
           className="sidebar-logo"
           style={{ cursor: 'pointer' }}
@@ -169,25 +176,28 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
 
       <nav className="sidebar-steps">
         {steps.map((step, index) => {
-          const status =
-            index < currentStep ? 'completed' :
-            index === currentStep ? 'active' : 'pending'
+          const isActive = index === currentStep
+          const isDone = isStepComplete(index)
+          const indicator = isActive ? 'active' : isDone ? 'completed' : 'pending'
+          const StepIcon = step.Icon
 
           return (
             <button
               key={index}
-              className={`sidebar-step ${status}`}
+              className={`sidebar-step ${isActive ? 'active' : ''} ${isDone ? 'completed' : ''}`}
               onClick={() => goToStep(index)}
             >
-              <div className={`step-indicator ${status}`}>
-                {status === 'completed'
-                  ? <Check size={13} />
-                  : <span>{index + 1}</span>
-                }
+              <div className={`step-indicator ${indicator}`}>
+                <StepIcon size={17} />
               </div>
               <div className="step-label">
                 <div className="step-label-title">{t(step.labelKey)}</div>
               </div>
+              {isDone && (
+                <span className="sidebar-step__check" aria-label="Configuration terminée">
+                  <Check size={13} strokeWidth={3} />
+                </span>
+              )}
             </button>
           )
         })}
@@ -201,7 +211,7 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
           id="btn-settings"
         >
           <div className="step-indicator pending">
-            <Settings size={13} />
+            <Settings size={17} />
           </div>
           <div className="step-label">
             <div className="step-label-title">{t('settings.title')}</div>

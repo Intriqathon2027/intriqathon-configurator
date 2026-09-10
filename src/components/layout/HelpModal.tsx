@@ -19,7 +19,7 @@ export function HelpModal({ helpOpen, setHelpOpen, title, helpContent }: HelpMod
       <div className="modal">
         <div className="modal-header">
           <div className="modal-title">
-            <HelpCircle size={18} color="var(--color-primary)" />
+            <HelpCircle size={18} color="var(--color-primary-text)" />
             {t('help.title')} — {title}
           </div>
           <button className="modal-close" onClick={() => setHelpOpen(false)}>

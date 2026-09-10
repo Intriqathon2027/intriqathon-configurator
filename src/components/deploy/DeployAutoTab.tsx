@@ -1,8 +1,10 @@
-import { useRef, useEffect } from 'react'
-import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database, FolderOpen } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
+import { generateEnvContent } from '../../utils/deploy'
 import { useDeployment } from '../../hooks/useDeployment'
 import { DeployDialog } from './DeployDialog'
+import { IconRowList } from '../ui/IconRowList'
 import type { DeployLogEntry, DeploymentStatus } from '../../hooks/useDeployment'
 
 function getStatusIcon(status: DeployLogEntry['status']) {
@@ -32,7 +34,7 @@ function getGlobalStatusIcon(status: DeploymentStatus) {
 }
 
 export function DeployAutoTab() {
-  const { t, config } = useApp()
+  const { t, config, setField, markStepDone } = useApp()
   const {
     status,
     logs,
@@ -45,6 +47,11 @@ export function DeployAutoTab() {
 
   const consoleRef = useRef<HTMLDivElement>(null)
 
+  // Validate the deploy step once the deployment succeeds
+  useEffect(() => {
+    if (status === 'completed') markStepDone(3)
+  }, [status])
+
   // Auto-scroll console to bottom
   useEffect(() => {
     if (consoleRef.current) {
@@ -52,12 +59,25 @@ export function DeployAutoTab() {
     }
   }, [logs])
 
-  const deployPath = config.DEPLOY_PATH || '/path/to/hackathon-deploy'
+  const [localDeployPath, setLocalDeployPath] = useState(config.DEPLOY_PATH || '')
+  
+  const handleBrowse = async () => {
+    if (window.electronAPI) {
+      const selected = await window.electronAPI.openFolderDialog()
+      if (selected) {
+        setLocalDeployPath(selected)
+        setField('DEPLOY_PATH', selected)
+      }
+    }
+  }
+
+  const deployPath = localDeployPath || '/path/to/hackathon-deploy'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const domain = config.DOMAIN || 'example.com'
 
   const handleStart = () => {
-    start({ deployPath, ipv4, domain })
+    const envContent = generateEnvContent(config as unknown as Record<string, string>)
+    start({ deployPath, ipv4, domain, envContent })
   }
 
   const isRunning = status === 'running' || status === 'paused_for_dialog'
@@ -70,8 +90,37 @@ export function DeployAutoTab() {
     <>
       <div className="card">
         <div className="card-title">
-          <Terminal size={16} color="var(--color-primary)" />
+          <Terminal size={16} color="var(--color-primary-text)" />
           {t('step6.auto.title')}
+        </div>
+
+        {/* Deploy path selector */}
+        <div className="deploy-path-selector" style={{ marginBottom: 'var(--space-4)' }}>
+          <label className="form-label" style={{ marginBottom: 'var(--space-2)', display: 'block' }}>
+            {t('step6.auto.deployPath')}
+          </label>
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <input
+              className="form-input"
+              type="text"
+              value={localDeployPath}
+              onChange={(e) => {
+                setLocalDeployPath(e.target.value)
+                setField('DEPLOY_PATH', e.target.value)
+              }}
+              placeholder="/path/to/hackathon-deploy"
+              style={{ flex: 1 }}
+              id="input-deploy-path"
+            />
+            <button
+              className="btn btn-secondary"
+              onClick={handleBrowse}
+              id="btn-deploy-browse"
+              title={t('step6.auto.browse')}
+            >
+              <FolderOpen size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Console output */}
@@ -137,30 +186,21 @@ export function DeployAutoTab() {
       {/* Explanatory card */}
       <div className="card" style={{ marginTop: 'var(--space-5)' }}>
         <div className="card-title">
-          <Info size={16} color="var(--color-primary)" />
+          <Info size={16} color="var(--color-primary-text)" />
           {t('step6.auto.info.title')}
         </div>
         <p className="step-description" style={{ fontSize: 'var(--font-size-sm)' }}>
           {t('step6.auto.info.desc')}
         </p>
-        <ul className="spec-list" style={{ marginTop: 'var(--space-4)' }}>
-          <li className="spec-item">
-            <div className="spec-icon"><Upload size={16} /></div>
-            <div className="spec-label" style={{ color: 'var(--color-text)' }}>1. {t('step6.auto.info.step1')}</div>
-          </li>
-          <li className="spec-item">
-            <div className="spec-icon"><Globe size={16} /></div>
-            <div className="spec-label" style={{ color: 'var(--color-text)' }}>2. {t('step6.auto.info.step2')}</div>
-          </li>
-          <li className="spec-item">
-            <div className="spec-icon"><Database size={16} /></div>
-            <div className="spec-label" style={{ color: 'var(--color-text)' }}>3. {t('step6.auto.info.step3')}</div>
-          </li>
-          <li className="spec-item">
-            <div className="spec-icon"><Rocket size={16} /></div>
-            <div className="spec-label" style={{ color: 'var(--color-text)' }}>4. {t('step6.auto.info.step4')}</div>
-          </li>
-        </ul>
+        <IconRowList
+          className="icon-row-list--spaced"
+          items={[
+            { key: 'transfer', icon: <Upload size={16} />, text: `1. ${t('step6.auto.info.step1')}` },
+            { key: 'nginx', icon: <Globe size={16} />, text: `2. ${t('step6.auto.info.step2')}` },
+            { key: 'database', icon: <Database size={16} />, text: `3. ${t('step6.auto.info.step3')}` },
+            { key: 'docker', icon: <Rocket size={16} />, text: `4. ${t('step6.auto.info.step4')}` },
+          ]}
+        />
       </div>
 
       {/* Dialog overlay */}

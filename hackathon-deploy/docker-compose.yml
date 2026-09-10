@@ -1,6 +1,6 @@
 services:
   hackathon-backend:
-    image: ghcr.io/davinci-labs-team/intriqathon-backend:latest
+    image: ghcr.io/intriqathon2027/hackathon-backend:latest
     expose:
       - "3000"
     environment:
@@ -32,7 +32,7 @@ services:
     restart: always
 
   hackathon-frontend:
-    image: ghcr.io/davinci-labs-team/intriqathon-frontend:latest
+    image: ghcr.io/intriqathon2027/hackathon-front:latest
     expose:
       - "80"
     environment:
@@ -97,7 +97,7 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: admin
 
   discord-bot:
-    image: ghcr.io/davinci-labs-team/discord-bot:1.3
+    image: ghcr.io/intriqathon2027/discord-bot:latest
     container_name: discord_bot
     restart: unless-stopped
     logging:
@@ -116,7 +116,7 @@ services:
       GUILD_ID: ${GUILD_ID}
 
   config-app:
-    image: ghcr.io/davinci-labs-team/configuration-app:1.2
+    image: ghcr.io/intriqathon2027/configuration-app:latest
     container_name: configuration-app
     restart: unless-stopped
     environment:

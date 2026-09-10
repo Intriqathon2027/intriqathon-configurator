@@ -2,42 +2,7 @@ import { FileDown, Download, Terminal } from 'lucide-react'
 import { CommandBlock } from '../ui/CopyBlock'
 import { useApp } from '../../context/AppContext'
 
-function generateEnvContent(config: Record<string, string>): string {
-  return `DOMAIN=${config.DOMAIN}
-
-# Supabase
-SUPABASE_URL=${config.SUPABASE_URL}
-SUPABASE_ANON_KEY=${config.SUPABASE_ANON_KEY}
-SUPABASE_SERVICE_ROLE_KEY=${config.SUPABASE_SERVICE_ROLE_KEY}
-
-# Database
-DATABASE_URL=${config.DATABASE_URL}
-DIRECT_URL=${config.DIRECT_URL}
-
-# Supabase S3
-S3_ACCESS_KEY_ID=${config.S3_ACCESS_KEY_ID}
-S3_SECRET_ACCESS_KEY=${config.S3_SECRET_ACCESS_KEY}
-
-# Discord Keys
-DISCORD_CLIENT_ID=${config.DISCORD_CLIENT_ID}
-OAUTH2_DISCORD_CLIENT_SECRET=${config.OAUTH2_DISCORD_CLIENT_SECRET}
-
-# Github Keys
-GITHUB_CLIENT_ID=${config.GITHUB_CLIENT_ID}
-OAUTH2_GITHUB_CLIENT_SECRET=${config.OAUTH2_GITHUB_CLIENT_SECRET}
-
-# Email Resend
-RESEND_API_KEY=${config.RESEND_API_KEY}
-FROM_EMAIL=${config.FROM_EMAIL}
-ALLOWED_EMAILS=${config.ALLOWED_EMAILS}
-
-# Discord Bot
-CLIENT_ID=${config.CLIENT_ID}
-BOT_TOKEN=${config.BOT_TOKEN}
-DEV_SERVER_ID=${config.DEV_SERVER_ID}
-GUILD_ID=${config.GUILD_ID}
-`
-}
+import { generateEnvContent } from '../../utils/deploy'
 
 export function DeployManualTab() {
   const { t, config, state } = useApp()
@@ -82,7 +47,7 @@ export function DeployManualTab() {
     <>
       {/* .env preview + download */}
       <div className="card">
-        <div className="card-title"><FileDown size={16} color="var(--color-primary)" />{t('step6.preview')}</div>
+        <div className="card-title"><FileDown size={16} color="var(--color-primary-text)" />{t('step6.preview')}</div>
         <div className="env-preview">{colorizedEnv}</div>
         <div className="download-section">
           <div className="download-icon">
@@ -101,13 +66,13 @@ export function DeployManualTab() {
 
       {/* Deployment commands */}
       <div className="card">
-        <div className="card-title"><Terminal size={16} color="var(--color-primary)" />{t('step6.commands.title')}</div>
+        <div className="card-title"><Terminal size={16} color="var(--color-primary-text)" />{t('step6.commands.title')}</div>
 
         <CommandBlock label={t('step6.cmd.cd')} command={`cd ${deployPath}`} />
 
         <div style={{ marginBottom: '8px', marginTop: '16px' }}>
           <div className="command-label" style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)', padding: '1px 8px', borderRadius: '4px', fontSize: '11px' }}>{t('step6.label.mac')}</span>
+            <span style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary-text)', padding: '1px 8px', borderRadius: '4px', fontSize: 'var(--font-size-xs)' }}>{t('step6.label.mac')}</span>
           </div>
           <CommandBlock
             command={`rsync -avz --progress ./ root@${ipv4}:~/hackathon-deploy`}
@@ -116,7 +81,7 @@ export function DeployManualTab() {
 
         <div style={{ marginBottom: '16px' }}>
           <div className="command-label" style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '1px 8px', borderRadius: '4px', fontSize: '11px' }}>{t('step6.label.windows')}</span>
+            <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '1px 8px', borderRadius: '4px', fontSize: 'var(--font-size-xs)' }}>{t('step6.label.windows')}</span>
           </div>
           <CommandBlock
             command={`scp -r ./ root@${ipv4}:~/hackathon-deploy`}

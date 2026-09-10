@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 
 /release
+# Env files
+.env
+.env.*
+!.env.example
+
+.claude

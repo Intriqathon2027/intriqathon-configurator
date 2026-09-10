@@ -48,7 +48,7 @@ function AuthDialog({
       <div className="modal deploy-dialog">
         <div className="modal-header">
           <div className="modal-title">
-            <LogIn size={18} color="var(--color-primary)" />
+            <LogIn size={18} color="var(--color-primary-text)" />
             {dialog.title || t('step6.dialog.auth.title')}
           </div>
         </div>

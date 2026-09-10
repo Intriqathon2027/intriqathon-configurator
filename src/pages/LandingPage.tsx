@@ -1,12 +1,20 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Zap, Play, RotateCcw, Upload, Download, Trash2, X, ExternalLink, Moon, Sun } from 'lucide-react'
-import { useApp } from '../context/AppContext'
+import { Zap, Play, RotateCcw, Upload, Download, Trash2, X, ExternalLink, Moon, Sun, Monitor } from 'lucide-react'
+import { useApp, type ThemePreference } from '../context/AppContext'
 import { LanguageToggle } from '../components/layout/LanguageToggle'
 import type { RecentConfig } from '../types/electron'
 
+const THEME_CYCLE: ThemePreference[] = ['light', 'system', 'dark']
+
+/** Cycles the top-right button through light ➔ system ➔ dark. */
+function nextTheme(current: ThemePreference): ThemePreference {
+  return THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length]
+}
+
 export function LandingPage() {
   const { state, t, startConfig, hasSavedConfig, dispatch, setTheme } = useApp()
-  const isDark = state.theme === 'dark'
+  const themeIcons = { light: Sun, system: Monitor, dark: Moon }
+  const ThemeIcon = themeIcons[state.theme]
   const [showPrompt, setShowPrompt] = useState(false)
   const [errorDialog, setErrorDialog] = useState<string | null>(null)
   const [recentConfigs, setRecentConfigs] = useState<RecentConfig[]>([])
@@ -133,11 +141,11 @@ export function LandingPage() {
         <LanguageToggle />
         <button
           className="btn btn-icon"
-          onClick={() => setTheme(isDark ? 'light' : 'dark')}
-          title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+          onClick={() => setTheme(nextTheme(state.theme))}
+          title={t(`settings.theme.${state.theme}`)}
           id="btn-theme-landing"
         >
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          <ThemeIcon size={16} />
         </button>
       </div>
 

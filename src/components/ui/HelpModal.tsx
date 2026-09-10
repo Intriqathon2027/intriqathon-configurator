@@ -16,7 +16,7 @@ export function HelpModal({ title, onClose, children }: HelpModalProps) {
       <div className="modal">
         <div className="modal-header">
           <div className="modal-title">
-            <BookOpen size={18} color="var(--color-primary)" />
+            <BookOpen size={18} color="var(--color-primary-text)" />
             {t('help.title')} — {title}
           </div>
           <button className="modal-close" onClick={onClose}>

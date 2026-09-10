@@ -107,3 +107,36 @@ export function CommandBlock({ label, command }: CommandBlockProps) {
     </div>
   )
 }
+
+interface CopyChipProps {
+  /** The exact value to copy — also what the chip displays. */
+  value: string
+  /** Optional smaller title attribute when the value is truncated. */
+  title?: string
+}
+
+/**
+ * An inline, copyable literal — a bucket name, a callback URL, a subdomain.
+ * Used inside the help panel wherever a value has to be reproduced exactly.
+ */
+export function CopyChip({ value, title }: CopyChipProps) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <button
+      type="button"
+      className={`copy-chip${copied ? ' copy-chip--copied' : ''}`}
+      onClick={handleCopy}
+      title={title ?? value}
+    >
+      <span className="copy-chip__value">{value}</span>
+      {copied ? <Check size={11} /> : <Copy size={11} />}
+    </button>
+  )
+}
