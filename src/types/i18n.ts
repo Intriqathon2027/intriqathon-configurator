@@ -52,6 +52,34 @@ export type TranslationKeys = {
   'toast.imported': string
   'toast.reset': string
 
+  // Vault
+  'vault.title.unlock': string
+  'vault.title.create': string
+  'vault.subtitle.unlock': string
+  'vault.subtitle.create': string
+  'vault.password.label': string
+  'vault.password.placeholder': string
+  'vault.confirmPassword.label': string
+  'vault.confirmPassword.placeholder': string
+  'vault.btn.unlock': string
+  'vault.btn.create': string
+  'vault.btn.reset': string
+  'vault.btn.lock': string
+  'vault.error.wrongPassword': string
+  'vault.error.mismatch': string
+  'vault.error.tooShort': string
+  'vault.reset.confirm': string
+  'vault.reset.title': string
+  'vault.reset.desc': string
+  'vault.reset.btnConfirm': string
+  'vault.reset.btnCancel': string
+  'vault.import.pwdTitle': string
+  'vault.import.pwdDesc': string
+  'vault.import.pwdError': string
+  'vault.toast.resetSuccess': string
+  'vault.toast.created': string
+  'vault.toast.unlocked': string
+
   // Steps labels (5 steps)
   'step1.label': string
   'step2.label': string

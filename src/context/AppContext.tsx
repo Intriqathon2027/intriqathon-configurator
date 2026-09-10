@@ -122,6 +122,9 @@ type Action =
   | { type: 'SET_THEME'; theme: ThemePreference }
   | { type: 'SET_FONT_SCALE'; scale: number }
   | { type: 'MARK_STEP_DONE'; step: number }
+  | { type: 'SET_VAULT_STATUS'; exists: boolean; unlocked: boolean }
+  | { type: 'VAULT_UNLOCKED'; config?: Partial<Config> }
+  | { type: 'VAULT_LOCKED' }
 
 // ============================================================
 // STATE
@@ -137,6 +140,9 @@ interface AppState {
   fontScale: number
   /** Steps validated by an action (deployment, docker restart) rather than by form fields. */
   actionSteps: number[]
+  /** Vault encryption state */
+  isVaultUnlocked: boolean
+  vaultExists: boolean | null
 }
 
 const ACTION_STEPS_KEY = 'intriqathon-action-steps'
@@ -159,6 +165,8 @@ const initialState: AppState = {
   theme: loadThemePreference(),
   fontScale: loadFontScale(),
   actionSteps: loadActionSteps(),
+  isVaultUnlocked: false,
+  vaultExists: null,
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -190,6 +198,17 @@ function reducer(state: AppState, action: Action): AppState {
     case 'MARK_STEP_DONE':
       if (state.actionSteps.includes(action.step)) return state
       return { ...state, actionSteps: [...state.actionSteps, action.step] }
+    case 'SET_VAULT_STATUS':
+      return { ...state, vaultExists: action.exists, isVaultUnlocked: action.unlocked }
+    case 'VAULT_UNLOCKED':
+      return {
+        ...state,
+        isVaultUnlocked: true,
+        vaultExists: true,
+        config: action.config ? { ...state.config, ...action.config } : state.config,
+      }
+    case 'VAULT_LOCKED':
+      return { ...state, isVaultUnlocked: false }
     default:
       return state
   }
@@ -218,6 +237,13 @@ interface AppContextType {
   /** True when every requirement of the given step is satisfied. */
   isStepComplete: (step: number) => boolean
   markStepDone: (step: number) => void
+  /** Vault encryption methods */
+  isVaultUnlocked: boolean
+  vaultExists: boolean | null
+  unlockVault: (password: string) => Promise<{ success: boolean; error?: string }>
+  createVault: (password: string) => Promise<{ success: boolean; error?: string }>
+  lockVault: () => Promise<void>
+  resetVault: () => Promise<void>
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -228,16 +254,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     resolveTheme(initialState.theme, window.matchMedia(DARK_QUERY).matches)
   )
 
-  // Load saved config on mount
+  // Check vault status on mount
   useEffect(() => {
-    const loadSaved = async () => {
-      if (window.electronAPI) {
-        const saved = await window.electronAPI.loadLocalConfig()
-        if (saved && Object.keys(saved).length > 0) {
-          dispatch({ type: 'LOAD_SAVED', config: saved })
+    const checkVault = async () => {
+      if (window.electronAPI && window.electronAPI.vaultExists) {
+        try {
+          const exists = await window.electronAPI.vaultExists()
+          const unlocked = await window.electronAPI.vaultIsUnlocked()
+          dispatch({ type: 'SET_VAULT_STATUS', exists, unlocked })
+        } catch {
+          dispatch({ type: 'SET_VAULT_STATUS', exists: false, unlocked: false })
         }
       } else {
-        // Fallback to localStorage for development
+        // Fallback to localStorage for development in browser
         const saved = localStorage.getItem('intriqathon-config')
         if (saved) {
           try {
@@ -245,9 +274,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             dispatch({ type: 'LOAD_SAVED', config: parsed })
           } catch {}
         }
+        dispatch({ type: 'SET_VAULT_STATUS', exists: false, unlocked: true })
       }
     }
-    loadSaved()
+    checkVault()
   }, [])
 
   // Auto-fill FROM_EMAIL when DOMAIN changes
@@ -304,8 +334,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const saveAndNext = async () => {
-    // Save everything
-    if (window.electronAPI) {
+    // Save to encrypted vault if in Electron
+    if (window.electronAPI && window.electronAPI.vaultSave) {
+      await window.electronAPI.vaultSave(state.config as unknown as Record<string, string>)
+    } else if (window.electronAPI) {
       await window.electronAPI.saveLocalConfig(state.config as unknown as Record<string, string>)
     } else {
       localStorage.setItem('intriqathon-config', JSON.stringify(state.config))
@@ -314,6 +346,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Move to next step
     const nextStep = Math.min(state.currentStep + 1, TOTAL_STEPS - 1)
     dispatch({ type: 'SET_STEP', step: nextStep })
+  }
+
+  const unlockVault = async (password: string) => {
+    if (window.electronAPI && window.electronAPI.vaultUnlock) {
+      const res = await window.electronAPI.vaultUnlock(password)
+      if (res.success && res.data) {
+        dispatch({ type: 'VAULT_UNLOCKED', config: res.data as Partial<Config> })
+        return { success: true }
+      }
+      return { success: false, error: res.error || t('vault.error.wrongPassword') }
+    } else {
+      dispatch({ type: 'VAULT_UNLOCKED' })
+      return { success: true }
+    }
+  }
+
+  const createVault = async (password: string) => {
+    if (window.electronAPI && window.electronAPI.vaultCreate) {
+      const res = await window.electronAPI.vaultCreate(password, state.config as unknown as Record<string, string>)
+      if (res.success) {
+        dispatch({ type: 'VAULT_UNLOCKED' })
+        return { success: true }
+      }
+      return { success: false, error: res.error || 'Erreur' }
+    } else {
+      dispatch({ type: 'VAULT_UNLOCKED' })
+      return { success: true }
+    }
+  }
+
+  const lockVault = async () => {
+    if (window.electronAPI && window.electronAPI.vaultLock) {
+      await window.electronAPI.vaultLock()
+    }
+    dispatch({ type: 'VAULT_LOCKED' })
+  }
+
+  const resetVault = async () => {
+    if (window.electronAPI && window.electronAPI.vaultReset) {
+      await window.electronAPI.vaultReset()
+    } else {
+      localStorage.removeItem('intriqathon-config')
+    }
+    dispatch({ type: 'RESET_CONFIG' })
+    dispatch({ type: 'SET_VAULT_STATUS', exists: false, unlocked: false })
   }
 
   const openUrl = (url: string) => {
@@ -371,6 +448,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       resolvedTheme,
       isStepComplete,
       markStepDone,
+      isVaultUnlocked: state.isVaultUnlocked,
+      vaultExists: state.vaultExists,
+      unlockVault,
+      createVault,
+      lockVault,
+      resetVault,
     }}>
       {children}
     </AppContext.Provider>

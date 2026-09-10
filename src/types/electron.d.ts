@@ -5,17 +5,35 @@ export interface RecentConfig {
   savedAt: string
 }
 
+export interface ImportConfigResult {
+  data?: Record<string, string>
+  path: string
+  requiresPassword?: boolean
+  encryptedData?: any
+}
+
 export interface ElectronAPI {
   openExternalUrl: (url: string) => Promise<void>
   openFolderDialog: () => Promise<string | null>
   saveEnvFile: (content: string) => Promise<{ success: boolean; path?: string }>
   saveLocalConfig: (config: Record<string, string>) => Promise<{ success: boolean }>
   loadLocalConfig: () => Promise<Record<string, string>>
-  exportConfig: (config: Record<string, string>) => Promise<{ success: boolean; path?: string }>
-  importConfig: () => Promise<{ data: Record<string, string>; path: string } | null>
+  exportConfig: (config: Record<string, string>) => Promise<{ success: boolean; path?: string; error?: string }>
+  importConfig: () => Promise<ImportConfigResult | null>
   saveRecentConfigs: (configs: RecentConfig[]) => Promise<{ success: boolean }>
   loadRecentConfigs: () => Promise<RecentConfig[]>
   readConfigFile: (filePath: string) => Promise<Record<string, string> | null>
+
+  // Vault
+  vaultExists: () => Promise<boolean>
+  vaultIsUnlocked: () => Promise<boolean>
+  vaultCreate: (password: string, initialData?: Record<string, string>) => Promise<{ success: boolean; error?: string }>
+  vaultUnlock: (password: string) => Promise<{ success: boolean; data?: Record<string, string>; error?: string }>
+  vaultSave: (config: Record<string, string>) => Promise<{ success: boolean; error?: string }>
+  vaultLock: () => Promise<{ success: boolean }>
+  vaultReset: () => Promise<{ success: boolean }>
+  vaultChangePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>
+  vaultDecryptFile: (payload: any, password: string) => Promise<{ success: boolean; data?: Record<string, string>; error?: string }>
 
   // Deploy
   getPlatform: () => Promise<string>

@@ -75,7 +75,9 @@ export function LandingPage() {
       const data = await window.electronAPI.readConfigFile(config.path)
       if (data) {
         dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
-        await window.electronAPI.saveLocalConfig(data)
+        if (window.electronAPI.vaultSave) {
+          await window.electronAPI.vaultSave(data)
+        }
         // Move to top of recent configs list
         const updated = [config, ...recentConfigs.filter(c => c.path !== config.path)]
         await saveRecentConfigs(updated)
@@ -104,8 +106,8 @@ export function LandingPage() {
       }
     }
     dispatch({ type: 'RESET_CONFIG' })
-    if (window.electronAPI) {
-      await window.electronAPI.saveLocalConfig({})
+    if (window.electronAPI && window.electronAPI.vaultSave) {
+      await window.electronAPI.vaultSave({})
     }
     setShowPrompt(false)
     startConfig()
@@ -113,8 +115,8 @@ export function LandingPage() {
 
   const handleDiscardAndContinue = async () => {
     dispatch({ type: 'RESET_CONFIG' })
-    if (window.electronAPI) {
-      await window.electronAPI.saveLocalConfig({})
+    if (window.electronAPI && window.electronAPI.vaultSave) {
+      await window.electronAPI.vaultSave({})
     }
     setShowPrompt(false)
     startConfig()
@@ -123,9 +125,26 @@ export function LandingPage() {
   const handleImport = async () => {
     if (window.electronAPI) {
       const result = await window.electronAPI.importConfig()
-      if (result && result.data) {
-        dispatch({ type: 'LOAD_SAVED', config: result.data as unknown as Partial<typeof state.config> })
-        await window.electronAPI.saveLocalConfig(result.data)
+      if (!result) return
+
+      let data = result.data
+      if (result.requiresPassword && result.encryptedData) {
+        const pwd = prompt(t('vault.import.pwdDesc'))
+        if (!pwd) return
+        const dec = await window.electronAPI.vaultDecryptFile(result.encryptedData, pwd)
+        if (dec.success && dec.data) {
+          data = dec.data
+        } else {
+          alert(t('vault.import.pwdError'))
+          return
+        }
+      }
+
+      if (data) {
+        dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
+        if (window.electronAPI.vaultSave) {
+          await window.electronAPI.vaultSave(data)
+        }
         await addToRecent(result.path)
         startConfig()
       }

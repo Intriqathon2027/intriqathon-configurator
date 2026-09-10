@@ -26,10 +26,14 @@ function AppContent() {
   return state.hasStarted ? <StepRouter /> : <LandingPage />
 }
 
+import { VaultGate } from './components/vault/VaultGate'
+
 function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <VaultGate>
+        <AppContent />
+      </VaultGate>
       <Toaster 
         toastOptions={{
           style: {

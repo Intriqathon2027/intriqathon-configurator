@@ -5,6 +5,7 @@ import fs from 'node:fs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 import { registerDeployHandlers } from '../src/electron/ipc/deployHandlers'
+import { registerVaultHandlers } from '../src/electron/ipc/vaultHandlers'
 
 // The built directory structure
 process.env.APP_ROOT = path.join(__dirname, '..')
@@ -77,55 +78,6 @@ ipcMain.handle('save-env-file', async (_event, content: string) => {
   return { success: false }
 })
 
-// IPC: Save local config (DEPLOY_PATH, IPV4_INSTANCE)
-ipcMain.handle('save-local-config', async (_event, config: Record<string, string>) => {
-  const configPath = path.join(app.getPath('userData'), 'local-config.json')
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
-  return { success: true }
-})
-
-// IPC: Load local config
-ipcMain.handle('load-local-config', async () => {
-  const configPath = path.join(app.getPath('userData'), 'local-config.json')
-  if (fs.existsSync(configPath)) {
-    const raw = fs.readFileSync(configPath, 'utf-8')
-    return JSON.parse(raw)
-  }
-  return {}
-})
-
-// IPC: Export config
-ipcMain.handle('export-config', async (_event, config: Record<string, string>) => {
-  const result = await dialog.showSaveDialog(win!, {
-    title: 'Exporter la configuration',
-    defaultPath: 'intriqathon-config.json',
-    filters: [{ name: 'JSON Files', extensions: ['json'] }],
-  })
-  if (!result.canceled && result.filePath) {
-    fs.writeFileSync(result.filePath, JSON.stringify(config, null, 2), 'utf-8')
-    return { success: true, path: result.filePath }
-  }
-  return { success: false }
-})
-
-// IPC: Import config
-ipcMain.handle('import-config', async () => {
-  const result = await dialog.showOpenDialog(win!, {
-    title: 'Importer la configuration',
-    properties: ['openFile'],
-    filters: [{ name: 'JSON Files', extensions: ['json'] }],
-  })
-  if (!result.canceled && result.filePaths.length > 0) {
-    const raw = fs.readFileSync(result.filePaths[0], 'utf-8')
-    try {
-      return { data: JSON.parse(raw), path: result.filePaths[0] }
-    } catch (e) {
-      return null
-    }
-  }
-  return null
-})
-
 // IPC: Save recent configs
 ipcMain.handle('save-recent-configs', async (_event, configs: Array<{ name: string; path: string; savedAt: string }>) => {
   const configPath = path.join(app.getPath('userData'), 'recent-configs.json')
@@ -147,19 +99,6 @@ ipcMain.handle('load-recent-configs', async () => {
   return []
 })
 
-// IPC: Read a config file by path
-ipcMain.handle('read-config-file', async (_event, filePath: string) => {
-  if (fs.existsSync(filePath)) {
-    const raw = fs.readFileSync(filePath, 'utf-8')
-    try {
-      return JSON.parse(raw)
-    } catch {
-      return null
-    }
-  }
-  return null
-})
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
@@ -174,4 +113,5 @@ app.on('activate', () => {
 })
 
 registerDeployHandlers(() => win)
+registerVaultHandlers(() => win)
 app.whenReady().then(createWindow)

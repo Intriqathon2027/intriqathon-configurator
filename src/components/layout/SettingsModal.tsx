@@ -1,4 +1,4 @@
-import { Settings, Upload, Download, Trash2, Moon, Sun, Monitor, RotateCcw, Type } from 'lucide-react'
+import { Settings, Upload, Download, Trash2, Moon, Sun, Monitor, RotateCcw, Type, Lock } from 'lucide-react'
 import { useApp, type ThemePreference } from '../../context/AppContext'
 import {
   FONT_SCALE_MIN,
@@ -20,16 +20,33 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalProps) {
-  const { state, dispatch, t, setTheme, resolvedTheme, setFontScale } = useApp()
+  const { state, dispatch, t, setTheme, resolvedTheme, setFontScale, resetVault, lockVault } = useApp()
 
   if (!settingsOpen) return null
 
   const handleImport = async () => {
     if (window.electronAPI) {
       const result = await window.electronAPI.importConfig()
-      if (result && result.data) {
-        dispatch({ type: 'LOAD_SAVED', config: result.data as unknown as Partial<typeof state.config> })
-        await window.electronAPI.saveLocalConfig(result.data)
+      if (!result) return
+
+      let data = result.data
+      if (result.requiresPassword && result.encryptedData) {
+        const pwd = prompt(t('vault.import.pwdDesc'))
+        if (!pwd) return
+        const dec = await window.electronAPI.vaultDecryptFile(result.encryptedData, pwd)
+        if (dec.success && dec.data) {
+          data = dec.data
+        } else {
+          alert(t('vault.import.pwdError'))
+          return
+        }
+      }
+
+      if (data) {
+        dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
+        if (window.electronAPI.vaultSave) {
+          await window.electronAPI.vaultSave(data)
+        }
         
         // Add to recent configs
         const recentConfigs = await window.electronAPI.loadRecentConfigs()
@@ -73,13 +90,7 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
 
   const handleReset = async () => {
     if (confirm(t('settings.reset.confirm'))) {
-      dispatch({ type: 'RESET_CONFIG' })
-      if (window.electronAPI) {
-        // Save an empty object to reset local config
-        await window.electronAPI.saveLocalConfig({})
-      } else {
-        localStorage.removeItem('intriqathon-config')
-      }
+      await resetVault()
       setSettingsOpen(false)
       toast.success(t('toast.reset'), {
         position: 'top-center',
@@ -183,6 +194,18 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
           >
             <Download size={16} />
             {t('settings.export')}
+          </button>
+          <button
+            className="btn btn-secondary"
+            style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+            onClick={async () => {
+              setSettingsOpen(false)
+              await lockVault()
+            }}
+            id="btn-lock-vault"
+          >
+            <Lock size={16} />
+            {t('vault.btn.lock')}
           </button>
           <div style={{ height: '1px', background: 'var(--color-border)', margin: '8px 0' }} />
           <button

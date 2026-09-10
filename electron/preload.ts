@@ -14,6 +14,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadRecentConfigs: () => ipcRenderer.invoke('load-recent-configs'),
   readConfigFile: (filePath: string) => ipcRenderer.invoke('read-config-file', filePath),
 
+  // Vault API
+  vaultExists: () => ipcRenderer.invoke('vault:exists'),
+  vaultIsUnlocked: () => ipcRenderer.invoke('vault:is-unlocked'),
+  vaultCreate: (password: string, initialData?: Record<string, string>) => ipcRenderer.invoke('vault:create', password, initialData),
+  vaultUnlock: (password: string) => ipcRenderer.invoke('vault:unlock', password),
+  vaultSave: (config: Record<string, string>) => ipcRenderer.invoke('vault:save', config),
+  vaultLock: () => ipcRenderer.invoke('vault:lock'),
+  vaultReset: () => ipcRenderer.invoke('vault:reset'),
+  vaultChangePassword: (oldPassword: string, newPassword: string) => ipcRenderer.invoke('vault:change-password', oldPassword, newPassword),
+  vaultDecryptFile: (payload: any, password: string) => ipcRenderer.invoke('vault:decrypt-file', payload, password),
+
   // Deploy
   getPlatform: () => ipcRenderer.invoke('deploy:get-platform'),
   writeEnvToDir: (dir: string, content: string) => ipcRenderer.invoke('deploy:write-env', dir, content),
