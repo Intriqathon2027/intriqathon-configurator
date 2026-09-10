@@ -1,4 +1,4 @@
-import React, { useState, type ReactNode } from 'react'
+import React, { useState, useEffect, type ReactNode } from 'react'
 import { Lock, KeyRound, Eye, EyeOff, AlertTriangle, ShieldCheck, Sun, Moon, Monitor } from 'lucide-react'
 import { useApp, type ThemePreference } from '../../context/AppContext'
 import { LanguageToggle } from '../layout/LanguageToggle'
@@ -27,6 +27,16 @@ export function VaultGate({ children }: VaultGateProps) {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showResetModal, setShowResetModal] = useState(false)
+
+  // Always wipe input values and errors when vault is locked / logged out
+  useEffect(() => {
+    if (!isVaultUnlocked) {
+      setPassword('')
+      setConfirmPassword('')
+      setShowPassword(false)
+      setError(null)
+    }
+  }, [isVaultUnlocked])
 
   const isCreating = vaultExists === false
 
@@ -65,6 +75,10 @@ export function VaultGate({ children }: VaultGateProps) {
       if (!res.success) {
         setError(res.error || t('vault.error.wrongPassword'))
       } else {
+        setPassword('')
+        setConfirmPassword('')
+        setShowPassword(false)
+        setError(null)
         toast.success(t('vault.toast.unlocked'), {
           position: 'top-center',
           style: {
@@ -103,6 +117,10 @@ export function VaultGate({ children }: VaultGateProps) {
       if (!res.success) {
         setError(res.error || 'Erreur lors de la création')
       } else {
+        setPassword('')
+        setConfirmPassword('')
+        setShowPassword(false)
+        setError(null)
         toast.success(t('vault.toast.created'), {
           position: 'top-center',
           style: {
@@ -172,7 +190,7 @@ export function VaultGate({ children }: VaultGateProps) {
           {isCreating ? t('vault.subtitle.create') : t('vault.subtitle.unlock')}
         </p>
 
-        <form onSubmit={isCreating ? handleCreate : handleUnlock} className="vault-form">
+        <form onSubmit={isCreating ? handleCreate : handleUnlock} className="vault-form" autoComplete="off">
           <div className="vault-field">
             <label className="vault-label" htmlFor="vault-pwd">
               {t('vault.password.label')}
@@ -188,6 +206,7 @@ export function VaultGate({ children }: VaultGateProps) {
                   setPassword(e.target.value)
                   if (error) setError(null)
                 }}
+                autoComplete="new-password"
                 autoFocus
                 required
               />
@@ -219,6 +238,7 @@ export function VaultGate({ children }: VaultGateProps) {
                     setConfirmPassword(e.target.value)
                     if (error) setError(null)
                   }}
+                  autoComplete="new-password"
                   required
                 />
               </div>
