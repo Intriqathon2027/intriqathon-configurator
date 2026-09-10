@@ -507,8 +507,20 @@ function registerVaultHandlers(getWin) {
 			const parsed = JSON.parse(raw);
 			if (parsed && parsed.algorithm === "aes-256-gcm" && parsed.ciphertext) {
 				const pwd = CryptoService.getSessionPassword();
-				if (pwd) return CryptoService.decrypt(parsed, pwd);
-				return null;
+				if (pwd) try {
+					return CryptoService.decrypt(parsed, pwd);
+				} catch {
+					return {
+						requiresPassword: true,
+						path: filePath,
+						encryptedData: parsed
+					};
+				}
+				return {
+					requiresPassword: true,
+					path: filePath,
+					encryptedData: parsed
+				};
 			}
 			return parsed;
 		} catch {

@@ -22,7 +22,7 @@ export interface ElectronAPI {
   importConfig: () => Promise<ImportConfigResult | null>
   saveRecentConfigs: (configs: RecentConfig[]) => Promise<{ success: boolean }>
   loadRecentConfigs: () => Promise<RecentConfig[]>
-  readConfigFile: (filePath: string) => Promise<Record<string, string> | null>
+  readConfigFile: (filePath: string) => Promise<Record<string, string> | ImportConfigResult | null>
 
   // Vault
   vaultExists: () => Promise<boolean>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Zap, Play, RotateCcw, Upload, Download, Trash2, X, ExternalLink, Moon, Sun, Monitor } from 'lucide-react'
 import { useApp, type ThemePreference } from '../context/AppContext'
 import { LanguageToggle } from '../components/layout/LanguageToggle'
+import { ImportPasswordModal } from '../components/vault/ImportPasswordModal'
 import type { RecentConfig } from '../types/electron'
 
 const THEME_CYCLE: ThemePreference[] = ['light', 'system', 'dark']
@@ -18,6 +19,15 @@ export function LandingPage() {
   const [showPrompt, setShowPrompt] = useState(false)
   const [errorDialog, setErrorDialog] = useState<string | null>(null)
   const [recentConfigs, setRecentConfigs] = useState<RecentConfig[]>([])
+  const [importModal, setImportModal] = useState<{
+    isOpen: boolean
+    filePath: string
+    encryptedData: any
+  }>({
+    isOpen: false,
+    filePath: '',
+    encryptedData: null,
+  })
 
   // Load recent configs on mount
   const loadRecentConfigs = useCallback(async () => {
@@ -69,14 +79,32 @@ export function LandingPage() {
     await saveRecentConfigs(updated)
   }
 
+  const handleImportSuccess = async (data: Record<string, string>, filePath: string) => {
+    dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
+    if (window.electronAPI && window.electronAPI.vaultSave) {
+      await window.electronAPI.vaultSave(data)
+    }
+    await addToRecent(filePath)
+    startConfig()
+  }
+
   // Launch a recent config
   const handleLaunchRecent = async (config: RecentConfig) => {
     if (window.electronAPI) {
       const data = await window.electronAPI.readConfigFile(config.path)
       if (data) {
-        dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
+        if ('requiresPassword' in data && data.requiresPassword) {
+          setImportModal({
+            isOpen: true,
+            filePath: config.path,
+            encryptedData: data.encryptedData,
+          })
+          return
+        }
+        const configData = data as Record<string, string>
+        dispatch({ type: 'LOAD_SAVED', config: configData as unknown as Partial<typeof state.config> })
         if (window.electronAPI.vaultSave) {
-          await window.electronAPI.vaultSave(data)
+          await window.electronAPI.vaultSave(configData)
         }
         // Move to top of recent configs list
         const updated = [config, ...recentConfigs.filter(c => c.path !== config.path)]
@@ -127,26 +155,17 @@ export function LandingPage() {
       const result = await window.electronAPI.importConfig()
       if (!result) return
 
-      let data = result.data
       if (result.requiresPassword && result.encryptedData) {
-        const pwd = prompt(t('vault.import.pwdDesc'))
-        if (!pwd) return
-        const dec = await window.electronAPI.vaultDecryptFile(result.encryptedData, pwd)
-        if (dec.success && dec.data) {
-          data = dec.data
-        } else {
-          alert(t('vault.import.pwdError'))
-          return
-        }
+        setImportModal({
+          isOpen: true,
+          filePath: result.path,
+          encryptedData: result.encryptedData,
+        })
+        return
       }
 
-      if (data) {
-        dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
-        if (window.electronAPI.vaultSave) {
-          await window.electronAPI.vaultSave(data)
-        }
-        await addToRecent(result.path)
-        startConfig()
+      if (result.data) {
+        await handleImportSuccess(result.data, result.path)
       }
     } else {
       alert('Non supporté sur le web')
@@ -330,6 +349,15 @@ export function LandingPage() {
           </div>
         </div>
       )}
+
+      {/* Password Modal for Encrypted Imports */}
+      <ImportPasswordModal
+        isOpen={importModal.isOpen}
+        filePath={importModal.filePath}
+        encryptedData={importModal.encryptedData}
+        onSuccess={handleImportSuccess}
+        onClose={() => setImportModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

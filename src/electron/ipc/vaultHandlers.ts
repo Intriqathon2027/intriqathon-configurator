@@ -131,9 +131,13 @@ export function registerVaultHandlers(getWin: () => BrowserWindow | null): void 
         if (parsed && parsed.algorithm === 'aes-256-gcm' && parsed.ciphertext) {
           const pwd = CryptoService.getSessionPassword()
           if (pwd) {
-            return CryptoService.decrypt<Record<string, string>>(parsed, pwd)
+            try {
+              return CryptoService.decrypt<Record<string, string>>(parsed, pwd)
+            } catch {
+              return { requiresPassword: true, path: filePath, encryptedData: parsed }
+            }
           }
-          return null
+          return { requiresPassword: true, path: filePath, encryptedData: parsed }
         }
         return parsed
       } catch {

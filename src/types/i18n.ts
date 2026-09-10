@@ -76,6 +76,9 @@ export type TranslationKeys = {
   'vault.import.pwdTitle': string
   'vault.import.pwdDesc': string
   'vault.import.pwdError': string
+  'vault.import.fileLabel': string
+  'vault.import.btnSubmit': string
+  'vault.import.passwordPlaceholder': string
   'vault.toast.resetSuccess': string
   'vault.toast.created': string
   'vault.toast.unlocked': string

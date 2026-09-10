@@ -283,4 +283,61 @@ describe('CryptoService', () => {
       expect(CryptoService.getVaultData()).toEqual(initialConfig)
     })
   })
+
+  describe('Multi-User Encrypted File Exchange & Import', () => {
+    const alicePassword = 'AliceMasterPassword2026!'
+    const bobVaultPassword = 'BobVaultPassword2026!'
+
+    const aliceConfig = {
+      DOMAIN: 'alice-project.example.com',
+      SPACESHIP_API_KEY: 'alice_spaceship_key_111',
+      SPACESHIP_API_SECRET: 'alice_spaceship_secret_222',
+      RESEND_API_KEY: 're_alice_secret_333',
+    }
+
+    it('allows Bob to decrypt Alice file with Alice password and re-encrypt it in Bob vault', () => {
+      // 1. Alice exports her configuration, encrypted with her password
+      const aliceExportedPayload = CryptoService.encrypt(aliceConfig, alicePassword)
+
+      // 2. Bob sets up and unlocks his local vault with his own password
+      const bobInitialConfig = { DOMAIN: 'bob-temporary.example.com' }
+      CryptoService.createVault(bobVaultPassword, bobInitialConfig)
+      expect(CryptoService.isUnlocked()).toBe(true)
+      expect(CryptoService.getSessionPassword()).toBe(bobVaultPassword)
+
+      // 3. Attempting to decrypt Alice's file with Bob's vault password must fail
+      expect(() => {
+        CryptoService.decrypt(aliceExportedPayload, CryptoService.getSessionPassword()!)
+      }).toThrow()
+
+      // 4. Attempting to decrypt with a typo / wrong password must fail
+      expect(() => {
+        CryptoService.decrypt(aliceExportedPayload, 'WrongAlicePassword')
+      }).toThrow()
+
+      // 5. When Alice shares her password with Bob, Bob decrypts her payload
+      const decryptedAliceConfig = CryptoService.decrypt<typeof aliceConfig>(
+        aliceExportedPayload,
+        alicePassword
+      )
+      expect(decryptedAliceConfig).toEqual(aliceConfig)
+
+      // 6. Bob saves Alice's configuration into his own vault (re-encrypting under Bob's key)
+      CryptoService.saveVault(decryptedAliceConfig)
+
+      // 7. Bob locks his vault
+      CryptoService.lock()
+      expect(CryptoService.isUnlocked()).toBe(false)
+
+      // 8. Bob's vault CANNOT be opened with Alice's password
+      const unlockWithAlice = CryptoService.unlockVault(alicePassword)
+      expect(unlockWithAlice.success).toBe(false)
+
+      // 9. Bob's vault CAN be opened with Bob's password, containing Alice's config
+      const unlockWithBob = CryptoService.unlockVault(bobVaultPassword)
+      expect(unlockWithBob.success).toBe(true)
+      expect(unlockWithBob.data).toEqual(aliceConfig)
+    })
+  })
 })
+
