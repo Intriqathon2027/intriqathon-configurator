@@ -1,5 +1,7 @@
-import { Settings, Upload, Download, Trash2, Moon, Sun, Monitor, RotateCcw, Type, Lock } from 'lucide-react'
+import { useState } from 'react'
+import { Settings, Upload, Download, Trash2, Moon, Sun, Monitor, RotateCcw, Type, Lock, KeyRound } from 'lucide-react'
 import { useApp, type ThemePreference } from '../../context/AppContext'
+import { ChangePasswordModal } from '../vault/ChangePasswordModal'
 import {
   FONT_SCALE_MIN,
   FONT_SCALE_MAX,
@@ -21,6 +23,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalProps) {
   const { state, dispatch, t, setTheme, resolvedTheme, setFontScale, resetVault, lockVault } = useApp()
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
 
   if (!settingsOpen) return null
 
@@ -207,6 +210,15 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
             <Lock size={16} />
             {t('vault.btn.lock')}
           </button>
+          <button
+            className="btn btn-secondary"
+            style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+            onClick={() => setChangePasswordOpen(true)}
+            id="btn-open-change-password"
+          >
+            <KeyRound size={16} />
+            {t('vault.btn.changePassword')}
+          </button>
           <div style={{ height: '1px', background: 'var(--color-border)', margin: '8px 0' }} />
           <button
             className="btn"
@@ -218,6 +230,10 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
           </button>
         </div>
       </div>
+      <ChangePasswordModal
+        isOpen={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
     </div>
   )
 }

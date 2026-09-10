@@ -79,6 +79,16 @@ export type TranslationKeys = {
   'vault.toast.resetSuccess': string
   'vault.toast.created': string
   'vault.toast.unlocked': string
+  'vault.btn.changePassword': string
+  'vault.changePassword.title': string
+  'vault.changePassword.desc': string
+  'vault.changePassword.old': string
+  'vault.changePassword.new': string
+  'vault.changePassword.confirm': string
+  'vault.changePassword.btnSubmit': string
+  'vault.changePassword.btnCancel': string
+  'vault.error.samePassword': string
+  'vault.toast.passwordChanged': string
 
   // Steps labels (5 steps)
   'step1.label': string

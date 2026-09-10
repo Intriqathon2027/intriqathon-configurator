@@ -254,6 +254,11 @@ var m = 1e5, h = 32, g = class {
 	static getSessionPassword() {
 		return this.sessionPassword;
 	}
+	static getVaultData() {
+		if (!this.sessionPassword) return null;
+		let e = this.unlockVault(this.sessionPassword);
+		return e.success && e.data ? e.data : null;
+	}
 };
 //#endregion
 //#region src/electron/ipc/vaultHandlers.ts
@@ -376,7 +381,7 @@ function _(e) {
 	}), r.handle("save-local-config", async (e, t) => g.isUnlocked() ? (g.saveVault(t), { success: !0 }) : {
 		success: !1,
 		error: "Vault non déverrouillé"
-	}), r.handle("load-local-config", async () => ({}));
+	}), r.handle("load-local-config", async () => g.isUnlocked() ? g.getVaultData() ?? {} : {});
 }
 //#endregion
 //#region electron/main.ts

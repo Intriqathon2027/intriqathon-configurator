@@ -80,6 +80,16 @@ export const translations: Translations = {
     'vault.toast.resetSuccess': 'Coffre-fort réinitialisé.',
     'vault.toast.created': 'Coffre-fort créé et sécurisé avec succès !',
     'vault.toast.unlocked': 'Coffre déverrouillé.',
+    'vault.btn.changePassword': 'Changer le mot de passe',
+    'vault.changePassword.title': 'Changer le mot de passe maître',
+    'vault.changePassword.desc': 'Entrez votre mot de passe maître actuel puis choisissez votre nouveau mot de passe.',
+    'vault.changePassword.old': 'Mot de passe actuel',
+    'vault.changePassword.new': 'Nouveau mot de passe',
+    'vault.changePassword.confirm': 'Confirmer le nouveau mot de passe',
+    'vault.changePassword.btnSubmit': 'Enregistrer le mot de passe',
+    'vault.changePassword.btnCancel': 'Annuler',
+    'vault.error.samePassword': 'Le nouveau mot de passe doit être différent de l\'actuel.',
+    'vault.toast.passwordChanged': 'Mot de passe maître modifié avec succès !',
 
     // Steps labels (5 steps)
     'step1.label': 'Création des comptes',
@@ -381,6 +391,16 @@ export const translations: Translations = {
     'vault.toast.resetSuccess': 'Vault reset successfully.',
     'vault.toast.created': 'Vault created and secured successfully!',
     'vault.toast.unlocked': 'Vault unlocked.',
+    'vault.btn.changePassword': 'Change Master Password',
+    'vault.changePassword.title': 'Change Master Password',
+    'vault.changePassword.desc': 'Enter your current master password and choose a new master password.',
+    'vault.changePassword.old': 'Current Password',
+    'vault.changePassword.new': 'New Password',
+    'vault.changePassword.confirm': 'Confirm New Password',
+    'vault.changePassword.btnSubmit': 'Save New Password',
+    'vault.changePassword.btnCancel': 'Cancel',
+    'vault.error.samePassword': 'The new password must be different from the current password.',
+    'vault.toast.passwordChanged': 'Master password changed successfully!',
 
     // Steps labels (5 steps)
     'step1.label': 'Account Creation',

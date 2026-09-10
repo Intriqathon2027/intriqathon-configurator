@@ -154,7 +154,9 @@ export function registerVaultHandlers(getWin: () => BrowserWindow | null): void 
 
   // Load local config fallback: returns vault data if unlocked
   ipcMain.handle('load-local-config', async () => {
-    // When called, if not unlocked, returns empty object
+    if (CryptoService.isUnlocked()) {
+      return CryptoService.getVaultData() ?? {}
+    }
     return {}
   })
 }

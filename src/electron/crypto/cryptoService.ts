@@ -220,4 +220,13 @@ export class CryptoService {
   public static getSessionPassword(): string | null {
     return this.sessionPassword
   }
+
+  /**
+   * Retrieve decrypted data if currently unlocked in memory
+   */
+  public static getVaultData(): Record<string, string> | null {
+    if (!this.sessionPassword) return null
+    const result = this.unlockVault(this.sessionPassword)
+    return result.success && result.data ? result.data : null
+  }
 }

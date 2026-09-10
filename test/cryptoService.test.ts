@@ -225,6 +225,13 @@ describe('CryptoService', () => {
       expect(newRes.data).toEqual(initialConfig)
     })
 
+    it('should reject changePassword if the current password is incorrect', () => {
+      CryptoService.createVault(password, initialConfig)
+      expect(() => {
+        CryptoService.changePassword('WrongOldPassword!', 'NewSecretPassword987!')
+      }).toThrow(/incorrect/)
+    })
+
     it('should reset vault completely and remove vault.enc', () => {
       CryptoService.createVault(password, initialConfig)
       expect(CryptoService.vaultExists()).toBe(true)
@@ -261,6 +268,19 @@ describe('CryptoService', () => {
         SUPABASE_ANON_KEY: 'anon_key_123',
         EXTRA_KEY: 'extra_val',
       })
+    })
+
+    it('should return decrypted data from getVaultData when unlocked, and null when locked', () => {
+      expect(CryptoService.getVaultData()).toBeNull()
+
+      CryptoService.createVault(password, initialConfig)
+      expect(CryptoService.getVaultData()).toEqual(initialConfig)
+
+      CryptoService.lock()
+      expect(CryptoService.getVaultData()).toBeNull()
+
+      CryptoService.unlockVault(password)
+      expect(CryptoService.getVaultData()).toEqual(initialConfig)
     })
   })
 })

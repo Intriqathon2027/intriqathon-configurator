@@ -244,6 +244,7 @@ interface AppContextType {
   createVault: (password: string) => Promise<{ success: boolean; error?: string }>
   lockVault: () => Promise<void>
   resetVault: () => Promise<void>
+  changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -261,6 +262,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         try {
           const exists = await window.electronAPI.vaultExists()
           const unlocked = await window.electronAPI.vaultIsUnlocked()
+          if (unlocked) {
+            const saved = await window.electronAPI.loadLocalConfig()
+            if (saved && Object.keys(saved).length > 0) {
+              dispatch({ type: 'LOAD_SAVED', config: saved })
+            }
+          }
           dispatch({ type: 'SET_VAULT_STATUS', exists, unlocked })
         } catch {
           dispatch({ type: 'SET_VAULT_STATUS', exists: false, unlocked: false })
@@ -393,6 +400,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_VAULT_STATUS', exists: false, unlocked: false })
   }
 
+  const changePassword = async (oldPassword: string, newPassword: string) => {
+    if (window.electronAPI && window.electronAPI.vaultChangePassword) {
+      const res = await window.electronAPI.vaultChangePassword(oldPassword, newPassword)
+      if (res.success) {
+        return { success: true }
+      }
+      return { success: false, error: res.error || t('vault.error.wrongPassword') }
+    } else {
+      return { success: true }
+    }
+  }
+
   const openUrl = (url: string) => {
     if (window.electronAPI) {
       window.electronAPI.openExternalUrl(url)
@@ -454,6 +473,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       createVault,
       lockVault,
       resetVault,
+      changePassword,
     }}>
       {children}
     </AppContext.Provider>
