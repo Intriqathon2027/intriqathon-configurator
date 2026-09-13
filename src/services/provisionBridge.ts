@@ -189,7 +189,10 @@ class MockProvisionBridge implements ProvisionBridge {
     this.progressCbs.forEach(cb => cb({ service: 'supabase-site', value: 100 }))
     this.doneCbs.forEach(cb => cb({
       service: 'supabase-site',
-      patch: { SUPABASE_SITE_SETUP_AT: new Date().toISOString() },
+      patch: {
+        SUPABASE_SITE_SETUP_AT: new Date().toISOString(),
+        SUPABASE_PANEL_SERVICE_KEY: 'eyJmock.legacy.service.key',
+      },
     }))
   }
 

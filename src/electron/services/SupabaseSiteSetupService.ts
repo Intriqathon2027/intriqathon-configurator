@@ -14,6 +14,7 @@ import {
   type PendingRlsRow,
   type RealtimeCheckRow,
 } from '../../shared/supabaseSiteSetup'
+import { findLegacyServiceKey } from './supabase/keys'
 
 const SERVICE = 'supabase-site'
 
@@ -119,6 +120,12 @@ export class SupabaseSiteSetupService {
       this.checkpoint()
       await this.enableRowLevelSecurity(win, client, req.ref)
 
+      // Fetched before the report below: a Realtime gap has nothing to do with
+      // the key, and failing the run should not cost the reader the one value
+      // the next screen asks for.
+      this.checkpoint()
+      const panelServiceKey = await this.resolvePanelServiceKey(win, client, req.ref)
+
       if (pending.length > 0) {
         throw new Error(
           `Configuration appliquée, sauf : ${pending.join(' ; ')}. Voir « Configuration manuelle » pour terminer.`,
@@ -129,7 +136,10 @@ export class SupabaseSiteSetupService {
       this.log(win, 'Configuration du site Supabase terminée.', 'done')
       win.webContents.send('provision:done', {
         service: SERVICE,
-        patch: { SUPABASE_SITE_SETUP_AT: new Date().toISOString() },
+        patch: {
+          SUPABASE_SITE_SETUP_AT: new Date().toISOString(),
+          ...(panelServiceKey ? { SUPABASE_PANEL_SERVICE_KEY: panelServiceKey } : {}),
+        },
       })
     } catch (err) {
       if (this.wasCancelled()) {
@@ -257,5 +267,62 @@ export class SupabaseSiteSetupService {
 
     this.log(win, `RLS activée sur ${before.length} table(s) : ${before.map(r => r.tablename).join(', ')}.`, 'done')
     this.progress(win, 95)
+  }
+
+  // ── Step 6 — the key the configuration panel can actually use ──────────
+
+  /**
+   * `config.<domain>` reads the Data API from the browser with the service key
+   * it is given, and Supabase rejects a `sb_secret_…` key on any request that
+   * carries an Origin. So the panel needs the JWT legacy `service_role` key,
+   * even though the deployed stack rightly keeps the secret one in its .env.
+   * Reading it here is what lets the card offer it ready to copy instead of
+   * walking the reader through the dashboard.
+   *
+   * A project with the legacy keys switched off gets them switched back on —
+   * the same cheap repair the provisioning step performs. Anything that goes
+   * wrong here is reported and swallowed: none of the five settings above
+   * depend on it, and the card's manual instructions still name the dashboard
+   * page. Turning a successful configuration into a failed run over an
+   * auxiliary lookup would be the worse trade.
+   */
+  private async resolvePanelServiceKey(
+    win: BrowserWindow,
+    client: SupabaseApiClient,
+    ref: string,
+  ): Promise<string | null> {
+    try {
+      this.log(win, 'Récupération de la clé service_role legacy (pour le panneau de configuration)…')
+      let key = findLegacyServiceKey(await client.listApiKeys(ref))
+
+      if (!key) {
+        const legacy = await client.getLegacyKeysEnabled(ref)
+        if (legacy && !legacy.enabled) {
+          this.log(win, 'Clés JWT legacy désactivées — réactivation…')
+          await client.setLegacyKeysEnabled(ref, true)
+          key = findLegacyServiceKey(await client.listApiKeys(ref))
+        }
+      }
+
+      if (!key) {
+        this.log(
+          win,
+          'Aucune clé service_role legacy sur ce projet — le panneau de configuration indiquera comment la récupérer depuis le dashboard.',
+          'error',
+        )
+        return null
+      }
+
+      // Registered before it can reach a log line or an error message.
+      this.redactor.add(key)
+      this.log(win, 'Clé service_role legacy récupérée — elle sera proposée à la copie.', 'done')
+      this.progress(win, 98)
+      return key
+    } catch (err) {
+      if (this.wasCancelled()) throw err
+      const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err)
+      this.log(win, `Clé service_role legacy indisponible : ${this.redactor.redact(message)}`, 'error')
+      return null
+    }
   }
 }

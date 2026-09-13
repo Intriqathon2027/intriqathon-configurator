@@ -41,6 +41,25 @@ function hasUsableValue(key: SupabaseApiKey): boolean {
   return typeof key.api_key === 'string' && key.api_key.length > 0
 }
 
+function isLegacyService(key: SupabaseApiKey): boolean {
+  return key.type === 'legacy' && key.name === 'service_role'
+}
+
+/**
+ * The JWT-format `service_role` key, or null when the project offers none.
+ *
+ * Singled out because the config panel served at `config.<domain>` queries the
+ * Data API straight from the browser with whatever service key it is handed,
+ * and Supabase answers 401 "Forbidden use of secret API key in browser" to any
+ * request that carries an Origin together with a `sb_secret_…` key. The legacy
+ * format is therefore the only one that works there — while the deployed stack
+ * keeps the secret key in its server-side .env, where it is the better choice.
+ */
+export function findLegacyServiceKey(keys: SupabaseApiKey[]): string | null {
+  const found = keys.filter(hasUsableValue).find(isLegacyService)
+  return found?.api_key ?? null
+}
+
 /**
  * Among several candidates, prefer the one this app created (stable across
  * re-runs), then any other. Keeps repeated provisioning deterministic.
@@ -55,7 +74,7 @@ export function resolveKeyPair(keys: SupabaseApiKey[]): ResolvedKeyPair {
   const publishable = pickPreferred(usable.filter(k => k.type === 'publishable'))
   const secret = pickPreferred(usable.filter(k => k.type === 'secret'))
   const legacyAnon = usable.find(k => k.type === 'legacy' && k.name === 'anon')
-  const legacyService = usable.find(k => k.type === 'legacy' && k.name === 'service_role')
+  const legacyService = usable.find(isLegacyService)
 
   const anonPick = publishable ?? legacyAnon
   const servicePick = secret ?? legacyService

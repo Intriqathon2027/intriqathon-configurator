@@ -66,6 +66,14 @@ export interface Config {
    */
   SUPABASE_SITE_SETUP_AT: string
 
+  /**
+   * The JWT legacy `service_role` key, read back by that same run. Not part of
+   * the .env either: it exists only because `config.<domain>` is a browser app,
+   * and Supabase refuses a `sb_secret_…` key on any request carrying an Origin.
+   * SUPABASE_SERVICE_ROLE_KEY keeps serving the deployed stack, server-side.
+   */
+  SUPABASE_PANEL_SERVICE_KEY: string
+
   // API Configuration — Spaceship (auto-retrievable)
   IPV4_INSTANCE: string
 
@@ -109,6 +117,7 @@ const defaultConfig: Config = {
   DATABASE_URL: '',
   DIRECT_URL: '',
   SUPABASE_SITE_SETUP_AT: '',
+  SUPABASE_PANEL_SERVICE_KEY: '',
   IPV4_INSTANCE: '',
   FROM_EMAIL: '',
   ALLOWED_EMAILS: '*',

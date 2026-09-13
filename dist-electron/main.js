@@ -1249,6 +1249,22 @@ var MANAGED_KEY_NAME = "intriqathon_configurator";
 function hasUsableValue(key) {
 	return typeof key.api_key === "string" && key.api_key.length > 0;
 }
+function isLegacyService(key) {
+	return key.type === "legacy" && key.name === "service_role";
+}
+/**
+* The JWT-format `service_role` key, or null when the project offers none.
+*
+* Singled out because the config panel served at `config.<domain>` queries the
+* Data API straight from the browser with whatever service key it is handed,
+* and Supabase answers 401 "Forbidden use of secret API key in browser" to any
+* request that carries an Origin together with a `sb_secret_…` key. The legacy
+* format is therefore the only one that works there — while the deployed stack
+* keeps the secret key in its server-side .env, where it is the better choice.
+*/
+function findLegacyServiceKey(keys) {
+	return keys.filter(hasUsableValue).find(isLegacyService)?.api_key ?? null;
+}
 /**
 * Among several candidates, prefer the one this app created (stable across
 * re-runs), then any other. Keeps repeated provisioning deterministic.
@@ -1261,7 +1277,7 @@ function resolveKeyPair(keys) {
 	const publishable = pickPreferred(usable.filter((k) => k.type === "publishable"));
 	const secret = pickPreferred(usable.filter((k) => k.type === "secret"));
 	const legacyAnon = usable.find((k) => k.type === "legacy" && k.name === "anon");
-	const legacyService = usable.find((k) => k.type === "legacy" && k.name === "service_role");
+	const legacyService = usable.find(isLegacyService);
 	const anonPick = publishable ?? legacyAnon;
 	const servicePick = secret ?? legacyService;
 	return {
@@ -1748,12 +1764,17 @@ var SupabaseSiteSetupService = class {
 			await this.disableEmailConfirmation(win, client, req.ref);
 			this.checkpoint();
 			await this.enableRowLevelSecurity(win, client, req.ref);
+			this.checkpoint();
+			const panelServiceKey = await this.resolvePanelServiceKey(win, client, req.ref);
 			if (pending.length > 0) throw new Error(`Configuration appliquée, sauf : ${pending.join(" ; ")}. Voir « Configuration manuelle » pour terminer.`);
 			this.progress(win, 100);
 			this.log(win, "Configuration du site Supabase terminée.", "done");
 			win.webContents.send("provision:done", {
 				service: SERVICE,
-				patch: { SUPABASE_SITE_SETUP_AT: (/* @__PURE__ */ new Date()).toISOString() }
+				patch: {
+					SUPABASE_SITE_SETUP_AT: (/* @__PURE__ */ new Date()).toISOString(),
+					...panelServiceKey ? { SUPABASE_PANEL_SERVICE_KEY: panelServiceKey } : {}
+				}
 			});
 		} catch (err) {
 			if (this.wasCancelled()) {
@@ -1838,6 +1859,48 @@ var SupabaseSiteSetupService = class {
 		if (after.length > 0) throw new Error(`RLS toujours inactive sur : ${after.map((r) => r.tablename).join(", ")}`);
 		this.log(win, `RLS activée sur ${before.length} table(s) : ${before.map((r) => r.tablename).join(", ")}.`, "done");
 		this.progress(win, 95);
+	}
+	/**
+	* `config.<domain>` reads the Data API from the browser with the service key
+	* it is given, and Supabase rejects a `sb_secret_…` key on any request that
+	* carries an Origin. So the panel needs the JWT legacy `service_role` key,
+	* even though the deployed stack rightly keeps the secret one in its .env.
+	* Reading it here is what lets the card offer it ready to copy instead of
+	* walking the reader through the dashboard.
+	*
+	* A project with the legacy keys switched off gets them switched back on —
+	* the same cheap repair the provisioning step performs. Anything that goes
+	* wrong here is reported and swallowed: none of the five settings above
+	* depend on it, and the card's manual instructions still name the dashboard
+	* page. Turning a successful configuration into a failed run over an
+	* auxiliary lookup would be the worse trade.
+	*/
+	async resolvePanelServiceKey(win, client, ref) {
+		try {
+			this.log(win, "Récupération de la clé service_role legacy (pour le panneau de configuration)…");
+			let key = findLegacyServiceKey(await client.listApiKeys(ref));
+			if (!key) {
+				const legacy = await client.getLegacyKeysEnabled(ref);
+				if (legacy && !legacy.enabled) {
+					this.log(win, "Clés JWT legacy désactivées — réactivation…");
+					await client.setLegacyKeysEnabled(ref, true);
+					key = findLegacyServiceKey(await client.listApiKeys(ref));
+				}
+			}
+			if (!key) {
+				this.log(win, "Aucune clé service_role legacy sur ce projet — le panneau de configuration indiquera comment la récupérer depuis le dashboard.", "error");
+				return null;
+			}
+			this.redactor.add(key);
+			this.log(win, "Clé service_role legacy récupérée — elle sera proposée à la copie.", "done");
+			this.progress(win, 98);
+			return key;
+		} catch (err) {
+			if (this.wasCancelled()) throw err;
+			const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
+			this.log(win, `Clé service_role legacy indisponible : ${this.redactor.redact(message)}`, "error");
+			return null;
+		}
 	}
 };
 //#endregion

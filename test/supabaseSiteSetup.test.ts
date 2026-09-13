@@ -45,6 +45,10 @@ function makeClient(state: {
   exposedSchemas?: string
   autoconfirm?: boolean
   tablesWithoutRls?: string[]
+  /** The project's API keys, as `reveal=true` would return them. */
+  apiKeys?: Array<{ name: string; type: string; api_key: string | null }>
+  /** null stands for the 404 the endpoint returns once legacy is gone. */
+  legacyEnabled?: boolean | null
 }) {
   const s = {
     publicTables: ['Announcement', 'Team'],
@@ -54,6 +58,11 @@ function makeClient(state: {
     exposedSchemas: 'public, graphql_public',
     autoconfirm: false,
     tablesWithoutRls: ['Announcement', 'Team'],
+    apiKeys: [
+      { name: 'service_role', type: 'legacy', api_key: 'eyJlegacy.service' },
+      { name: 'intriqathon_configurator', type: 'secret', api_key: 'sb_secret_xyz' },
+    ],
+    legacyEnabled: true as boolean | null,
     ...state,
   }
 
@@ -87,6 +96,16 @@ function makeClient(state: {
     updatePostgrestConfig: vi.fn(async () => ({ db_schema: 'public' })),
     getAuthConfig: vi.fn(async () => ({ mailer_autoconfirm: s.autoconfirm })),
     updateAuthConfig: vi.fn(async () => ({ mailer_autoconfirm: true })),
+    // A project with legacy disabled hides the keys rather than listing them
+    // without a value — which is what makes re-enabling them worth a try.
+    listApiKeys: vi.fn(async () => (s.legacyEnabled === false
+      ? s.apiKeys.filter(k => k.type !== 'legacy')
+      : s.apiKeys)),
+    getLegacyKeysEnabled: vi.fn(async () => (s.legacyEnabled === null ? null : { enabled: s.legacyEnabled })),
+    setLegacyKeysEnabled: vi.fn(async (_ref: string, enabled: boolean) => {
+      s.legacyEnabled = enabled
+      return { enabled }
+    }),
   }
 
   return client
@@ -130,6 +149,51 @@ describe('SupabaseSiteSetupService', () => {
     expect(done?.payload.service).toBe('supabase-site')
     expect(done?.payload.patch?.SUPABASE_SITE_SETUP_AT).toBeTruthy()
     expect(ctx.error()).toBeUndefined()
+  })
+
+  it('hands back the legacy service_role key, not the secret one', async () => {
+    const client = makeClient({})
+    const { ctx, start } = run(client)
+    await start()
+
+    // The secret key is the one in the .env, and the one a browser may not use.
+    expect(ctx.done()?.payload.patch?.SUPABASE_PANEL_SERVICE_KEY).toBe('eyJlegacy.service')
+  })
+
+  it('re-enables the legacy keys when the project has them switched off', async () => {
+    const client = makeClient({ legacyEnabled: false })
+    const { ctx, start } = run(client)
+    await start()
+
+    expect(client.setLegacyKeysEnabled).toHaveBeenCalledWith('abcdefghijklmnopqrst', true)
+    expect(ctx.done()?.payload.patch?.SUPABASE_PANEL_SERVICE_KEY).toBe('eyJlegacy.service')
+  })
+
+  it('still reports done when no legacy key can be had', async () => {
+    const client = makeClient({
+      apiKeys: [{ name: 'intriqathon_configurator', type: 'secret', api_key: 'sb_secret_xyz' }],
+      legacyEnabled: null,
+    })
+    const { ctx, start } = run(client)
+    await start()
+
+    // The five settings applied; only the copy-ready value is missing, and the
+    // card falls back to naming the dashboard page.
+    expect(ctx.done()).toBeDefined()
+    expect(ctx.done()?.payload.patch?.SUPABASE_PANEL_SERVICE_KEY).toBeUndefined()
+    expect(ctx.error()).toBeUndefined()
+    expect(ctx.logs().some(m => m.includes('Aucune clé service_role legacy'))).toBe(true)
+  })
+
+  it('does not fail the run when the key lookup throws', async () => {
+    const client = makeClient({})
+    client.listApiKeys = vi.fn(async () => { throw new Error('boom') })
+    const { ctx, start } = run(client)
+    await start()
+
+    expect(ctx.done()).toBeDefined()
+    expect(ctx.error()).toBeUndefined()
+    expect(ctx.logs().some(m => m.includes('Clé service_role legacy indisponible'))).toBe(true)
   })
 
   it('exposes the public schema when it is missing, keeping the others', async () => {

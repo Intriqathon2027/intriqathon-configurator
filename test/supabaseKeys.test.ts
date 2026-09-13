@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { resolveKeyPair, needsKeyProvisioning, MANAGED_KEY_NAME } from '../src/electron/services/supabase/keys'
+import {
+  resolveKeyPair,
+  needsKeyProvisioning,
+  findLegacyServiceKey,
+  MANAGED_KEY_NAME,
+} from '../src/electron/services/supabase/keys'
 import type { SupabaseApiKey } from '../src/electron/services/supabase/types'
 
 const legacyAnon: SupabaseApiKey = { name: 'anon', type: 'legacy', api_key: 'eyJanon' }
@@ -44,5 +49,19 @@ describe('resolveKeyPair', () => {
   it('ignores masked keys — a reveal-less response must not land in the .env', () => {
     const masked: SupabaseApiKey = { name: 'anon', type: 'legacy', api_key: null }
     expect(resolveKeyPair([masked]).anon).toBeNull()
+  })
+})
+
+describe('findLegacyServiceKey', () => {
+  it('picks the JWT service_role key, the only one a browser may use', () => {
+    expect(findLegacyServiceKey([secret, publishable, legacyService, legacyAnon])).toBe('eyJservice')
+  })
+
+  it('returns null when the project only offers new-generation keys', () => {
+    expect(findLegacyServiceKey([secret, publishable])).toBeNull()
+  })
+
+  it('ignores a masked value — a key without its secret is no key at all', () => {
+    expect(findLegacyServiceKey([{ name: 'service_role', type: 'legacy', api_key: null }])).toBeNull()
   })
 })

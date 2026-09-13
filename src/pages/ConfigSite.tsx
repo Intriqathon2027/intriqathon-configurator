@@ -28,6 +28,12 @@ const SQL_EDITOR_URL = 'https://supabase.com/dashboard/project/_/sql/new'
 /** Where the config panel's admin account is created. */
 const ADMIN_LOGIN_URL = 'https://unheard.cfd/admin-login'
 
+/** The project's API keys — the `Legacy API keys` tab is the one that matters here. */
+const API_KEYS_URL = 'https://supabase.com/dashboard/project/_/settings/api-keys'
+
+/** Prefix of the new-generation secret keys, the ones a browser may not use. */
+const SECRET_KEY_PREFIX = 'sb_secret_'
+
 /**
  * The Supabase settings that have to be flipped by hand once the stack is up.
  * They live in the card itself — each one is a click away in the dashboard, so
@@ -104,6 +110,13 @@ function HelpContent() {
       desc: isEn
         ? <>Go to <code>config.{domain}</code>. It asks for an <strong>Instance URL</strong> and an <strong>Instance Service Key</strong> — both are already in your configuration and are shown, ready to copy, in the Next steps block.</>
         : <>Rendez-vous sur <code>config.{domain}</code>. Il demande une <strong>Instance URL</strong> et une <strong>Instance Service Key</strong> — les deux sont déjà dans votre configuration et sont affichées, prêtes à copier, dans le bloc Prochaines étapes.</>,
+      extra: (
+        <p className="help-note">
+          {isEn
+            ? 'The service key has to be the JWT-format legacy one: the panel is a browser app, and Supabase refuses a sb_secret_… key on any request that carries an Origin. Step 1 of the card above reads it back from the project, so the Next steps block shows the value that works.'
+            : "La clé de service doit être celle au format JWT legacy : le panneau est une application navigateur, et Supabase refuse une clé sb_secret_… sur toute requête portant une origine. L'étape 1 de la carte ci-dessus la récupère depuis le projet, de sorte que le bloc Prochaines étapes affiche la valeur qui fonctionne."}
+        </p>
+      ),
     },
     {
       key: 'admin',
@@ -173,6 +186,22 @@ export function ConfigSite() {
   const supabaseUrl = config.SUPABASE_URL
   const serviceKey = config.SUPABASE_SERVICE_ROLE_KEY
 
+  /**
+   * Supabase answers 401 "Forbidden use of secret API key in browser" to any
+   * request that carries an Origin header and a `sb_secret_…` key. config.<domain>
+   * is a browser app that queries the Data API with this very key, so the only
+   * value that works there is the JWT-format legacy service_role key — the
+   * secret key stays the right thing to keep in the server-side .env, which is
+   * why the two can legitimately differ.
+   *
+   * The card above reads that legacy key back from the Management API, so what
+   * is offered to copy is its result when it has one, and the stored key
+   * otherwise — which is correct on every project whose service key is legacy
+   * to begin with, and on those the card has never run against.
+   */
+  const serviceKeyIsSecret = serviceKey.startsWith(SECRET_KEY_PREFIX)
+  const panelServiceKey = config.SUPABASE_PANEL_SERVICE_KEY || (serviceKeyIsSecret ? '' : serviceKey)
+
   const handleRestart = () => {
     if (!selectedSshKey) {
       sshSelectorRef.current?.openModal()
@@ -221,6 +250,47 @@ export function ConfigSite() {
     running: isEn ? 'Running' : 'En cours',
     error: isEn ? 'Error' : 'Erreur',
   }
+
+  /**
+   * The Instance Service Key row, in its three states: a value ready to paste,
+   * a secret key the panel cannot use, or nothing configured at all. A secret
+   * key is deliberately not offered to copy — pasting it leads straight to the
+   * panel's "invalid value" message, with nothing on screen saying why.
+   */
+  const serviceKeyField = panelServiceKey ? (
+    <CopyRow label="Instance Service Key" content={panelServiceKey} />
+  ) : serviceKeyIsSecret ? (
+    <>
+      <div className="info-box warning">
+        <AlertTriangle size={15} className="info-box-icon" />
+        <div className="info-box-text">
+          <div className="info-box-title">
+            {isEn ? 'This field needs the legacy key' : 'Ce champ attend la clé legacy'}
+          </div>
+          {isEn
+            ? <>Your configuration holds a new-generation secret key (<code>{SECRET_KEY_PREFIX}…</code>), which Supabase refuses as soon as the request comes from a browser — the panel then reports an invalid value. Run step 1 above and it reads the legacy <code>service_role</code> key back for you; failing that, copy it from <code>Legacy API keys</code> (<code>eyJ…</code> format).</>
+            : <>Votre configuration contient une clé secret de nouvelle génération (<code>{SECRET_KEY_PREFIX}…</code>), que Supabase refuse dès que la requête vient d'un navigateur — le panneau signale alors une valeur invalide. Lancez l'étape 1 ci-dessus : elle récupère pour vous la clé <code>service_role</code> legacy. À défaut, copiez-la depuis <code>Legacy API keys</code> (format <code>eyJ…</code>).</>}
+        </div>
+      </div>
+      <p className="config-screen__note">
+        {isEn
+          ? 'Only this field is concerned: the deployed stack keeps using the key from its .env, which stays on the server. If the legacy keys are disabled on the project, step 1 switches them back on.'
+          : "Seul ce champ est concerné : la stack déployée continue d'utiliser la clé de son .env, qui reste côté serveur. Si les clés legacy sont désactivées sur le projet, l'étape 1 les réactive."}
+      </p>
+      <div className="link-buttons-row" style={{ marginTop: '8px' }}>
+        <ExternalLinkBtn url={API_KEYS_URL} label="Legacy API keys" />
+      </div>
+    </>
+  ) : (
+    <div className="info-box warning">
+      <AlertTriangle size={15} className="info-box-icon" />
+      <div className="info-box-text">
+        {isEn
+          ? 'SUPABASE_SERVICE_ROLE_KEY is still empty — fill it in at step 2 (API configuration).'
+          : "SUPABASE_SERVICE_ROLE_KEY est encore vide — renseignez-la à l'étape 2 (Configuration par API)."}
+      </div>
+    </div>
+  )
 
   return (
     <WizardLayout
@@ -362,16 +432,7 @@ export function ConfigSite() {
                               : "SUPABASE_URL est encore vide — renseignez-la à l'étape 2 (Configuration par API)."}
                           </div>
                         </div>}
-                    {serviceKey
-                      ? <CopyRow label="Instance Service Key" content={serviceKey} />
-                      : <div className="info-box warning">
-                          <AlertTriangle size={15} className="info-box-icon" />
-                          <div className="info-box-text">
-                            {isEn
-                              ? 'SUPABASE_SERVICE_ROLE_KEY is still empty — fill it in at step 2 (API configuration).'
-                              : "SUPABASE_SERVICE_ROLE_KEY est encore vide — renseignez-la à l'étape 2 (Configuration par API)."}
-                          </div>
-                        </div>}
+                    {serviceKeyField}
                     <p className="config-screen__note">
                       {isEn
                         ? 'If the project already holds data, the panel offers to download a backup and reset it before continuing.'
