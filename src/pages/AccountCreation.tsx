@@ -8,6 +8,8 @@ import { useApp } from '../context/AppContext'
 import { FieldHelpSections } from '../components/ui/HelpSection'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
+import { SupabaseProjectSetup } from '../components/provision/SupabaseProjectSetup'
+import { isAccountComplete } from '../utils/serviceCompletion'
 
 function HelpContent() {
   const { state } = useApp()
@@ -23,38 +25,38 @@ function HelpContent() {
       url: 'https://supabase.com/dashboard/sign-up',
     },
     {
-      key: 'project',
-      title: isEn ? 'New Project' : 'New Project',
-      desc: isEn
-        ? 'From the dashboard, click New project. Pick a name, a region close to your participants, and a strong database password without the "?" character.'
-        : "Depuis le dashboard, cliquez sur New project. Choisissez un nom, une région proche de vos participants et un mot de passe de base de données fort, sans caractère \"?\".",
-      // Both /dashboard/new and /dashboard/projects bounce to the organization
-      // list. This is where database.new resolves to: the New project form,
-      // already scoped to the organization the account last opened.
-      url: 'https://supabase.com/dashboard/new/last-visited-org',
-      extra: (
-        <p className="help-note">
-          {isEn
-            ? 'Keep that password: it goes back into DATABASE_URL and DIRECT_URL in step 2.'
-            : "Conservez ce mot de passe : il est réinjecté dans DATABASE_URL et DIRECT_URL à l'étape 2."}
-        </p>
-      ),
-    },
-    {
       key: 'pat',
       title: isEn ? 'Generate an access token' : "Générer un jeton d'accès",
       desc: isEn
-        ? <>Profile icon (top right) ➔ <code>Account</code> ➔ <code>Access Tokens</code> ➔ <code>Generate new token</code>.</>
-        : <>Icône de profil (haut droite) ➔ <code>Account</code> ➔ <code>Access Tokens</code> ➔ <code>Generate new token</code>.</>,
+        ? <>Profile icon (top right) ➔ <code>Account</code> ➔ <code>Access Tokens</code> ➔ <code>Generate new token</code>. Give it a name you will recognise (for example <code>intriqathon-configurator</code>), then <strong>copy the value straight away</strong>: it starts with <code>sbp_</code> and is displayed only once.</>
+        : <>Icône de profil (haut droite) ➔ <code>Account</code> ➔ <code>Access Tokens</code> ➔ <code>Generate new token</code>. Donnez-lui un nom reconnaissable (par exemple <code>intriqathon-configurator</code>), puis <strong>copiez la valeur immédiatement</strong> : elle commence par <code>sbp_</code> et n'est affichée qu'une seule fois.</>,
       url: 'https://supabase.com/dashboard/account/tokens',
-    },
-    {
-      key: 's3',
-      title: isEn ? 'Create an S3 access key' : "Créer une clé d'accès S3",
-      desc: isEn
-        ? <>In your project: <code>Storage</code> ➔ <code>S3 Configuration</code> ➔ <code>Access keys</code> ➔ <code>New access key</code>. Both S3 values below come from that single key pair.</>
-        : <>Dans votre projet : <code>Storage</code> ➔ <code>S3 Configuration</code> ➔ <code>Access keys</code> ➔ <code>New access key</code>. Les deux valeurs S3 ci-dessous proviennent de cette même paire.</>,
-      url: 'https://supabase.com/dashboard/project/_/storage/s3',
+      extra: (
+        <>
+          <ul className="help-note">
+            <li>
+              {isEn
+                ? <>The token carries <strong>full access to the account</strong> — every organization and every project. Keep it in this vault and nowhere else.</>
+                : <>Le jeton donne un <strong>accès complet au compte</strong> — toutes les organisations et tous les projets. Conservez-le dans ce coffre et nulle part ailleurs.</>}
+            </li>
+            <li>
+              {isEn
+                ? <>Regenerating a token <strong>revokes the previous one</strong>. An old value copied from a file or a note no longer works.</>
+                : <>Régénérer un jeton <strong>révoque le précédent</strong>. Une ancienne valeur recopiée depuis un fichier ou une note ne fonctionne plus.</>}
+            </li>
+            <li>
+              {isEn
+                ? <>Paste the whole value, with the <code>sbp_</code> prefix and nothing after it. Surrounding spaces are trimmed for you.</>
+                : <>Collez la valeur entière, préfixe <code>sbp_</code> compris et rien après. Les espaces autour sont supprimés automatiquement.</>}
+            </li>
+          </ul>
+          <p className="help-note">
+            {isEn
+              ? <><strong>If the configurator answers "token refused":</strong> the token is well-formed but Supabase does not recognise it — it has been revoked, regenerated, or belongs to another account. Generate a new one at the link above. A token that is truncated or missing its prefix gives a different message ("JWT could not be decoded").</>
+              : <><strong>Si le configurateur répond « jeton refusé » :</strong> le jeton est bien formé mais Supabase ne le reconnaît pas — il a été révoqué, régénéré, ou appartient à un autre compte. Générez-en un nouveau via le lien ci-dessus. Un jeton tronqué ou sans préfixe donne un message différent (« JWT could not be decoded »).</>}
+          </p>
+        </>
+      ),
     },
   ]
 
@@ -198,23 +200,12 @@ export function AccountCreation() {
     }
   }
 
-  // Completion checks
-  const isSupabaseComplete = !!(
-    config.SUPABASE_ACCESS_TOKEN &&
-    config.S3_ACCESS_KEY_ID &&
-    config.S3_SECRET_ACCESS_KEY
-  )
-  const isResendComplete = !!config.RESEND_API_KEY
-  const isSpaceshipComplete = !!(
-    config.DOMAIN &&
-    config.SPACESHIP_API_KEY &&
-    config.SPACESHIP_API_SECRET
-  )
-  const isScalewayComplete = !!(
-    config.SCW_SECRET_KEY &&
-    config.SCW_DEFAULT_PROJECT_ID &&
-    config.DEPLOY_PATH
-  )
+  // Completion checks — the rule itself lives in `serviceCompletion`, where the
+  // automations of steps 2 and 8 read it to decide whether they may run at all.
+  const isSupabaseComplete = isAccountComplete(config, 'supabase')
+  const isResendComplete = isAccountComplete(config, 'resend')
+  const isSpaceshipComplete = isAccountComplete(config, 'spaceship')
+  const isScalewayComplete = isAccountComplete(config, 'scaleway')
 
   return (
     <WizardLayout
@@ -239,21 +230,11 @@ export function AccountCreation() {
               placeholder="sbp_abc123..."
               type="password"
             />
-            <FormField
-              id="s3-access-key"
-              label={t('accountCreation.supabase.s3AccessKey')}
-              value={config.S3_ACCESS_KEY_ID}
-              onChange={v => setField('S3_ACCESS_KEY_ID', v)}
-              placeholder="625b..."
-            />
-            <FormField
-              id="s3-secret"
-              label={t('accountCreation.supabase.s3SecretKey')}
-              value={config.S3_SECRET_ACCESS_KEY}
-              onChange={v => setField('S3_SECRET_ACCESS_KEY', v)}
-              placeholder="5w36..."
-              type="password"
-            />
+
+            {/* The project itself: adopted or created from here, plus the
+                database password that makes step 2 fully automatic. */}
+            <SupabaseProjectSetup />
+
           </div>
         </ServiceAccountCard>
 

@@ -4,6 +4,7 @@ import { translations } from '../i18n/translations'
 import { steps } from '../components/layout/steps'
 import { FONT_SCALE_KEY, clampFontScale, loadFontScale } from '../utils/fontScale'
 import type { SshKeyInfo } from '../types/electron'
+import { deriveProjectRef, withEffectiveProjectRef } from '../shared/supabaseProject'
 
 // ============================================================
 // CONFIG STATE
@@ -16,8 +17,32 @@ export interface Config {
 
   // Account Creation — Supabase
   SUPABASE_ACCESS_TOKEN: string
-  S3_ACCESS_KEY_ID: string
-  S3_SECRET_ACCESS_KEY: string
+  /**
+   * Database password. Not part of the .env, but the one value the Management
+   * API never hands back — it is what turns DATABASE_URL and DIRECT_URL from a
+   * copy-paste into something the automation can build on its own.
+   */
+  SUPABASE_DB_PASSWORD: string
+  /**
+   * The project the rest of the wizard works against — always the one the
+   * chosen mode designates. Derived from the two below, never set on its own.
+   */
+  SUPABASE_PROJECT_REF: string
+  /** The project picked from the account, in "use an existing project" mode. */
+  SUPABASE_SELECTED_PROJECT_REF: string
+  /**
+   * Only ever written when the configurator itself created a project. Kept
+   * apart from SUPABASE_PROJECT_REF because picking an existing project must
+   * not look like a creation: the two modes ask different questions of the same
+   * account, and sharing one field made the answer to one show up in the other.
+   */
+  SUPABASE_CREATED_PROJECT_REF: string
+  /** 'existing' adopts a project made in the dashboard, 'create' provisions one from here. */
+  SUPABASE_PROJECT_MODE: string
+  /** Only used in 'create' mode — the org the project is billed to, and its name and region. */
+  SUPABASE_ORG_SLUG: string
+  SUPABASE_PROJECT_NAME: string
+  SUPABASE_REGION: string
 
   // Account Creation — Resend
   RESEND_API_KEY: string
@@ -33,6 +58,21 @@ export interface Config {
   SUPABASE_SERVICE_ROLE_KEY: string
   DATABASE_URL: string
   DIRECT_URL: string
+
+  /**
+   * When the post-deployment Supabase settings were last applied from
+   * "Configuration du site" (ISO date). Not part of the .env — it is what lets
+   * the card still read as done after the app is reopened.
+   */
+  SUPABASE_SITE_SETUP_AT: string
+
+  /**
+   * The JWT legacy `service_role` key, read back by that same run. Not part of
+   * the .env either: it exists only because `config.<domain>` is a browser app,
+   * and Supabase refuses a `sb_secret_…` key on any request carrying an Origin.
+   * SUPABASE_SERVICE_ROLE_KEY keeps serving the deployed stack, server-side.
+   */
+  SUPABASE_PANEL_SERVICE_KEY: string
 
   // API Configuration — Spaceship (auto-retrievable)
   IPV4_INSTANCE: string
@@ -59,8 +99,14 @@ const defaultConfig: Config = {
   SPACESHIP_API_KEY: '',
   SPACESHIP_API_SECRET: '',
   SUPABASE_ACCESS_TOKEN: '',
-  S3_ACCESS_KEY_ID: '',
-  S3_SECRET_ACCESS_KEY: '',
+  SUPABASE_DB_PASSWORD: '',
+  SUPABASE_PROJECT_REF: '',
+  SUPABASE_SELECTED_PROJECT_REF: '',
+  SUPABASE_CREATED_PROJECT_REF: '',
+  SUPABASE_PROJECT_MODE: 'existing',
+  SUPABASE_ORG_SLUG: '',
+  SUPABASE_PROJECT_NAME: 'intriqathon',
+  SUPABASE_REGION: 'eu-west-3',
   RESEND_API_KEY: '',
   SCW_SECRET_KEY: '',
   SCW_DEFAULT_PROJECT_ID: '',
@@ -70,6 +116,8 @@ const defaultConfig: Config = {
   SUPABASE_SERVICE_ROLE_KEY: '',
   DATABASE_URL: '',
   DIRECT_URL: '',
+  SUPABASE_SITE_SETUP_AT: '',
+  SUPABASE_PANEL_SERVICE_KEY: '',
   IPV4_INSTANCE: '',
   FROM_EMAIL: '',
   ALLOWED_EMAILS: '*',
@@ -114,6 +162,7 @@ const TOTAL_STEPS = 5
 // ============================================================
 type Action =
   | { type: 'SET_FIELD'; key: keyof Config; value: string }
+  | { type: 'SET_FIELDS'; patch: Partial<Config> }
   | { type: 'SET_LANGUAGE'; lang: Language }
   | { type: 'SET_STEP'; step: number }
   | { type: 'LOAD_SAVED'; config: Partial<Config> }
@@ -172,10 +221,20 @@ const initialState: AppState = {
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    // `SUPABASE_PROJECT_REF` is derived here rather than assigned by callers.
+    // Three of them used to assign it — the project dropdown, the mode switch
+    // and the provisioning patch — and an event arriving after the mode had
+    // changed left the field designating a project the current mode does not.
+    // Deriving it on every write makes that state unreachable.
     case 'SET_FIELD':
       return {
         ...state,
-        config: { ...state.config, [action.key]: action.value },
+        config: deriveProjectRef({ ...state.config, [action.key]: action.value }),
+      }
+    case 'SET_FIELDS':
+      return {
+        ...state,
+        config: deriveProjectRef({ ...state.config, ...action.patch }),
       }
     case 'SET_LANGUAGE':
       return { ...state, language: action.lang }
@@ -184,7 +243,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'LOAD_SAVED':
       return {
         ...state,
-        config: { ...state.config, ...action.config },
+        config: withEffectiveProjectRef({ ...state.config, ...action.config }),
       }
     case 'RESET_CONFIG':
       return { ...state, config: defaultConfig, actionSteps: [] }
@@ -206,7 +265,9 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         isVaultUnlocked: true,
         vaultExists: true,
-        config: action.config ? { ...state.config, ...action.config } : state.config,
+        config: action.config
+          ? withEffectiveProjectRef({ ...state.config, ...action.config })
+          : state.config,
       }
     case 'VAULT_LOCKED':
       return { ...state, isVaultUnlocked: false }
@@ -224,6 +285,18 @@ interface AppContextType {
   t: (key: string) => string
   config: Config
   setField: (key: keyof Config, value: string) => void
+  /**
+   * Applies several fields at once. Used by the API automations, which fill in
+   * five or six values together — one dispatch instead of one per field.
+   */
+  setFields: (patch: Partial<Config>) => void
+  /**
+   * Writes the config to the vault without moving to the next step. `override`
+   * is merged in first: a caller that has just dispatched SET_FIELDS still sees
+   * the pre-dispatch `state.config` in this closure, so the new values have to
+   * be handed over explicitly or they would not be persisted.
+   */
+  saveConfig: (override?: Partial<Config>) => Promise<void>
   goToStep: (step: number) => void
   saveAndNext: () => Promise<void>
   openUrl: (url: string) => void
@@ -356,19 +429,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_FIELD', key, value })
   }
 
+  const setFields = (patch: Partial<Config>) => {
+    dispatch({ type: 'SET_FIELDS', patch })
+  }
+
+  const persist = async (config: Config) => {
+    if (window.electronAPI && window.electronAPI.vaultSave) {
+      await window.electronAPI.vaultSave(config as unknown as Record<string, string>)
+    } else if (window.electronAPI) {
+      await window.electronAPI.saveLocalConfig(config as unknown as Record<string, string>)
+    } else {
+      localStorage.setItem('intriqathon-config', JSON.stringify(config))
+    }
+  }
+
+  const saveConfig = async (override?: Partial<Config>) => {
+    // Derived here as well as in the reducer: `override` is merged onto the
+    // pre-dispatch `state.config`, whose reference was computed before it
+    // arrived. Reading it back would put it right, but there is no reason to
+    // write a stale one into the vault in the first place.
+    await persist(deriveProjectRef(override ? { ...state.config, ...override } : state.config))
+  }
+
   const goToStep = (step: number) => {
     dispatch({ type: 'SET_STEP', step })
   }
 
   const saveAndNext = async () => {
-    // Save to encrypted vault if in Electron
-    if (window.electronAPI && window.electronAPI.vaultSave) {
-      await window.electronAPI.vaultSave(state.config as unknown as Record<string, string>)
-    } else if (window.electronAPI) {
-      await window.electronAPI.saveLocalConfig(state.config as unknown as Record<string, string>)
-    } else {
-      localStorage.setItem('intriqathon-config', JSON.stringify(state.config))
-    }
+    await persist(state.config)
 
     // Move to next step
     const nextStep = Math.min(state.currentStep + 1, TOTAL_STEPS - 1)
@@ -476,6 +564,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       t,
       config: state.config,
       setField,
+      setFields,
+      saveConfig,
       goToStep,
       saveAndNext,
       openUrl,

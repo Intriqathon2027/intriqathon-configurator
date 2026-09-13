@@ -9,8 +9,6 @@ describe('Deploy Utils', () => {
     SUPABASE_SERVICE_ROLE_KEY: 'role_456',
     DATABASE_URL: 'postgres://db',
     DIRECT_URL: 'postgres://direct',
-    S3_ACCESS_KEY_ID: 's3_id',
-    S3_SECRET_ACCESS_KEY: 's3_secret',
     DISCORD_CLIENT_ID: 'disc_id',
     OAUTH2_DISCORD_CLIENT_SECRET: 'disc_sec',
     GITHUB_CLIENT_ID: 'gh_id',

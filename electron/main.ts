@@ -8,6 +8,7 @@ import { registerDeployHandlers } from '../src/electron/ipc/deployHandlers'
 import { registerVaultHandlers } from '../src/electron/ipc/vaultHandlers'
 import { registerSshHandlers } from '../src/electron/ipc/sshHandlers'
 import { registerScalewayHandlers } from '../src/electron/ipc/scalewayHandlers'
+import { registerProvisionHandlers } from '../src/electron/ipc/provisionHandlers'
 
 // The built directory structure
 process.env.APP_ROOT = path.join(__dirname, '..')
@@ -118,4 +119,5 @@ registerDeployHandlers(() => win)
 registerVaultHandlers(() => win)
 registerSshHandlers()
 registerScalewayHandlers(() => win)
+registerProvisionHandlers(() => win)
 app.whenReady().then(createWindow)

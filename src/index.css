@@ -3428,3 +3428,183 @@ ul.help-note li {
   color: var(--color-text);
   font-weight: 500;
 }
+
+/* Automation waiting on an upstream step. Muted rather than disabled: the
+   manual-configuration dropdown below stays fully usable, which is the whole
+   point of keeping it. */
+.service-config-block--locked {
+  background: var(--color-surface-alt, var(--color-surface));
+  border-style: dashed;
+}
+
+.service-config-block--locked .service-config-block__name,
+.service-config-block--locked .service-config-block__description {
+  color: var(--color-text-muted);
+}
+
+.service-config-block__info-box--locked {
+  background: var(--color-surface-alt, transparent);
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-muted);
+}
+
+/* =============================================
+   SUPABASE PROJECT SETUP (step 1)
+   ============================================= */
+.supabase-project-setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.supabase-project-setup select.form-input {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+}
+
+.radio-option input {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.form-error {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger, #d1495b);
+}
+
+/* Inline status for the "create the project" run on step 1 */
+.project-create-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+}
+
+.project-create-status--done {
+  color: var(--color-primary-text);
+}
+
+.project-create-status code {
+  user-select: text;
+}
+
+/* Confirmation that the configurator resolved the intended project */
+.project-verification {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.project-verification--ok {
+  border-color: rgba(29, 180, 138, 0.4);
+  background: var(--color-primary-lighter);
+}
+
+.project-verification__facts {
+  margin: 0;
+  padding-left: var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  line-height: 1.7;
+}
+
+.project-verification__facts code {
+  user-select: text;
+}
+
+/* Per-rule feedback under the database password */
+.password-rules {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.password-rules__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.password-rules__item svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.password-rules__item--ok {
+  color: var(--color-primary-text);
+}
+
+.password-rules__item--error {
+  color: var(--color-danger);
+}
+
+/* Password requirements, framed so they read as one set of conditions rather
+   than as loose lines under the field. */
+.password-rules-box {
+  margin-top: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--color-surface-alt, transparent);
+}
+
+.password-rules-box--invalid {
+  border-color: var(--color-danger);
+}
+
+.password-rules-box__title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.password-rules-box .password-rules {
+  margin: 0;
+}
+
+.project-verification--failed {
+  border-color: var(--color-danger);
+}
+
+.project-verification--failed .project-create-status {
+  color: var(--color-danger);
+}
+
+/* Pointer to the other mode when the chosen name is already taken */
+.existing-project-hint {
+  align-items: flex-start;
+}
+
+.existing-project-hint .info-box-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}

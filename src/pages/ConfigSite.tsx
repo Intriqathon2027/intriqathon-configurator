@@ -6,27 +6,33 @@ import { ExternalLinkBtn } from '../components/ui/ExternalLinkBtn'
 import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
 import { SqlBlock } from '../components/ui/SqlBlock'
 import { DockerBlock } from '../components/ui/DockerBlock'
-import { useApp } from '../context/AppContext'
+import { useApp, type Config } from '../context/AppContext'
 import { useDockerRestart } from '../hooks/useDockerRestart'
+import { useServiceProvision } from '../hooks/useServiceProvision'
+import { GRANTS_SQL, REALTIME_TABLE } from '../shared/supabaseSiteSetup'
+import { isAccountComplete } from '../utils/serviceCompletion'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
 import { CopyRow } from '../components/ui/CopyBlock'
 import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshKeySelector'
 
-const SQL_COMMANDS = `GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon,
-    authenticated, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon,
-    authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO
-    postgres, anon, authenticated, service_role;`
+/**
+ * The very statements the automation runs — imported rather than restated, so
+ * the manual fallback can never fall behind what the "Lancer" button does.
+ */
+const SQL_COMMANDS = GRANTS_SQL
 
 /** Deep link to the SQL editor, next to the block the reader has to paste. */
 const SQL_EDITOR_URL = 'https://supabase.com/dashboard/project/_/sql/new'
 
 /** Where the config panel's admin account is created. */
 const ADMIN_LOGIN_URL = 'https://unheard.cfd/admin-login'
+
+/** The project's API keys — the `Legacy API keys` tab is the one that matters here. */
+const API_KEYS_URL = 'https://supabase.com/dashboard/project/_/settings/api-keys'
+
+/** Prefix of the new-generation secret keys, the ones a browser may not use. */
+const SECRET_KEY_PREFIX = 'sb_secret_'
 
 /**
  * The Supabase settings that have to be flipped by hand once the stack is up.
@@ -104,6 +110,13 @@ function HelpContent() {
       desc: isEn
         ? <>Go to <code>config.{domain}</code>. It asks for an <strong>Instance URL</strong> and an <strong>Instance Service Key</strong> — both are already in your configuration and are shown, ready to copy, in the Next steps block.</>
         : <>Rendez-vous sur <code>config.{domain}</code>. Il demande une <strong>Instance URL</strong> et une <strong>Instance Service Key</strong> — les deux sont déjà dans votre configuration et sont affichées, prêtes à copier, dans le bloc Prochaines étapes.</>,
+      extra: (
+        <p className="help-note">
+          {isEn
+            ? 'The service key has to be the JWT-format legacy one: the panel is a browser app, and Supabase refuses a sb_secret_… key on any request that carries an Origin. Step 1 of the card above reads it back from the project, so the Next steps block shows the value that works.'
+            : "La clé de service doit être celle au format JWT legacy : le panneau est une application navigateur, et Supabase refuse une clé sb_secret_… sur toute requête portant une origine. L'étape 1 de la carte ci-dessus la récupère depuis le projet, de sorte que le bloc Prochaines étapes affiche la valeur qui fonctionne."}
+        </p>
+      ),
     },
     {
       key: 'admin',
@@ -149,15 +162,45 @@ function HelpContent() {
 }
 
 export function ConfigSite() {
-  const { t, config, state, markStepDone, selectedSshKey } = useApp()
+  const { t, config, state, markStepDone, selectedSshKey, setFields, saveConfig } = useApp()
   const { status, logs, progress, start, cancel } = useDockerRestart()
   const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
+
+  /**
+   * The run reports when it finished; recording it is what keeps the card green
+   * after the app is reopened. Persisted straight away, like every other value
+   * an automation brings back.
+   */
+  const applyPatch = (patch: Record<string, string>) => {
+    const typed = patch as Partial<Config>
+    setFields(typed)
+    void saveConfig(typed)
+  }
+
+  const siteSetup = useServiceProvision('supabase-site', applyPatch)
+
   const domain = config.DOMAIN || '<DOMAIN>'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const isEn = state.language === 'en'
   // The two values config.<domain> asks for on its first screen
   const supabaseUrl = config.SUPABASE_URL
   const serviceKey = config.SUPABASE_SERVICE_ROLE_KEY
+
+  /**
+   * Supabase answers 401 "Forbidden use of secret API key in browser" to any
+   * request that carries an Origin header and a `sb_secret_…` key. config.<domain>
+   * is a browser app that queries the Data API with this very key, so the only
+   * value that works there is the JWT-format legacy service_role key — the
+   * secret key stays the right thing to keep in the server-side .env, which is
+   * why the two can legitimately differ.
+   *
+   * The card above reads that legacy key back from the Management API, so what
+   * is offered to copy is its result when it has one, and the stored key
+   * otherwise — which is correct on every project whose service key is legacy
+   * to begin with, and on those the card has never run against.
+   */
+  const serviceKeyIsSecret = serviceKey.startsWith(SECRET_KEY_PREFIX)
+  const panelServiceKey = config.SUPABASE_PANEL_SERVICE_KEY || (serviceKeyIsSecret ? '' : serviceKey)
 
   const handleRestart = () => {
     if (!selectedSshKey) {
@@ -170,6 +213,25 @@ export function ConfigSite() {
       return
     }
     start({ ipv4, sshKeyPath: selectedSshKey.privateKeyPath })
+  }
+
+  /**
+   * Same gate as the step 2 automations: nothing runs while the Supabase card
+   * of step 1 is still grey. The manual walkthrough below stays available
+   * either way — when the chain is stuck, the dashboard is the way out.
+   */
+  const supabaseLock = !config.SUPABASE_ACCESS_TOKEN
+    ? t('apiConfig.locked.supabaseToken')
+    : !isAccountComplete(config, 'supabase')
+      ? t('apiConfig.locked.accountSupabase')
+      : null
+
+  const handleSupabaseSetup = () => {
+    if (supabaseLock) return
+    void siteSetup.startSiteSetup({
+      accessToken: config.SUPABASE_ACCESS_TOKEN,
+      ref: config.SUPABASE_PROJECT_REF,
+    })
   }
 
   // Validate the site-config step once the Docker restart succeeds
@@ -189,6 +251,47 @@ export function ConfigSite() {
     error: isEn ? 'Error' : 'Erreur',
   }
 
+  /**
+   * The Instance Service Key row, in its three states: a value ready to paste,
+   * a secret key the panel cannot use, or nothing configured at all. A secret
+   * key is deliberately not offered to copy — pasting it leads straight to the
+   * panel's "invalid value" message, with nothing on screen saying why.
+   */
+  const serviceKeyField = panelServiceKey ? (
+    <CopyRow label="Instance Service Key" content={panelServiceKey} />
+  ) : serviceKeyIsSecret ? (
+    <>
+      <div className="info-box warning">
+        <AlertTriangle size={15} className="info-box-icon" />
+        <div className="info-box-text">
+          <div className="info-box-title">
+            {isEn ? 'This field needs the legacy key' : 'Ce champ attend la clé legacy'}
+          </div>
+          {isEn
+            ? <>Your configuration holds a new-generation secret key (<code>{SECRET_KEY_PREFIX}…</code>), which Supabase refuses as soon as the request comes from a browser — the panel then reports an invalid value. Run step 1 above and it reads the legacy <code>service_role</code> key back for you; failing that, copy it from <code>Legacy API keys</code> (<code>eyJ…</code> format).</>
+            : <>Votre configuration contient une clé secret de nouvelle génération (<code>{SECRET_KEY_PREFIX}…</code>), que Supabase refuse dès que la requête vient d'un navigateur — le panneau signale alors une valeur invalide. Lancez l'étape 1 ci-dessus : elle récupère pour vous la clé <code>service_role</code> legacy. À défaut, copiez-la depuis <code>Legacy API keys</code> (format <code>eyJ…</code>).</>}
+        </div>
+      </div>
+      <p className="config-screen__note">
+        {isEn
+          ? 'Only this field is concerned: the deployed stack keeps using the key from its .env, which stays on the server. If the legacy keys are disabled on the project, step 1 switches them back on.'
+          : "Seul ce champ est concerné : la stack déployée continue d'utiliser la clé de son .env, qui reste côté serveur. Si les clés legacy sont désactivées sur le projet, l'étape 1 les réactive."}
+      </p>
+      <div className="link-buttons-row" style={{ marginTop: '8px' }}>
+        <ExternalLinkBtn url={API_KEYS_URL} label="Legacy API keys" />
+      </div>
+    </>
+  ) : (
+    <div className="info-box warning">
+      <AlertTriangle size={15} className="info-box-icon" />
+      <div className="info-box-text">
+        {isEn
+          ? 'SUPABASE_SERVICE_ROLE_KEY is still empty — fill it in at step 2 (API configuration).'
+          : "SUPABASE_SERVICE_ROLE_KEY est encore vide — renseignez-la à l'étape 2 (Configuration par API)."}
+      </div>
+    </div>
+  )
+
   return (
     <WizardLayout
       title={t('step8.title')}
@@ -202,9 +305,20 @@ export function ConfigSite() {
           stepNumber={1}
           serviceName="SUPABASE"
           serviceIcon={<Database size={18} color="var(--color-primary-text)" />}
-          description={isEn ? 'Configure your Supabase database.' : 'Configurez votre base de données Supabase.'}
-          status="idle"
+          description={isEn
+            ? `Privileges, exposed schema, Realtime on ${REALTIME_TABLE}, email confirmation off and RLS on every table — applied through the Supabase API.`
+            : `Privilèges, schéma exposé, Realtime sur ${REALTIME_TABLE}, confirmation d'email désactivée et RLS sur chaque table — appliqués via l'API Supabase.`}
+          status={siteSetup.status}
+          isComplete={siteSetup.status === 'done' || !!config.SUPABASE_SITE_SETUP_AT}
+          logs={siteSetup.logs}
+          progress={siteSetup.progress}
+          locked={!!supabaseLock}
+          lockedReason={supabaseLock ?? undefined}
+          errorMessage={siteSetup.error}
+          onStart={handleSupabaseSetup}
+          onCancel={siteSetup.cancel}
           btnStartLabel={isEn ? 'Launch' : 'Lancer'}
+          btnRetryLabel={isEn ? 'Retry' : 'Relancer'}
           btnCancelLabel={isEn ? 'Cancel' : 'Annuler'}
           statusLabels={statusLabels}
           manualLabel={isEn ? 'Manual Configuration' : 'Configuration manuelle'}
@@ -318,16 +432,7 @@ export function ConfigSite() {
                               : "SUPABASE_URL est encore vide — renseignez-la à l'étape 2 (Configuration par API)."}
                           </div>
                         </div>}
-                    {serviceKey
-                      ? <CopyRow label="Instance Service Key" content={serviceKey} />
-                      : <div className="info-box warning">
-                          <AlertTriangle size={15} className="info-box-icon" />
-                          <div className="info-box-text">
-                            {isEn
-                              ? 'SUPABASE_SERVICE_ROLE_KEY is still empty — fill it in at step 2 (API configuration).'
-                              : "SUPABASE_SERVICE_ROLE_KEY est encore vide — renseignez-la à l'étape 2 (Configuration par API)."}
-                          </div>
-                        </div>}
+                    {serviceKeyField}
                     <p className="config-screen__note">
                       {isEn
                         ? 'If the project already holds data, the panel offers to download a backup and reset it before continuing.'
