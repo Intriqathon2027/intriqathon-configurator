@@ -279,7 +279,19 @@ export function ApiConfiguration() {
     config.DIRECT_URL
   )
   const isScalewayComplete = !!config.IPV4_INSTANCE
-  const isResendComplete = !!(config.FROM_EMAIL && config.ALLOWED_EMAILS && isManualChecked('resend-subdomain'))
+  const isResendComplete = !!(config.FROM_EMAIL && config.ALLOWED_EMAILS)
+
+  /**
+   * What the checkboxes carry, per block. These steps leave nothing in the
+   * config — a bucket, a DNS record and a verified sending domain all live at
+   * the provider — so the tick is the whole state, and it colours the block the
+   * way a successful run does.
+   */
+  const supabaseManualDone = isManualChecked('supabase-buckets') && isSupabaseComplete
+  const spaceshipManualDone = isManualChecked('spaceship-dns')
+  const resendManualDone = isManualChecked('resend-subdomain') && isResendComplete
+
+  const manualDoneLabel = isEn ? 'Confirmed manually' : 'Confirmé manuellement'
 
   // Supabase copies its Postgres URLs out with `[YOUR-PASSWORD]` still in them;
   // both fields offer to substitute the database password on the spot.
@@ -453,7 +465,9 @@ export function ApiConfiguration() {
           serviceIcon={<Database size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.supabase.desc')}
           status={supabaseStatus}
-          isComplete={isSupabaseComplete}
+          isComplete={supabaseManualDone}
+          manuallyConfirmed={supabaseManualDone}
+          manualDoneLabel={manualDoneLabel}
           logs={supabase.logs}
           progress={supabase.progress}
           locked={!!supabaseLock}
@@ -565,6 +579,8 @@ export function ApiConfiguration() {
           serviceIcon={<Globe size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.spaceship.desc')}
           status={spaceshipStatus}
+          manuallyConfirmed={spaceshipManualDone}
+          manualDoneLabel={manualDoneLabel}
           locked={!!spaceshipLock}
           lockedReason={spaceshipLock ?? undefined}
           onStart={() => handleStart('Spaceship')}
@@ -645,7 +661,9 @@ export function ApiConfiguration() {
           serviceIcon={<Mail size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.resend.desc')}
           status={resendStatus}
-          isComplete={isResendComplete}
+          isComplete={resendManualDone}
+          manuallyConfirmed={resendManualDone}
+          manualDoneLabel={manualDoneLabel}
           locked={!!resendLock}
           lockedReason={resendLock ?? undefined}
           onStart={() => handleStart('Resend')}

@@ -2005,18 +2005,29 @@ body {
   margin-top: 0;
 }
 
+/* Lists keep normal block layout: a flex container puts the markers outside
+   its content box, where they hang over — or under — the text instead of
+   lining up with it. The indent is padding, so the bullet sits inside the box
+   and every wrapped line aligns under the first. */
 .help-panel-body ol,
 .help-panel-body ul {
-  margin-left: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  margin-left: 0;
+  padding-left: var(--space-5);
+  list-style-position: outside;
 }
 
 .help-panel-body li {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   line-height: 1.6;
+}
+
+.help-panel-body li + li {
+  margin-top: var(--space-2);
+}
+
+.help-panel-body li::marker {
+  color: var(--color-text-muted);
 }
 
 /* Every action name in the panel — walkthrough card, click path, note — gets
@@ -2163,13 +2174,18 @@ body {
 }
 
 ul.help-note {
-  margin-left: var(--space-4);
+  margin-left: 0;
   margin-top: 4px;
-  list-style: disc;
+  padding-left: var(--space-4);
+  list-style: disc outside;
 }
 ul.help-note li {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
+}
+
+.help-panel-body ul.help-note li + li {
+  margin-top: var(--space-1);
 }
 
 /* =============================================
@@ -2186,9 +2202,15 @@ ul.help-note li {
   gap: 0;
 }
 
-/* Inside the panel the chain is indented and separated from the next service */
+/* Inside the panel the chain is indented and separated from the next service.
+   It carries its own numbering, so it keeps the panel's list indent off. */
 .help-panel-body .help-flow {
   margin: 0 0 var(--space-5) var(--space-4);
+  padding-left: 0;
+}
+
+.help-panel-body .help-flow > li + li {
+  margin-top: 0;
 }
 
 .help-flow__card {
@@ -2276,7 +2298,12 @@ ul.help-note li {
   margin-bottom: 0;
 }
 
+.help-panel-body .help-flow__copy-list > li + li {
+  margin-top: var(--space-2);
+}
+
 /* Copyable literals inside an action card — values that must be typed exactly */
+.help-panel-body .help-flow__copy-list,
 .help-flow__copy-list {
   list-style: none;
   margin: 0;

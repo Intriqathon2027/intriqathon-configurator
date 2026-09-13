@@ -30,6 +30,10 @@ export type ManualKey =
   | 'spaceship-dns'
   | 'resend-subdomain'
   | 'deploy-manual'
+  /** The grants SQL, pasted into the project's SQL editor. */
+  | 'site-supabase-sql'
+  /** The four dashboard settings the API run applies by itself. */
+  | 'site-supabase-actions'
   | 'docker-manual'
 
 const MANUAL_CHECKS_KEY = 'intriqathon-manual-checks'

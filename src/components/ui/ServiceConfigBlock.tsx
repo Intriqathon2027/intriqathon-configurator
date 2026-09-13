@@ -15,6 +15,15 @@ interface ServiceConfigBlockProps {
    * ServiceAccountCard. Defaults to `status === 'done'`.
    */
   isComplete?: boolean
+  /**
+   * The reader ticked the boxes saying they did this step by hand. Unlike
+   * `isComplete`, this survives `locked`: the lock says the automation cannot
+   * run, which is precisely the case where the manual route is the answer —
+   * greying out a step someone just declared finished would contradict them.
+   */
+  manuallyConfirmed?: boolean
+  /** What the success banner reads when only the checkboxes carried the step. */
+  manualDoneLabel?: string
   logs?: string[]
   progress?: number
   onStart?: () => void
@@ -65,6 +74,8 @@ export function ServiceConfigBlock({
   description,
   status,
   isComplete,
+  manuallyConfirmed = false,
+  manualDoneLabel,
   logs = [],
   progress = 0,
   onStart,
@@ -84,13 +95,21 @@ export function ServiceConfigBlock({
   children,
 }: ServiceConfigBlockProps) {
   /**
-   * A locked block is never green. Its values may well be filled in — some are
-   * auto-derived, FROM_EMAIL from the domain for one — but as long as the step
-   * it depends on is unfinished, showing it as done states something that is
-   * not true of the service.
+   * A locked block is not green on filled-in values alone: some of them are
+   * auto-derived — FROM_EMAIL from the domain, for one — and as long as the
+   * step it depends on is unfinished, that would state something untrue of the
+   * service. A ticked checkbox is different: it is the reader saying they did
+   * the work, which no derivation can contradict.
    */
-  const complete = (isComplete ?? status === 'done') && !locked
+  const complete = manuallyConfirmed || ((isComplete ?? status === 'done') && !locked)
   const terminalRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * A run that succeeded speaks for itself; otherwise the banner is what the
+   * ticked boxes produce, so the block reports the same thing whichever route
+   * the reader took.
+   */
+  const showManualBanner = manuallyConfirmed && status !== 'done' && status !== 'running'
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -125,6 +144,16 @@ export function ServiceConfigBlock({
             <Check size={16} />
             <span>
               {statusLabels.done} — {serviceName} — Success
+            </span>
+          </div>
+        )}
+
+        {/* Status: done by hand — the checkboxes are the only account of it */}
+        {showManualBanner && (
+          <div className="service-config-block__info-box service-config-block__info-box--success">
+            <Check size={16} />
+            <span>
+              {statusLabels.done} — {serviceName} — {manualDoneLabel ?? statusLabels.done}
             </span>
           </div>
         )}
@@ -195,12 +224,16 @@ export function ServiceConfigBlock({
           </button>
         )}
 
-        {/* Startable, waiting on an upstream step, or retryable after a failure */}
+        {/* Startable, waiting on an upstream step, or retryable after a failure.
+            A step confirmed by hand has no waiting left to report: the
+            automation it is waiting for is one it no longer needs. */}
         {(status === 'idle' || status === 'error') && (locked ? (
-          <div className="service-config-block__info-box service-config-block__info-box--locked">
-            <Lock size={16} />
-            <span>{lockedReason}</span>
-          </div>
+          !manuallyConfirmed && (
+            <div className="service-config-block__info-box service-config-block__info-box--locked">
+              <Lock size={16} />
+              <span>{lockedReason}</span>
+            </div>
+          )
         ) : (
           <button
             className="btn btn-primary service-config-block__btn-start"

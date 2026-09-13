@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useState, type ReactNode } from 'react'
+import React, { createContext, useContext, useReducer, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Language } from '../types/i18n'
 import { translations } from '../i18n/translations'
 import { steps } from '../components/layout/steps'
@@ -137,6 +137,16 @@ const defaultConfig: Config = {
   BOT_TOKEN: '',
   DEV_SERVER_ID: '',
   GUILD_ID: '',
+}
+
+/** The sending subdomain a domain implies, before anyone edits it. */
+function mailSubdomainFor(domain: string): string {
+  return domain ? `mail.${domain}` : ''
+}
+
+/** The sender address a sending subdomain implies. */
+function senderFor(subdomain: string): string {
+  return subdomain ? `Hackathon Team <onboarding@${subdomain}>` : ''
 }
 
 // ============================================================
@@ -397,33 +407,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   /**
-   * The sending subdomain defaults to `mail.<domain>` — the value every DNS
-   * record and the sender address are built from. Only ever filled in when
-   * empty: once it has been edited, the domain changing must not overwrite the
-   * subdomain that was deliberately chosen.
+   * The sending subdomain and the sender address follow the domain — until one
+   * of them is edited, after which it is left alone.
+   *
+   * "Edited" is decided by comparison, not by a flag: a value that still equals
+   * what would have been derived from the *previous* domain is one nobody
+   * touched, so it is re-derived; anything else is the reader's own and stays.
+   * A flag could not have answered this after a reload, where the config comes
+   * back from the vault with no record of who wrote which field.
    */
-  useEffect(() => {
-    if (state.config.DOMAIN && !state.config.MAIL_SUBDOMAIN) {
-      dispatch({
-        type: 'SET_FIELD',
-        key: 'MAIL_SUBDOMAIN',
-        value: `mail.${state.config.DOMAIN}`,
-      })
-    }
-  }, [state.config.DOMAIN, state.config.MAIL_SUBDOMAIN])
+  const derivedRef = useRef({
+    domain: initialState.config.DOMAIN,
+    subdomain: initialState.config.MAIL_SUBDOMAIN,
+  })
 
-  // Auto-fill FROM_EMAIL from the sending subdomain
   useEffect(() => {
-    const subdomain = state.config.MAIL_SUBDOMAIN
-      || (state.config.DOMAIN ? `mail.${state.config.DOMAIN}` : '')
-    if (subdomain && !state.config.FROM_EMAIL.includes('@')) {
-      dispatch({
-        type: 'SET_FIELD',
-        key: 'FROM_EMAIL',
-        value: `Hackathon Team <onboarding@${subdomain}>`,
-      })
+    const domain = state.config.DOMAIN
+    const previous = derivedRef.current
+    const patch: Partial<Config> = {}
+
+    const subdomainUntouched = !state.config.MAIL_SUBDOMAIN
+      || state.config.MAIL_SUBDOMAIN === mailSubdomainFor(previous.domain)
+    const nextSubdomain = subdomainUntouched && domain
+      ? mailSubdomainFor(domain)
+      : state.config.MAIL_SUBDOMAIN
+
+    if (nextSubdomain !== state.config.MAIL_SUBDOMAIN) patch.MAIL_SUBDOMAIN = nextSubdomain
+
+    // The sender address follows whichever subdomain is now in force.
+    const fromUntouched = !state.config.FROM_EMAIL.includes('@')
+      || state.config.FROM_EMAIL === senderFor(previous.subdomain)
+      || (!!previous.domain && state.config.FROM_EMAIL === senderFor(mailSubdomainFor(previous.domain)))
+    if (fromUntouched && nextSubdomain) {
+      const nextSender = senderFor(nextSubdomain)
+      if (nextSender !== state.config.FROM_EMAIL) patch.FROM_EMAIL = nextSender
     }
-  }, [state.config.DOMAIN, state.config.MAIL_SUBDOMAIN])
+
+    derivedRef.current = { domain, subdomain: nextSubdomain }
+    if (Object.keys(patch).length > 0) dispatch({ type: 'SET_FIELDS', patch })
+  }, [state.config.DOMAIN, state.config.MAIL_SUBDOMAIN, state.config.FROM_EMAIL])
 
   // Persist action-validated steps
   useEffect(() => {

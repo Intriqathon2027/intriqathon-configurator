@@ -165,7 +165,7 @@ function HelpContent() {
 
 export function ConfigSite() {
   const { t, config, state, markStepDone, unmarkStepDone, selectedSshKey, setFields, saveConfig } = useApp()
-  const { isRunDone, markRunDone } = useSession()
+  const { isRunDone, markRunDone, isManualChecked } = useSession()
   const { status, logs, progress, start, cancel } = useDockerRestart()
   const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
 
@@ -258,14 +258,27 @@ export function ConfigSite() {
   if (serviceStatus === 'idle' && isRunDone('site-docker')) serviceStatus = 'done'
 
   /**
-   * The settings run is the one automation whose result outlives the session —
-   * SUPABASE_SITE_SETUP_AT records it — so a config carrying that date reads as
-   * done here too, with the same "Relancer" button.
+   * Session state only. `SUPABASE_SITE_SETUP_AT` records that a run happened
+   * once against some project, which is worth keeping in the config but is not
+   * an answer about *this* session: a config reopened weeks later, or restored
+   * on another machine, used to show the step already done before anything had
+   * been looked at.
    */
-  const siteSetupStatus = siteSetup.status === 'idle'
-    && (isRunDone('site-supabase') || !!config.SUPABASE_SITE_SETUP_AT)
+  const siteSetupStatus = siteSetup.status === 'idle' && isRunDone('site-supabase')
     ? 'done'
     : siteSetup.status
+
+  /**
+   * What the reader ticked in the manual fallback. The API run does both halves
+   * at once; by hand they are two separate errands — the SQL editor, then four
+   * settings pages — so they are acknowledged separately and the block is only
+   * confirmed when both are.
+   */
+  const sqlDone = isManualChecked('site-supabase-sql')
+  const settingsDone = isManualChecked('site-supabase-actions')
+  const siteSetupManualDone = sqlDone && settingsDone
+  const dockerManualDone = isManualChecked('docker-manual')
+  const manualDoneLabel = isEn ? 'Confirmed manually' : 'Confirmé manuellement'
 
   const statusLabels = {
     done: isEn ? 'Done' : 'Fait',
@@ -331,7 +344,9 @@ export function ConfigSite() {
             ? `Privileges, exposed schema, Realtime on ${REALTIME_TABLE}, email confirmation off and RLS on every table — applied through the Supabase API.`
             : `Privilèges, schéma exposé, Realtime sur ${REALTIME_TABLE}, confirmation d'email désactivée et RLS sur chaque table — appliqués via l'API Supabase.`}
           status={siteSetupStatus}
-          isComplete={siteSetupStatus === 'done' || !!config.SUPABASE_SITE_SETUP_AT}
+          isComplete={siteSetupStatus === 'done'}
+          manuallyConfirmed={siteSetupManualDone}
+          manualDoneLabel={manualDoneLabel}
           logs={siteSetup.logs}
           progress={siteSetup.progress}
           locked={!!supabaseLock}
@@ -357,12 +372,30 @@ export function ConfigSite() {
             <div className="link-buttons-row" style={{ marginTop: '12px' }}>
               <ExternalLinkBtn url={SQL_EDITOR_URL} label="SQL Editor" />
             </div>
+            <ManualCheck
+              checkKey="site-supabase-sql"
+              label={isEn
+                ? 'I ran this SQL in the SQL Editor'
+                : "J'ai exécuté ce SQL dans le SQL Editor"}
+              hint={isEn
+                ? 'Not needed when the automatic run above succeeded — it applies the same statements.'
+                : "Inutile si le lancement automatique ci-dessus a réussi — il applique les mêmes instructions."}
+            />
 
             <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
               <Check size={16} color="var(--color-primary-text)" />
               {isEn ? '2. Other Supabase Actions' : '2. Autres Actions Supabase'}
             </div>
             <HelpFlow steps={supabaseFinalSteps(isEn)} />
+            <ManualCheck
+              checkKey="site-supabase-actions"
+              label={isEn
+                ? 'I applied these four settings in the dashboard'
+                : "J'ai appliqué ces quatre réglages dans le dashboard"}
+              hint={isEn
+                ? 'Exposed schema, Realtime, email confirmation off and RLS on every table.'
+                : "Schéma exposé, Realtime, confirmation d'email désactivée et RLS sur chaque table."}
+            />
           </div>
         </ServiceConfigBlock>
 
@@ -373,6 +406,8 @@ export function ConfigSite() {
           serviceIcon={<Terminal size={18} color="var(--color-primary-text)" />}
           description={t('step7.docker.desc')}
           status={serviceStatus}
+          manuallyConfirmed={dockerManualDone}
+          manualDoneLabel={manualDoneLabel}
           onStart={handleRestart}
           onCancel={cancel}
           logs={logs.map(l => l.message)}
