@@ -59,6 +59,13 @@ export interface Config {
   DATABASE_URL: string
   DIRECT_URL: string
 
+  /**
+   * When the post-deployment Supabase settings were last applied from
+   * "Configuration du site" (ISO date). Not part of the .env — it is what lets
+   * the card still read as done after the app is reopened.
+   */
+  SUPABASE_SITE_SETUP_AT: string
+
   // API Configuration — Spaceship (auto-retrievable)
   IPV4_INSTANCE: string
 
@@ -101,6 +108,7 @@ const defaultConfig: Config = {
   SUPABASE_SERVICE_ROLE_KEY: '',
   DATABASE_URL: '',
   DIRECT_URL: '',
+  SUPABASE_SITE_SETUP_AT: '',
   IPV4_INSTANCE: '',
   FROM_EMAIL: '',
   ALLOWED_EMAILS: '*',

@@ -3,7 +3,13 @@
  * Lives outside `src/electron` so both sides import the same definitions.
  */
 
-export type ProvisionService = 'supabase' | 'scaleway' | 'spaceship' | 'resend'
+export type ProvisionService =
+  | 'supabase'
+  /** The post-deployment Supabase settings, driven from "Configuration du site". */
+  | 'supabase-site'
+  | 'scaleway'
+  | 'spaceship'
+  | 'resend'
 
 export interface ProvisionLogPayload {
   service: ProvisionService
@@ -45,6 +51,16 @@ export interface SupabaseProvisionRequest {
    * finishes with a real project reference in hand.
    */
   stopAfterProject?: boolean
+}
+
+/**
+ * The site-configuration run. It works against a project that already exists
+ * and whose database the deployment has migrated, so it needs nothing but the
+ * token and the reference.
+ */
+export interface SupabaseSiteSetupRequest {
+  accessToken: string
+  ref: string
 }
 
 export interface SupabaseOrganizationSummary {

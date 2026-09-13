@@ -1,8 +1,10 @@
 import type {
   SupabaseApiKey,
+  SupabaseAuthConfig,
   SupabaseBucket,
   SupabaseOrganization,
   SupabasePoolerConfig,
+  SupabasePostgrestConfig,
   SupabaseProject,
   SupabaseServiceHealth,
 } from './types'
@@ -254,6 +256,35 @@ export class SupabaseApiClient {
 
   listBuckets(ref: string): Promise<SupabaseBucket[]> {
     return this.requireJson<SupabaseBucket[]>('GET', `/v1/projects/${ref}/storage/buckets`)
+  }
+
+  /**
+   * Runs SQL against the project's database, as the `postgres` role. The
+   * response is the result set — an empty array for a statement that returns no
+   * rows (a GRANT, an ALTER), which is why the return type is a row list rather
+   * than a status.
+   */
+  runQuery<Row = Record<string, unknown>>(ref: string, query: string): Promise<Row[]> {
+    return this.requireJson<Row[]>('POST', `/v1/projects/${ref}/database/query`, {
+      body: { query },
+    })
+  }
+
+  getPostgrestConfig(ref: string): Promise<SupabasePostgrestConfig> {
+    return this.requireJson<SupabasePostgrestConfig>('GET', `/v1/projects/${ref}/postgrest`)
+  }
+
+  /** Only the fields passed are changed; the rest of the config is left alone. */
+  updatePostgrestConfig(ref: string, body: SupabasePostgrestConfig): Promise<SupabasePostgrestConfig> {
+    return this.requireJson<SupabasePostgrestConfig>('PATCH', `/v1/projects/${ref}/postgrest`, { body })
+  }
+
+  getAuthConfig(ref: string): Promise<SupabaseAuthConfig> {
+    return this.requireJson<SupabaseAuthConfig>('GET', `/v1/projects/${ref}/config/auth`)
+  }
+
+  updateAuthConfig(ref: string, body: SupabaseAuthConfig): Promise<SupabaseAuthConfig> {
+    return this.requireJson<SupabaseAuthConfig>('PATCH', `/v1/projects/${ref}/config/auth`, { body })
   }
 
   // ── Storage API (the project's own origin, authenticated with its service key) ──

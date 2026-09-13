@@ -66,6 +66,7 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
 		};
 	},
 	startSupabaseProvision: (req) => electron.ipcRenderer.invoke("provision:supabase:start", req),
+	startSupabaseSiteSetup: (req) => electron.ipcRenderer.invoke("provision:supabase:site-setup", req),
 	listSupabaseOrganizations: (accessToken) => electron.ipcRenderer.invoke("provision:supabase:organizations", accessToken),
 	listSupabaseProjects: (accessToken) => electron.ipcRenderer.invoke("provision:supabase:projects", accessToken),
 	verifySupabaseProject: (accessToken, ref) => electron.ipcRenderer.invoke("provision:supabase:verify-project", accessToken, ref),

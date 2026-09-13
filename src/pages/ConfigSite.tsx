@@ -6,21 +6,20 @@ import { ExternalLinkBtn } from '../components/ui/ExternalLinkBtn'
 import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
 import { SqlBlock } from '../components/ui/SqlBlock'
 import { DockerBlock } from '../components/ui/DockerBlock'
-import { useApp } from '../context/AppContext'
+import { useApp, type Config } from '../context/AppContext'
 import { useDockerRestart } from '../hooks/useDockerRestart'
+import { useServiceProvision } from '../hooks/useServiceProvision'
+import { GRANTS_SQL, REALTIME_TABLE } from '../shared/supabaseSiteSetup'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
 import { CopyRow } from '../components/ui/CopyBlock'
 import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshKeySelector'
 
-const SQL_COMMANDS = `GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon,
-    authenticated, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon,
-    authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO
-    postgres, anon, authenticated, service_role;`
+/**
+ * The very statements the automation runs — imported rather than restated, so
+ * the manual fallback can never fall behind what the "Lancer" button does.
+ */
+const SQL_COMMANDS = GRANTS_SQL
 
 /** Deep link to the SQL editor, next to the block the reader has to paste. */
 const SQL_EDITOR_URL = 'https://supabase.com/dashboard/project/_/sql/new'
@@ -149,9 +148,23 @@ function HelpContent() {
 }
 
 export function ConfigSite() {
-  const { t, config, state, markStepDone, selectedSshKey } = useApp()
+  const { t, config, state, markStepDone, selectedSshKey, setFields, saveConfig } = useApp()
   const { status, logs, progress, start, cancel } = useDockerRestart()
   const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
+
+  /**
+   * The run reports when it finished; recording it is what keeps the card green
+   * after the app is reopened. Persisted straight away, like every other value
+   * an automation brings back.
+   */
+  const applyPatch = (patch: Record<string, string>) => {
+    const typed = patch as Partial<Config>
+    setFields(typed)
+    void saveConfig(typed)
+  }
+
+  const siteSetup = useServiceProvision('supabase-site', applyPatch)
+
   const domain = config.DOMAIN || '<DOMAIN>'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const isEn = state.language === 'en'
@@ -170,6 +183,25 @@ export function ConfigSite() {
       return
     }
     start({ ipv4, sshKeyPath: selectedSshKey.privateKeyPath })
+  }
+
+  /**
+   * Both values come from step 1. Without them there is nothing to talk to, so
+   * the button says which one is missing instead of failing at the first call.
+   * The manual walkthrough below stays available either way.
+   */
+  const supabaseLock = !config.SUPABASE_ACCESS_TOKEN
+    ? (isEn ? 'Fill in the Supabase access token at step 1.' : "Renseignez le jeton d'accès Supabase à l'étape 1.")
+    : !config.SUPABASE_PROJECT_REF
+      ? (isEn ? 'Pick a Supabase project at step 1.' : "Sélectionnez un projet Supabase à l'étape 1.")
+      : null
+
+  const handleSupabaseSetup = () => {
+    if (supabaseLock) return
+    void siteSetup.startSiteSetup({
+      accessToken: config.SUPABASE_ACCESS_TOKEN,
+      ref: config.SUPABASE_PROJECT_REF,
+    })
   }
 
   // Validate the site-config step once the Docker restart succeeds
@@ -202,9 +234,20 @@ export function ConfigSite() {
           stepNumber={1}
           serviceName="SUPABASE"
           serviceIcon={<Database size={18} color="var(--color-primary-text)" />}
-          description={isEn ? 'Configure your Supabase database.' : 'Configurez votre base de données Supabase.'}
-          status="idle"
+          description={isEn
+            ? `Privileges, exposed schema, Realtime on ${REALTIME_TABLE}, email confirmation off and RLS on every table — applied through the Supabase API.`
+            : `Privilèges, schéma exposé, Realtime sur ${REALTIME_TABLE}, confirmation d'email désactivée et RLS sur chaque table — appliqués via l'API Supabase.`}
+          status={siteSetup.status}
+          isComplete={siteSetup.status === 'done' || !!config.SUPABASE_SITE_SETUP_AT}
+          logs={siteSetup.logs}
+          progress={siteSetup.progress}
+          locked={!!supabaseLock}
+          lockedReason={supabaseLock ?? undefined}
+          errorMessage={siteSetup.error}
+          onStart={handleSupabaseSetup}
+          onCancel={siteSetup.cancel}
           btnStartLabel={isEn ? 'Launch' : 'Lancer'}
+          btnRetryLabel={isEn ? 'Retry' : 'Relancer'}
           btnCancelLabel={isEn ? 'Cancel' : 'Annuler'}
           statusLabels={statusLabels}
           manualLabel={isEn ? 'Manual Configuration' : 'Configuration manuelle'}

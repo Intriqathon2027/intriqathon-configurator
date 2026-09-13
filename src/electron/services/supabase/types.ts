@@ -78,3 +78,23 @@ export interface SupabaseServiceHealth {
   status?: 'COMING_UP' | 'ACTIVE_HEALTHY' | 'UNHEALTHY'
   error?: string
 }
+
+/**
+ * PostgREST settings — `db_schema` is the comma-separated list of schemas the
+ * Data API exposes.
+ */
+export interface SupabasePostgrestConfig {
+  db_schema?: string
+  max_rows?: number
+  db_extra_search_path?: string
+  db_pool?: number | null
+}
+
+/**
+ * Auth settings, narrowed to the one flag the site setup flips.
+ * `mailer_autoconfirm` true means a sign-up is confirmed on the spot — which is
+ * how "Confirm email" gets turned off.
+ */
+export interface SupabaseAuthConfig {
+  mailer_autoconfirm?: boolean
+}

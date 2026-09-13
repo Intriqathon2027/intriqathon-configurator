@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import type { BrowserWindow } from 'electron'
 import { SupabaseProvisionService, type SupabaseProvisionRequest } from '../services/SupabaseProvisionService'
+import { SupabaseSiteSetupService, type SupabaseSiteSetupRequest } from '../services/SupabaseSiteSetupService'
 
 /**
  * IPC surface for the "Configuration par API" automations.
@@ -12,6 +13,7 @@ import { SupabaseProvisionService, type SupabaseProvisionRequest } from '../serv
  */
 export function registerProvisionHandlers(getWin: () => BrowserWindow | null): void {
   const supabase = new SupabaseProvisionService()
+  const supabaseSite = new SupabaseSiteSetupService()
 
   const requireWin = (): BrowserWindow => {
     const win = getWin()
@@ -23,6 +25,11 @@ export function registerProvisionHandlers(getWin: () => BrowserWindow | null): v
     // Fire and forget: progress travels over the event channels, so the
     // renderer is not left awaiting a promise for several minutes.
     void supabase.start(requireWin(), req)
+  })
+
+  ipcMain.handle('provision:supabase:site-setup', (_event, req: SupabaseSiteSetupRequest) => {
+    // Same fire-and-forget shape: the run reports over the `provision:*` events.
+    void supabaseSite.start(requireWin(), req)
   })
 
   ipcMain.handle('provision:supabase:organizations', async (_event, accessToken: string) => {
@@ -51,5 +58,6 @@ export function registerProvisionHandlers(getWin: () => BrowserWindow | null): v
 
   ipcMain.handle('provision:cancel', (_event, service: string) => {
     if (service === 'supabase') supabase.cancel()
+    if (service === 'supabase-site') supabaseSite.cancel()
   })
 }

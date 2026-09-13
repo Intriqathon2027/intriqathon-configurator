@@ -1126,6 +1126,28 @@ var SupabaseApiClient = class {
 		return this.requireJson("GET", `/v1/projects/${ref}/storage/buckets`);
 	}
 	/**
+	* Runs SQL against the project's database, as the `postgres` role. The
+	* response is the result set — an empty array for a statement that returns no
+	* rows (a GRANT, an ALTER), which is why the return type is a row list rather
+	* than a status.
+	*/
+	runQuery(ref, query) {
+		return this.requireJson("POST", `/v1/projects/${ref}/database/query`, { body: { query } });
+	}
+	getPostgrestConfig(ref) {
+		return this.requireJson("GET", `/v1/projects/${ref}/postgrest`);
+	}
+	/** Only the fields passed are changed; the rest of the config is left alone. */
+	updatePostgrestConfig(ref, body) {
+		return this.requireJson("PATCH", `/v1/projects/${ref}/postgrest`, { body });
+	}
+	getAuthConfig(ref) {
+		return this.requireJson("GET", `/v1/projects/${ref}/config/auth`);
+	}
+	updateAuthConfig(ref, body) {
+		return this.requireJson("PATCH", `/v1/projects/${ref}/config/auth`, { body });
+	}
+	/**
 	* There is no bucket-creation endpoint on the Management API — only a
 	* listing. Creation goes through the project's Storage API instead, which
 	* authenticates with the service_role/secret key rather than the PAT.
@@ -1311,7 +1333,7 @@ var Redactor = class {
 };
 //#endregion
 //#region src/electron/services/SupabaseProvisionService.ts
-var SERVICE = "supabase";
+var SERVICE$1 = "supabase";
 /** A fresh project reports COMING_UP for a minute or two before it answers. */
 var READY_POLL_INTERVAL_MS = 5e3;
 var READY_TIMEOUT_MS = 6 * 6e4;
@@ -1327,14 +1349,14 @@ var SupabaseProvisionService = class {
 	}
 	log(win, message, level = "info") {
 		win.webContents.send("provision:log", {
-			service: SERVICE,
+			service: SERVICE$1,
 			message: this.redactor.redact(message),
 			level
 		});
 	}
 	progress(win, value) {
 		win.webContents.send("provision:progress", {
-			service: SERVICE,
+			service: SERVICE$1,
 			value
 		});
 	}
@@ -1393,7 +1415,7 @@ var SupabaseProvisionService = class {
 				this.progress(win, 100);
 				this.log(win, "Projet prêt. Les clés et les buckets seront récupérés à l'étape 2.", "done");
 				win.webContents.send("provision:done", {
-					service: SERVICE,
+					service: SERVICE$1,
 					patch: {
 						...req.mode === "create" ? { SUPABASE_CREATED_PROJECT_REF: ref } : { SUPABASE_SELECTED_PROJECT_REF: ref },
 						SUPABASE_URL: projectUrl(ref)
@@ -1414,18 +1436,18 @@ var SupabaseProvisionService = class {
 			this.progress(win, 100);
 			this.log(win, "Configuration Supabase terminée.", "done");
 			win.webContents.send("provision:done", {
-				service: SERVICE,
+				service: SERVICE$1,
 				patch
 			});
 		} catch (err) {
 			if (this.wasCancelled()) {
 				this.log(win, "Configuration annulée.", "info");
-				win.webContents.send("provision:cancelled", { service: SERVICE });
+				win.webContents.send("provision:cancelled", { service: SERVICE$1 });
 			} else {
 				const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
 				this.log(win, message, "error");
 				win.webContents.send("provision:error", {
-					service: SERVICE,
+					service: SERVICE$1,
 					message: this.redactor.redact(message)
 				});
 			}
@@ -1562,6 +1584,236 @@ var SupabaseProvisionService = class {
 	}
 };
 //#endregion
+//#region src/shared/supabaseSiteSetup.ts
+/**
+* The Supabase settings the stack needs once the deployment has created its
+* tables — the four dashboard clicks and the grant script of the "Configuration
+* du site" step, expressed as the SQL and the Management API calls that perform
+* them.
+*
+* Shared between the renderer and the main process: the card shows the very
+* statements the automation runs, so the manual fallback and the automated run
+* can never drift apart.
+*/
+/**
+* Default privileges on the public schema. Re-runnable: a GRANT that is already
+* held is a no-op, so a second run changes nothing.
+*/
+var GRANTS_SQL = `GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon,
+    authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon,
+    authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO
+    postgres, anon, authenticated, service_role;`;
+/** The table the Discord bot subscribes to, and the publication Realtime reads. */
+var REALTIME_TABLE = "Announcement";
+var REALTIME_PUBLICATION = "supabase_realtime";
+/** The schema the Data API has to expose for the app to read anything at all. */
+var REQUIRED_EXPOSED_SCHEMA = "public";
+/**
+* What the realtime step is up against, before it changes anything: the table
+* only exists once the deployment has migrated the database, and the row may
+* already be in the publication from an earlier run.
+*/
+var REALTIME_CHECK_SQL = `SELECT
+  to_regclass('public."${REALTIME_TABLE}"') IS NOT NULL AS table_exists,
+  EXISTS (
+    SELECT 1 FROM pg_publication WHERE pubname = '${REALTIME_PUBLICATION}'
+  ) AS publication_exists,
+  EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = '${REALTIME_PUBLICATION}'
+      AND schemaname = 'public'
+      AND tablename = '${REALTIME_TABLE}'
+  ) AS already_published;`;
+var REALTIME_ADD_SQL = `ALTER PUBLICATION ${REALTIME_PUBLICATION} ADD TABLE public."${REALTIME_TABLE}";`;
+/** The public tables still without row level security — the list to report. */
+var RLS_PENDING_SQL = `SELECT tablename
+FROM pg_tables
+WHERE schemaname = 'public' AND NOT rowsecurity
+ORDER BY tablename;`;
+/**
+* Enables RLS on every public table that lacks it. `format('%I')` quotes the
+* identifier, so Prisma's PascalCase table names survive.
+*/
+var RLS_ENABLE_SQL = `DO $$
+DECLARE target record;
+BEGIN
+  FOR target IN
+    SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND NOT rowsecurity
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', target.tablename);
+  END LOOP;
+END $$;`;
+/**
+* Adds `public` to the Data API's exposed schemas without dropping the ones
+* already there (`graphql_public` in particular). Returns `null` when the list
+* already covers it — nothing to PATCH.
+*/
+function withPublicSchema(current) {
+	const schemas = (current ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+	if (schemas.includes("public")) return null;
+	return [...schemas, REQUIRED_EXPOSED_SCHEMA].join(", ");
+}
+//#endregion
+//#region src/electron/services/SupabaseSiteSetupService.ts
+var SERVICE = "supabase-site";
+/**
+* The tail end of the Supabase setup: what has to be true of the project *after*
+* the deployment has migrated the database — privileges, the exposed schema,
+* Realtime on the announcements table, email confirmation off, RLS everywhere.
+*
+* Each step is written to be re-runnable: it reads the current state first and
+* only changes what is not already right, so pressing "Lancer" twice is a no-op
+* rather than a second, differently-broken configuration.
+*/
+var SupabaseSiteSetupService = class {
+	controller = null;
+	redactor = new Redactor();
+	createClient;
+	constructor(createClient = (opts) => new SupabaseApiClient(opts)) {
+		this.createClient = createClient;
+	}
+	isRunning() {
+		return this.controller !== null;
+	}
+	cancel() {
+		this.controller?.abort();
+		this.controller = null;
+	}
+	log(win, message, level = "info") {
+		win.webContents.send("provision:log", {
+			service: SERVICE,
+			message: this.redactor.redact(message),
+			level
+		});
+	}
+	progress(win, value) {
+		win.webContents.send("provision:progress", {
+			service: SERVICE,
+			value
+		});
+	}
+	wasCancelled() {
+		return this.controller?.signal.aborted ?? false;
+	}
+	/** Between two steps — a cancel in flight must not start the next one. */
+	checkpoint() {
+		if (this.wasCancelled()) throw new DOMException("Aborted", "AbortError");
+	}
+	async start(win, req) {
+		this.cancel();
+		this.controller = new AbortController();
+		this.redactor = new Redactor().add(req.accessToken);
+		const client = this.createClient({
+			accessToken: req.accessToken,
+			signal: this.controller.signal
+		});
+		try {
+			if (!req.ref) throw new Error("Aucun projet Supabase sélectionné — renseignez la référence du projet à l'étape 1.");
+			this.progress(win, 5);
+			const project = await client.getProject(req.ref);
+			this.log(win, `Projet ${project.name} (${project.ref}) — configuration finale…`);
+			const pending = [];
+			this.checkpoint();
+			await this.applyGrants(win, client, req.ref);
+			this.checkpoint();
+			await this.exposePublicSchema(win, client, req.ref);
+			this.checkpoint();
+			await this.enableRealtime(win, client, req.ref, pending);
+			this.checkpoint();
+			await this.disableEmailConfirmation(win, client, req.ref);
+			this.checkpoint();
+			await this.enableRowLevelSecurity(win, client, req.ref);
+			if (pending.length > 0) throw new Error(`Configuration appliquée, sauf : ${pending.join(" ; ")}. Voir « Configuration manuelle » pour terminer.`);
+			this.progress(win, 100);
+			this.log(win, "Configuration du site Supabase terminée.", "done");
+			win.webContents.send("provision:done", {
+				service: SERVICE,
+				patch: { SUPABASE_SITE_SETUP_AT: (/* @__PURE__ */ new Date()).toISOString() }
+			});
+		} catch (err) {
+			if (this.wasCancelled()) {
+				this.log(win, "Configuration annulée.", "info");
+				win.webContents.send("provision:cancelled", { service: SERVICE });
+			} else {
+				const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
+				this.log(win, message, "error");
+				win.webContents.send("provision:error", {
+					service: SERVICE,
+					message: this.redactor.redact(message)
+				});
+			}
+		} finally {
+			this.controller = null;
+		}
+	}
+	async applyGrants(win, client, ref) {
+		this.log(win, "Application des privilèges sur le schéma public…");
+		await client.runQuery(ref, GRANTS_SQL);
+		this.log(win, "Privilèges appliqués (anon, authenticated, service_role).", "done");
+		this.progress(win, 25);
+	}
+	async exposePublicSchema(win, client, ref) {
+		this.log(win, "Vérification des schémas exposés par la Data API…");
+		const current = await client.getPostgrestConfig(ref);
+		const updated = withPublicSchema(current.db_schema);
+		if (!updated) this.log(win, `Schéma public déjà exposé (${current.db_schema}).`, "done");
+		else {
+			await client.updatePostgrestConfig(ref, { db_schema: updated });
+			this.log(win, `Schémas exposés mis à jour : ${updated}.`, "done");
+		}
+		this.progress(win, 45);
+	}
+	async enableRealtime(win, client, ref, pending) {
+		this.log(win, `Réplication Realtime de la table ${REALTIME_TABLE}…`);
+		const [check] = await client.runQuery(ref, REALTIME_CHECK_SQL);
+		if (!check?.table_exists) {
+			this.log(win, `Table ${REALTIME_TABLE} absente — lancez d'abord le déploiement (étape 4), puis relancez cette configuration.`, "error");
+			pending.push(`Realtime sur ${REALTIME_TABLE} (table absente)`);
+			this.progress(win, 60);
+			return;
+		}
+		if (!check.publication_exists) {
+			this.log(win, `Publication ${REALTIME_PUBLICATION} introuvable sur ce projet.`, "error");
+			pending.push(`Realtime sur ${REALTIME_TABLE} (publication ${REALTIME_PUBLICATION} absente)`);
+			this.progress(win, 60);
+			return;
+		}
+		if (check.already_published) this.log(win, `${REALTIME_TABLE} est déjà dans ${REALTIME_PUBLICATION}.`, "done");
+		else {
+			await client.runQuery(ref, REALTIME_ADD_SQL);
+			this.log(win, `${REALTIME_TABLE} ajoutée à ${REALTIME_PUBLICATION}.`, "done");
+		}
+		this.progress(win, 60);
+	}
+	async disableEmailConfirmation(win, client, ref) {
+		this.log(win, "Désactivation de la confirmation d'email…");
+		if ((await client.getAuthConfig(ref)).mailer_autoconfirm) this.log(win, "Confirmation d'email déjà désactivée.", "done");
+		else {
+			await client.updateAuthConfig(ref, { mailer_autoconfirm: true });
+			this.log(win, "Confirmation d'email désactivée — le compte organisateur pourra se connecter.", "done");
+		}
+		this.progress(win, 80);
+	}
+	async enableRowLevelSecurity(win, client, ref) {
+		this.log(win, "Activation de la RLS sur les tables publiques…");
+		const before = await client.runQuery(ref, RLS_PENDING_SQL);
+		if (before.length === 0) {
+			this.log(win, "RLS déjà active sur toutes les tables publiques.", "done");
+			this.progress(win, 95);
+			return;
+		}
+		await client.runQuery(ref, RLS_ENABLE_SQL);
+		const after = await client.runQuery(ref, RLS_PENDING_SQL);
+		if (after.length > 0) throw new Error(`RLS toujours inactive sur : ${after.map((r) => r.tablename).join(", ")}`);
+		this.log(win, `RLS activée sur ${before.length} table(s) : ${before.map((r) => r.tablename).join(", ")}.`, "done");
+		this.progress(win, 95);
+	}
+};
+//#endregion
 //#region src/electron/ipc/provisionHandlers.ts
 /**
 * IPC surface for the "Configuration par API" automations.
@@ -1573,6 +1825,7 @@ var SupabaseProvisionService = class {
 */
 function registerProvisionHandlers(getWin) {
 	const supabase = new SupabaseProvisionService();
+	const supabaseSite = new SupabaseSiteSetupService();
 	const requireWin = () => {
 		const win = getWin();
 		if (!win) throw new Error("No active window");
@@ -1580,6 +1833,9 @@ function registerProvisionHandlers(getWin) {
 	};
 	ipcMain.handle("provision:supabase:start", (_event, req) => {
 		supabase.start(requireWin(), req);
+	});
+	ipcMain.handle("provision:supabase:site-setup", (_event, req) => {
+		supabaseSite.start(requireWin(), req);
 	});
 	ipcMain.handle("provision:supabase:organizations", async (_event, accessToken) => {
 		try {
@@ -1622,6 +1878,7 @@ function registerProvisionHandlers(getWin) {
 	});
 	ipcMain.handle("provision:cancel", (_event, service) => {
 		if (service === "supabase") supabase.cancel();
+		if (service === "supabase-site") supabaseSite.cancel();
 	});
 }
 //#endregion

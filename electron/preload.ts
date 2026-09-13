@@ -75,6 +75,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Provisioning (Configuration par API)
   startSupabaseProvision: (req: any) => ipcRenderer.invoke('provision:supabase:start', req),
+  startSupabaseSiteSetup: (req: any) => ipcRenderer.invoke('provision:supabase:site-setup', req),
   listSupabaseOrganizations: (accessToken: string) => ipcRenderer.invoke('provision:supabase:organizations', accessToken),
   listSupabaseProjects: (accessToken: string) => ipcRenderer.invoke('provision:supabase:projects', accessToken),
   verifySupabaseProject: (accessToken: string, ref: string) => ipcRenderer.invoke('provision:supabase:verify-project', accessToken, ref),

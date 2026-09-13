@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createProvisionBridge, type ProvisionBridge } from '../services/provisionBridge'
-import type { ProvisionService, SupabaseProvisionRequest } from '../types/provision'
+import type { ProvisionService, SupabaseProvisionRequest, SupabaseSiteSetupRequest } from '../types/provision'
 
 export type ProvisionStatus = 'idle' | 'running' | 'done' | 'error'
 
@@ -76,11 +76,25 @@ export function useServiceProvision(
     }
   }, [bridge])
 
+  /** Same lifecycle as `startSupabase`, for the post-deployment settings run. */
+  const startSiteSetup = useCallback(async (req: SupabaseSiteSetupRequest) => {
+    setLogs([])
+    setProgress(0)
+    setError(null)
+    setStatus('running')
+    try {
+      await bridge.startSupabaseSiteSetup(req)
+    } catch (err) {
+      setError(String(err))
+      setStatus('error')
+    }
+  }, [bridge])
+
   const cancel = useCallback(() => {
     void bridge.cancel(service)
     setStatus('idle')
     setProgress(0)
   }, [bridge, service])
 
-  return { status, logs, progress, error, startSupabase, cancel }
+  return { status, logs, progress, error, startSupabase, startSiteSetup, cancel }
 }

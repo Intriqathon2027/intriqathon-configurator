@@ -10,6 +10,7 @@ import type {
   SupabaseProjectSummary,
   SupabaseProjectVerification,
   SupabaseProvisionRequest,
+  SupabaseSiteSetupRequest,
 } from './provision'
 
 export interface RecentConfig {
@@ -101,6 +102,7 @@ export interface ElectronAPI {
 
   // Provisioning (Configuration par API)
   startSupabaseProvision: (req: SupabaseProvisionRequest) => Promise<void>
+  startSupabaseSiteSetup: (req: SupabaseSiteSetupRequest) => Promise<void>
   listSupabaseOrganizations: (accessToken: string) => Promise<ProvisionQueryResult<SupabaseOrganizationSummary[]>>
   listSupabaseProjects: (accessToken: string) => Promise<ProvisionQueryResult<SupabaseProjectSummary[]>>
   verifySupabaseProject: (accessToken: string, ref: string) => Promise<ProvisionQueryResult<SupabaseProjectVerification>>

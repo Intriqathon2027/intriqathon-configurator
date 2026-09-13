@@ -9,6 +9,7 @@ import type {
   SupabaseProjectSummary,
   SupabaseProjectVerification,
   SupabaseProvisionRequest,
+  SupabaseSiteSetupRequest,
 } from '../types/provision'
 
 /**
@@ -18,6 +19,8 @@ import type {
  */
 export interface ProvisionBridge {
   startSupabase(req: SupabaseProvisionRequest): Promise<void>
+  /** The post-deployment settings run, driven from "Configuration du site". */
+  startSupabaseSiteSetup(req: SupabaseSiteSetupRequest): Promise<void>
   listOrganizations(accessToken: string): Promise<ProvisionQueryResult<SupabaseOrganizationSummary[]>>
   listProjects(accessToken: string): Promise<ProvisionQueryResult<SupabaseProjectSummary[]>>
   verifyProject(accessToken: string, ref: string): Promise<ProvisionQueryResult<SupabaseProjectVerification>>
@@ -32,6 +35,9 @@ export interface ProvisionBridge {
 class ElectronProvisionBridge implements ProvisionBridge {
   startSupabase(req: SupabaseProvisionRequest) {
     return window.electronAPI.startSupabaseProvision(req)
+  }
+  startSupabaseSiteSetup(req: SupabaseSiteSetupRequest) {
+    return window.electronAPI.startSupabaseSiteSetup(req)
   }
   listOrganizations(accessToken: string) {
     return window.electronAPI.listSupabaseOrganizations(accessToken)
@@ -155,6 +161,38 @@ class MockProvisionBridge implements ProvisionBridge {
     }))
   }
 
+  /**
+   * The site setup, as the real service reports it: one line per settings step.
+   * Every branch it can take depends on the state of a live project, so the
+   * mock plays the straightforward path — the "already configured" and
+   * "deployment not run yet" paths are only reachable against a real project.
+   */
+  async startSupabaseSiteSetup() {
+    this.cancelled = false
+
+    const script: [string, number][] = [
+      ['Projet demo (abcdefghijklmnopqrst) — configuration finale…', 5],
+      ['Privilèges appliqués (anon, authenticated, service_role).', 25],
+      ['Schémas exposés mis à jour : public, graphql_public.', 45],
+      ['Announcement ajoutée à supabase_realtime.', 60],
+      ["Confirmation d'email désactivée — le compte organisateur pourra se connecter.", 80],
+      ['RLS activée sur 3 table(s) : Announcement, Team, User.', 95],
+    ]
+
+    for (const [message, value] of script) {
+      await new Promise(resolve => setTimeout(resolve, 400))
+      if (this.cancelled) return
+      this.logCbs.forEach(cb => cb({ service: 'supabase-site', message, level: 'info' }))
+      this.progressCbs.forEach(cb => cb({ service: 'supabase-site', value }))
+    }
+
+    this.progressCbs.forEach(cb => cb({ service: 'supabase-site', value: 100 }))
+    this.doneCbs.forEach(cb => cb({
+      service: 'supabase-site',
+      patch: { SUPABASE_SITE_SETUP_AT: new Date().toISOString() },
+    }))
+  }
+
   async listOrganizations() {
     return { success: true, data: [{ id: '1', slug: 'demo-org', name: 'Demo Org' }] }
   }
@@ -192,9 +230,10 @@ class MockProvisionBridge implements ProvisionBridge {
     }
   }
 
-  async cancel() {
+  async cancel(service: string) {
     this.cancelled = true
-    this.cancelledCbs.forEach(cb => cb({ service: 'supabase' }))
+    const cancelled = service === 'supabase-site' ? 'supabase-site' : 'supabase'
+    this.cancelledCbs.forEach(cb => cb({ service: cancelled }))
   }
 
   onLog(cb: (p: ProvisionLogPayload) => void) {

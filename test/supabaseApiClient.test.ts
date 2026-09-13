@@ -40,6 +40,37 @@ describe('SupabaseApiClient', () => {
     await expect(makeClient(fetchImpl).getLegacyKeysEnabled('abcdefghijklmnopqrst')).resolves.toBeNull()
   })
 
+  it('runs SQL through the database query endpoint', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse([])) as unknown as typeof fetch
+    await makeClient(fetchImpl).runQuery('abcdefghijklmnopqrst', 'GRANT ALL ON SCHEMA public TO postgres;')
+
+    const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toContain('/v1/projects/abcdefghijklmnopqrst/database/query')
+    expect((init as RequestInit).method).toBe('POST')
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({
+      query: 'GRANT ALL ON SCHEMA public TO postgres;',
+    })
+  })
+
+  it('patches only the postgrest fields it is given', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ db_schema: 'public' })) as unknown as typeof fetch
+    await makeClient(fetchImpl).updatePostgrestConfig('abcdefghijklmnopqrst', { db_schema: 'public' })
+
+    const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toContain('/v1/projects/abcdefghijklmnopqrst/postgrest')
+    expect((init as RequestInit).method).toBe('PATCH')
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({ db_schema: 'public' })
+  })
+
+  it('turns email confirmation off through the auth config', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ mailer_autoconfirm: true })) as unknown as typeof fetch
+    await makeClient(fetchImpl).updateAuthConfig('abcdefghijklmnopqrst', { mailer_autoconfirm: true })
+
+    const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toContain('/v1/projects/abcdefghijklmnopqrst/config/auth')
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({ mailer_autoconfirm: true })
+  })
+
   it('treats a 409 on bucket creation as already created', async () => {
     const fetchImpl = vi.fn(async () => jsonResponse({ message: 'Duplicate' }, 409)) as unknown as typeof fetch
     const created = await makeClient(fetchImpl).createBucket(
