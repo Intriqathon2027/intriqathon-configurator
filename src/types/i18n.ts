@@ -209,6 +209,10 @@ export type TranslationKeys = {
   'apiConfig.locked.needsIpv4': string
   'apiConfig.locked.needsDomain': string
   'apiConfig.locked.needsDns': string
+  'apiConfig.locked.accountSupabase': string
+  'apiConfig.locked.accountScaleway': string
+  'apiConfig.locked.accountSpaceship': string
+  'apiConfig.locked.accountResend': string
   'apiConfig.status.done': string
   'apiConfig.status.running': string
   'apiConfig.status.error': string

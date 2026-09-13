@@ -30,12 +30,21 @@ export const REALTIME_PUBLICATION = 'supabase_realtime'
 export const REQUIRED_EXPOSED_SCHEMA = 'public'
 
 /**
- * What the realtime step is up against, before it changes anything: the table
- * only exists once the deployment has migrated the database, and the row may
- * already be in the publication from an earlier run.
+ * What the realtime step is up against, before it changes anything.
+ *
+ * The table only exists once the deployment has migrated the database, and its
+ * name is matched case-insensitively: knowing whether the schema is empty or
+ * merely spells the table differently is the difference between "run the
+ * deployment" and "you are pointed at the wrong project", and the run has to
+ * say which.
  */
 export const REALTIME_CHECK_SQL = `SELECT
-  to_regclass('public."${REALTIME_TABLE}"') IS NOT NULL AS table_exists,
+  (SELECT count(*)::int FROM pg_tables WHERE schemaname = 'public') AS public_tables,
+  (
+    SELECT tablename FROM pg_tables
+    WHERE schemaname = 'public' AND lower(tablename) = lower('${REALTIME_TABLE}')
+    ORDER BY tablename LIMIT 1
+  ) AS matched_table,
   EXISTS (
     SELECT 1 FROM pg_publication WHERE pubname = '${REALTIME_PUBLICATION}'
   ) AS publication_exists,
@@ -43,11 +52,23 @@ export const REALTIME_CHECK_SQL = `SELECT
     SELECT 1 FROM pg_publication_tables
     WHERE pubname = '${REALTIME_PUBLICATION}'
       AND schemaname = 'public'
-      AND tablename = '${REALTIME_TABLE}'
+      AND lower(tablename) = lower('${REALTIME_TABLE}')
   ) AS already_published;`
 
-export const REALTIME_ADD_SQL =
-  `ALTER PUBLICATION ${REALTIME_PUBLICATION} ADD TABLE public."${REALTIME_TABLE}";`
+/** The public tables, to name them when the expected one is not among them. */
+export const PUBLIC_TABLES_SQL = `SELECT tablename
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY tablename
+LIMIT 20;`
+
+/**
+ * Publishes the table the check actually found, rather than the name this file
+ * expects — `%I`-style quoting, so a name with a quote in it cannot break out.
+ */
+export function realtimeAddSql(table: string): string {
+  return `ALTER PUBLICATION ${REALTIME_PUBLICATION} ADD TABLE public."${table.replace(/"/g, '""')}";`
+}
 
 /** The public tables still without row level security — the list to report. */
 export const RLS_PENDING_SQL = `SELECT tablename
@@ -71,7 +92,10 @@ END $$;`
 
 /** Rows returned by `REALTIME_CHECK_SQL`. */
 export interface RealtimeCheckRow {
-  table_exists: boolean
+  /** How many tables the public schema holds — 0 means nothing is migrated yet. */
+  public_tables: number
+  /** The table as Postgres actually spells it, or null when there is none. */
+  matched_table: string | null
   publication_exists: boolean
   already_published: boolean
 }

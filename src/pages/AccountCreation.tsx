@@ -9,6 +9,7 @@ import { FieldHelpSections } from '../components/ui/HelpSection'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
 import { SupabaseProjectSetup } from '../components/provision/SupabaseProjectSetup'
+import { isAccountComplete } from '../utils/serviceCompletion'
 
 function HelpContent() {
   const { state } = useApp()
@@ -199,32 +200,12 @@ export function AccountCreation() {
     }
   }
 
-  // Completion checks
-  /**
-   * Green once a project is actually settled on — chosen from the account or
-   * created from here. The token and the password alone describe an intent,
-   * not a result: without a project reference, step 2 has nothing to work with.
-   *
-   * The S3 pair is deliberately left out: nothing in the deployed stack reads
-   * it today, and no API can create it, so requiring it would block the wizard
-   * on a manual step for values that go unused.
-   */
-  const isSupabaseComplete = !!(
-    config.SUPABASE_ACCESS_TOKEN &&
-    config.SUPABASE_DB_PASSWORD &&
-    config.SUPABASE_PROJECT_REF
-  )
-  const isResendComplete = !!config.RESEND_API_KEY
-  const isSpaceshipComplete = !!(
-    config.DOMAIN &&
-    config.SPACESHIP_API_KEY &&
-    config.SPACESHIP_API_SECRET
-  )
-  const isScalewayComplete = !!(
-    config.SCW_SECRET_KEY &&
-    config.SCW_DEFAULT_PROJECT_ID &&
-    config.DEPLOY_PATH
-  )
+  // Completion checks — the rule itself lives in `serviceCompletion`, where the
+  // automations of steps 2 and 8 read it to decide whether they may run at all.
+  const isSupabaseComplete = isAccountComplete(config, 'supabase')
+  const isResendComplete = isAccountComplete(config, 'resend')
+  const isSpaceshipComplete = isAccountComplete(config, 'spaceship')
+  const isScalewayComplete = isAccountComplete(config, 'scaleway')
 
   return (
     <WizardLayout

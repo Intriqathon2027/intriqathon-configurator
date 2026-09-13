@@ -10,6 +10,7 @@ import { useApp, type Config } from '../context/AppContext'
 import { useDockerRestart } from '../hooks/useDockerRestart'
 import { useServiceProvision } from '../hooks/useServiceProvision'
 import { GRANTS_SQL, REALTIME_TABLE } from '../shared/supabaseSiteSetup'
+import { isAccountComplete } from '../utils/serviceCompletion'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
 import { CopyRow } from '../components/ui/CopyBlock'
@@ -186,14 +187,14 @@ export function ConfigSite() {
   }
 
   /**
-   * Both values come from step 1. Without them there is nothing to talk to, so
-   * the button says which one is missing instead of failing at the first call.
-   * The manual walkthrough below stays available either way.
+   * Same gate as the step 2 automations: nothing runs while the Supabase card
+   * of step 1 is still grey. The manual walkthrough below stays available
+   * either way — when the chain is stuck, the dashboard is the way out.
    */
   const supabaseLock = !config.SUPABASE_ACCESS_TOKEN
-    ? (isEn ? 'Fill in the Supabase access token at step 1.' : "Renseignez le jeton d'accès Supabase à l'étape 1.")
-    : !config.SUPABASE_PROJECT_REF
-      ? (isEn ? 'Pick a Supabase project at step 1.' : "Sélectionnez un projet Supabase à l'étape 1.")
+    ? t('apiConfig.locked.supabaseToken')
+    : !isAccountComplete(config, 'supabase')
+      ? t('apiConfig.locked.accountSupabase')
       : null
 
   const handleSupabaseSetup = () => {

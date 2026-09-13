@@ -3,12 +3,13 @@ import { SupabaseApiClient, SupabaseApiError } from './supabase/SupabaseApiClien
 import { Redactor } from './supabase/redact'
 import {
   GRANTS_SQL,
-  REALTIME_ADD_SQL,
+  PUBLIC_TABLES_SQL,
   REALTIME_CHECK_SQL,
   REALTIME_PUBLICATION,
   REALTIME_TABLE,
   RLS_ENABLE_SQL,
   RLS_PENDING_SQL,
+  realtimeAddSql,
   withPublicSchema,
   type PendingRlsRow,
   type RealtimeCheckRow,
@@ -180,34 +181,42 @@ export class SupabaseSiteSetupService {
     this.log(win, `Réplication Realtime de la table ${REALTIME_TABLE}…`)
     const [check] = await client.runQuery<RealtimeCheckRow>(ref, REALTIME_CHECK_SQL)
 
-    if (!check?.table_exists) {
-      // Prisma creates the tables during the deployment; without them there is
-      // nothing to publish, and saying so beats a Postgres "relation does not
-      // exist" three frames deeper.
-      this.log(
-        win,
-        `Table ${REALTIME_TABLE} absente — lancez d'abord le déploiement (étape 4), puis relancez cette configuration.`,
-        'error',
-      )
-      pending.push(`Realtime sur ${REALTIME_TABLE} (table absente)`)
+    if (!check?.matched_table) {
+      // Two very different situations hide behind "table absente", and they call
+      // for opposite moves: wait for the deployment, or point the wizard at the
+      // project the deployment actually migrated.
+      const reason = !check || check.public_tables === 0
+        ? `le schéma public est vide — le déploiement (étape 4) n'a pas encore créé les tables. Relancez cette configuration ensuite.`
+        : `table ${REALTIME_TABLE} absente parmi les ${check.public_tables} tables du schéma public (${await this.listPublicTables(client, ref)}). Vérifiez que le projet sélectionné est bien celui du déploiement.`
+
+      this.log(win, `Realtime : ${reason}`, 'error')
+      pending.push(`Realtime sur ${REALTIME_TABLE} — ${reason}`)
       this.progress(win, 60)
       return
     }
 
     if (!check.publication_exists) {
-      this.log(win, `Publication ${REALTIME_PUBLICATION} introuvable sur ce projet.`, 'error')
-      pending.push(`Realtime sur ${REALTIME_TABLE} (publication ${REALTIME_PUBLICATION} absente)`)
+      const reason = `publication ${REALTIME_PUBLICATION} absente de ce projet — activez le Realtime depuis le dashboard.`
+      this.log(win, `Realtime : ${reason}`, 'error')
+      pending.push(`Realtime sur ${REALTIME_TABLE} — ${reason}`)
       this.progress(win, 60)
       return
     }
 
     if (check.already_published) {
-      this.log(win, `${REALTIME_TABLE} est déjà dans ${REALTIME_PUBLICATION}.`, 'done')
+      this.log(win, `${check.matched_table} est déjà dans ${REALTIME_PUBLICATION}.`, 'done')
     } else {
-      await client.runQuery(ref, REALTIME_ADD_SQL)
-      this.log(win, `${REALTIME_TABLE} ajoutée à ${REALTIME_PUBLICATION}.`, 'done')
+      // Published under the name Postgres reports, not the one expected here.
+      await client.runQuery(ref, realtimeAddSql(check.matched_table))
+      this.log(win, `${check.matched_table} ajoutée à ${REALTIME_PUBLICATION}.`, 'done')
     }
     this.progress(win, 60)
+  }
+
+  /** The public tables, named in the order Postgres lists them. */
+  private async listPublicTables(client: SupabaseApiClient, ref: string): Promise<string> {
+    const rows = await client.runQuery<PendingRlsRow>(ref, PUBLIC_TABLES_SQL)
+    return rows.map(r => r.tablename).join(', ')
   }
 
   // ── Step 4 — email confirmation ────────────────────────────────────────

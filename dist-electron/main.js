@@ -1613,12 +1613,21 @@ var REALTIME_PUBLICATION = "supabase_realtime";
 /** The schema the Data API has to expose for the app to read anything at all. */
 var REQUIRED_EXPOSED_SCHEMA = "public";
 /**
-* What the realtime step is up against, before it changes anything: the table
-* only exists once the deployment has migrated the database, and the row may
-* already be in the publication from an earlier run.
+* What the realtime step is up against, before it changes anything.
+*
+* The table only exists once the deployment has migrated the database, and its
+* name is matched case-insensitively: knowing whether the schema is empty or
+* merely spells the table differently is the difference between "run the
+* deployment" and "you are pointed at the wrong project", and the run has to
+* say which.
 */
 var REALTIME_CHECK_SQL = `SELECT
-  to_regclass('public."${REALTIME_TABLE}"') IS NOT NULL AS table_exists,
+  (SELECT count(*)::int FROM pg_tables WHERE schemaname = 'public') AS public_tables,
+  (
+    SELECT tablename FROM pg_tables
+    WHERE schemaname = 'public' AND lower(tablename) = lower('${REALTIME_TABLE}')
+    ORDER BY tablename LIMIT 1
+  ) AS matched_table,
   EXISTS (
     SELECT 1 FROM pg_publication WHERE pubname = '${REALTIME_PUBLICATION}'
   ) AS publication_exists,
@@ -1626,9 +1635,21 @@ var REALTIME_CHECK_SQL = `SELECT
     SELECT 1 FROM pg_publication_tables
     WHERE pubname = '${REALTIME_PUBLICATION}'
       AND schemaname = 'public'
-      AND tablename = '${REALTIME_TABLE}'
+      AND lower(tablename) = lower('${REALTIME_TABLE}')
   ) AS already_published;`;
-var REALTIME_ADD_SQL = `ALTER PUBLICATION ${REALTIME_PUBLICATION} ADD TABLE public."${REALTIME_TABLE}";`;
+/** The public tables, to name them when the expected one is not among them. */
+var PUBLIC_TABLES_SQL = `SELECT tablename
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY tablename
+LIMIT 20;`;
+/**
+* Publishes the table the check actually found, rather than the name this file
+* expects — `%I`-style quoting, so a name with a quote in it cannot break out.
+*/
+function realtimeAddSql(table) {
+	return `ALTER PUBLICATION ${REALTIME_PUBLICATION} ADD TABLE public."${table.replace(/"/g, "\"\"")}";`;
+}
 /** The public tables still without row level security — the list to report. */
 var RLS_PENDING_SQL = `SELECT tablename
 FROM pg_tables
@@ -1770,24 +1791,30 @@ var SupabaseSiteSetupService = class {
 	async enableRealtime(win, client, ref, pending) {
 		this.log(win, `Réplication Realtime de la table ${REALTIME_TABLE}…`);
 		const [check] = await client.runQuery(ref, REALTIME_CHECK_SQL);
-		if (!check?.table_exists) {
-			this.log(win, `Table ${REALTIME_TABLE} absente — lancez d'abord le déploiement (étape 4), puis relancez cette configuration.`, "error");
-			pending.push(`Realtime sur ${REALTIME_TABLE} (table absente)`);
+		if (!check?.matched_table) {
+			const reason = !check || check.public_tables === 0 ? `le schéma public est vide — le déploiement (étape 4) n'a pas encore créé les tables. Relancez cette configuration ensuite.` : `table ${REALTIME_TABLE} absente parmi les ${check.public_tables} tables du schéma public (${await this.listPublicTables(client, ref)}). Vérifiez que le projet sélectionné est bien celui du déploiement.`;
+			this.log(win, `Realtime : ${reason}`, "error");
+			pending.push(`Realtime sur ${REALTIME_TABLE} — ${reason}`);
 			this.progress(win, 60);
 			return;
 		}
 		if (!check.publication_exists) {
-			this.log(win, `Publication ${REALTIME_PUBLICATION} introuvable sur ce projet.`, "error");
-			pending.push(`Realtime sur ${REALTIME_TABLE} (publication ${REALTIME_PUBLICATION} absente)`);
+			const reason = `publication ${REALTIME_PUBLICATION} absente de ce projet — activez le Realtime depuis le dashboard.`;
+			this.log(win, `Realtime : ${reason}`, "error");
+			pending.push(`Realtime sur ${REALTIME_TABLE} — ${reason}`);
 			this.progress(win, 60);
 			return;
 		}
-		if (check.already_published) this.log(win, `${REALTIME_TABLE} est déjà dans ${REALTIME_PUBLICATION}.`, "done");
+		if (check.already_published) this.log(win, `${check.matched_table} est déjà dans ${REALTIME_PUBLICATION}.`, "done");
 		else {
-			await client.runQuery(ref, REALTIME_ADD_SQL);
-			this.log(win, `${REALTIME_TABLE} ajoutée à ${REALTIME_PUBLICATION}.`, "done");
+			await client.runQuery(ref, realtimeAddSql(check.matched_table));
+			this.log(win, `${check.matched_table} ajoutée à ${REALTIME_PUBLICATION}.`, "done");
 		}
 		this.progress(win, 60);
+	}
+	/** The public tables, named in the order Postgres lists them. */
+	async listPublicTables(client, ref) {
+		return (await client.runQuery(ref, PUBLIC_TABLES_SQL)).map((r) => r.tablename).join(", ");
 	}
 	async disableEmailConfirmation(win, client, ref) {
 		this.log(win, "Désactivation de la confirmation d'email…");

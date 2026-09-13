@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { SupabaseSiteSetupService } from '../src/electron/services/SupabaseSiteSetupService'
 import type { SupabaseApiClient } from '../src/electron/services/supabase/SupabaseApiClient'
 import {
-  REALTIME_ADD_SQL,
   RLS_ENABLE_SQL,
+  realtimeAddSql,
   withPublicSchema,
 } from '../src/shared/supabaseSiteSetup'
 
@@ -38,7 +38,8 @@ function makeWindow() {
  * the SQL, the way Postgres would: the checks return rows, the DDL returns none.
  */
 function makeClient(state: {
-  tableExists?: boolean
+  publicTables?: string[]
+  matchedTable?: string | null
   publicationExists?: boolean
   alreadyPublished?: boolean
   exposedSchemas?: string
@@ -46,7 +47,8 @@ function makeClient(state: {
   tablesWithoutRls?: string[]
 }) {
   const s = {
-    tableExists: true,
+    publicTables: ['Announcement', 'Team'],
+    matchedTable: 'Announcement' as string | null,
     publicationExists: true,
     alreadyPublished: false,
     exposedSchemas: 'public, graphql_public',
@@ -56,19 +58,24 @@ function makeClient(state: {
   }
 
   const runQuery = vi.fn(async (_ref: string, query: string) => {
-    if (query.includes('to_regclass')) {
+    // Checked first: the DO block contains the very predicate the listing uses.
+    if (query === RLS_ENABLE_SQL) {
+      s.tablesWithoutRls = []
+      return []
+    }
+    if (query.includes('matched_table')) {
       return [{
-        table_exists: s.tableExists,
+        public_tables: s.publicTables.length,
+        matched_table: s.matchedTable,
         publication_exists: s.publicationExists,
         already_published: s.alreadyPublished,
       }]
     }
-    if (query.startsWith('SELECT tablename')) {
+    if (query.includes('AND NOT rowsecurity')) {
       return s.tablesWithoutRls.map(tablename => ({ tablename }))
     }
-    if (query === RLS_ENABLE_SQL) {
-      s.tablesWithoutRls = []
-      return []
+    if (query.startsWith('SELECT tablename')) {
+      return s.publicTables.map(tablename => ({ tablename }))
     }
     return []
   })
@@ -115,7 +122,7 @@ describe('SupabaseSiteSetupService', () => {
 
     expect(client.updatePostgrestConfig).not.toHaveBeenCalled() // public already exposed
     expect(client.updateAuthConfig).toHaveBeenCalledWith('abcdefghijklmnopqrst', { mailer_autoconfirm: true })
-    expect(client.runQuery.mock.calls.some(([, q]) => q === REALTIME_ADD_SQL)).toBe(true)
+    expect(client.runQuery.mock.calls.some(([, q]) => q === realtimeAddSql('Announcement'))).toBe(true)
     expect(client.runQuery.mock.calls.some(([, q]) => q === RLS_ENABLE_SQL)).toBe(true)
 
     const done = ctx.done()
@@ -141,13 +148,22 @@ describe('SupabaseSiteSetupService', () => {
     await start()
 
     expect(client.updateAuthConfig).not.toHaveBeenCalled()
-    expect(client.runQuery.mock.calls.some(([, q]) => q === REALTIME_ADD_SQL)).toBe(false)
+    expect(client.runQuery.mock.calls.some(([, q]) => q === realtimeAddSql('Announcement'))).toBe(false)
     expect(client.runQuery.mock.calls.some(([, q]) => q === RLS_ENABLE_SQL)).toBe(false)
     expect(ctx.done()).toBeDefined()
   })
 
-  it('fails with what is left to do when the deployment has not created the tables', async () => {
-    const client = makeClient({ tableExists: false, tablesWithoutRls: [] })
+  it('publishes the table under the name Postgres actually reports', async () => {
+    const client = makeClient({ publicTables: ['announcement'], matchedTable: 'announcement' })
+    const { ctx, start } = run(client)
+    await start()
+
+    expect(client.runQuery.mock.calls.some(([, q]) => q === realtimeAddSql('announcement'))).toBe(true)
+    expect(ctx.done()).toBeDefined()
+  })
+
+  it('says the deployment has not run yet when the public schema is empty', async () => {
+    const client = makeClient({ publicTables: [], matchedTable: null, tablesWithoutRls: [] })
     const { ctx, start } = run(client)
     await start()
 
@@ -155,7 +171,17 @@ describe('SupabaseSiteSetupService', () => {
     expect(client.updateAuthConfig).toHaveBeenCalled()
     // …but the run reports the gap rather than claiming success.
     expect(ctx.done()).toBeUndefined()
-    expect(ctx.error()?.payload.message).toContain('Realtime')
+    expect(ctx.error()?.payload.message).toContain('déploiement')
+  })
+
+  it('names the tables it did find when the expected one is not among them', async () => {
+    const client = makeClient({ publicTables: ['Team', 'User'], matchedTable: null, tablesWithoutRls: [] })
+    const { ctx, start } = run(client)
+    await start()
+
+    const message = ctx.error()?.payload.message ?? ''
+    expect(message).toContain('Team, User')
+    expect(message).toContain('projet')
   })
 
   it('raises the tables RLS could not be enabled on', async () => {
@@ -163,10 +189,15 @@ describe('SupabaseSiteSetupService', () => {
     // The DO block leaves one table behind — silently half-protected is the
     // failure this check exists to catch.
     client.runQuery = vi.fn(async (_ref: string, query: string) => {
-      if (query.includes('to_regclass')) {
-        return [{ table_exists: true, publication_exists: true, already_published: true }]
+      if (query.includes('matched_table')) {
+        return [{
+          public_tables: 1,
+          matched_table: 'Announcement',
+          publication_exists: true,
+          already_published: true,
+        }]
       }
-      if (query.startsWith('SELECT tablename')) return [{ tablename: 'Team' }]
+      if (query.includes('AND NOT rowsecurity')) return [{ tablename: 'Team' }]
       return []
     })
 

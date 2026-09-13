@@ -16,6 +16,7 @@ import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshK
 import type { SshKeyInfo } from '../types/electron'
 import { useServiceProvision } from '../hooks/useServiceProvision'
 import { STORAGE_BUCKETS } from '../shared/supabaseBuckets'
+import { isAccountComplete } from '../utils/serviceCompletion'
 import type { Config } from '../context/AppContext'
 
 type Status = 'idle' | 'running' | 'done' | 'error'
@@ -335,23 +336,31 @@ export function ApiConfiguration() {
     ? t('apiConfig.locked.supabaseToken')
     : !config.SUPABASE_DB_PASSWORD
       ? t('apiConfig.locked.supabasePassword')
-      : null
+      : !isAccountComplete(config, 'supabase')
+        ? t('apiConfig.locked.accountSupabase')
+        : null
 
   const scalewayLock = !config.SCW_SECRET_KEY || !config.SCW_DEFAULT_PROJECT_ID
     ? t('apiConfig.locked.scalewayKeys')
-    : null
+    : !isAccountComplete(config, 'scaleway')
+      ? t('apiConfig.locked.accountScaleway')
+      : null
 
-  const spaceshipLock = !config.IPV4_INSTANCE
-    ? t('apiConfig.locked.needsIpv4')
+  const spaceshipLock = !config.DOMAIN
+    ? t('apiConfig.locked.needsDomain')
+    : !isAccountComplete(config, 'spaceship')
+      ? t('apiConfig.locked.accountSpaceship')
+      : !config.IPV4_INSTANCE
+        ? t('apiConfig.locked.needsIpv4')
+        : null
+
+  const resendLock = !isAccountComplete(config, 'resend')
+    ? t('apiConfig.locked.accountResend')
     : !config.DOMAIN
       ? t('apiConfig.locked.needsDomain')
-      : null
-
-  const resendLock = !config.DOMAIN
-    ? t('apiConfig.locked.needsDomain')
-    : !config.IPV4_INSTANCE
-      ? t('apiConfig.locked.needsDns')
-      : null
+      : !config.IPV4_INSTANCE
+        ? t('apiConfig.locked.needsDns')
+        : null
 
   const handleStartSupabase = () => {
     if (supabaseLock) return

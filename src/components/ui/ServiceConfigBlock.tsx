@@ -73,7 +73,13 @@ export function ServiceConfigBlock({
   manualLabel,
   children,
 }: ServiceConfigBlockProps) {
-  const complete = isComplete ?? status === 'done'
+  /**
+   * A locked block is never green. Its values may well be filled in — some are
+   * auto-derived, FROM_EMAIL from the domain for one — but as long as the step
+   * it depends on is unfinished, showing it as done states something that is
+   * not true of the service.
+   */
+  const complete = (isComplete ?? status === 'done') && !locked
   const terminalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -90,7 +96,7 @@ export function ServiceConfigBlock({
 
   return (
     <div
-      className={`service-config-block service-config-block--${status}${complete ? ' service-config-block--complete' : ''}${locked && !complete ? ' service-config-block--locked' : ''}`}
+      className={`service-config-block service-config-block--${status}${complete ? ' service-config-block--complete' : ''}${locked ? ' service-config-block--locked' : ''}`}
     >
       <div className="service-config-block__step-number">{stepNumber}</div>
 
