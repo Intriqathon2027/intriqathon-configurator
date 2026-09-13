@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus } from 'lucide-react'
+import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus, Key } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
 import { FormField } from '../components/ui/FormField'
@@ -10,6 +11,9 @@ import { FieldHelpSections } from '../components/ui/HelpSection'
 import { IconRowList, type IconRowItem } from '../components/ui/IconRowList'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
+import { useScalewayInstance } from '../hooks/useScalewayInstance'
+import { SshKeyModal } from '../components/ui/SshKeyModal'
+import type { SshKeyInfo } from '../types/electron'
 
 type Status = 'idle' | 'running' | 'done' | 'error'
 
@@ -253,13 +257,60 @@ export function ApiConfiguration() {
   // For now, hardcode statuses to 'idle' since automation isn't implemented
   const [supabaseStatus] = useState<Status>('idle')
   const [spaceshipStatus] = useState<Status>('idle')
-  const [scalewayStatus] = useState<Status>('idle')
   const [resendStatus] = useState<Status>('idle')
+
+  const {
+    status: scalewayStatus,
+    logs: scwLogs,
+    progress: scwProgress,
+    start: startScaleway,
+    cancel: cancelScaleway,
+  } = useScalewayInstance()
+
+  const { selectedSshKey } = useApp()
+  const [sshModalOpen, setSshModalOpen] = useState(false)
 
   const statusLabels = {
     done: t('apiConfig.status.done'),
     running: t('apiConfig.status.running'),
     error: t('apiConfig.status.error'),
+  }
+
+  const handleStartScaleway = async (keyToUse: SshKeyInfo | null = selectedSshKey) => {
+    if (!config.SCW_SECRET_KEY || !config.SCW_DEFAULT_PROJECT_ID) {
+      toast.error(
+        isEn
+          ? 'Please provide your Scaleway Secret Key and Project ID in step 1.'
+          : "Veuillez renseigner votre clé secrète Scaleway et votre Project ID à l'étape 1."
+      )
+      return
+    }
+
+    if (!keyToUse) {
+      setSshModalOpen(true)
+      return
+    }
+
+    const res = await startScaleway({
+      secretKey: config.SCW_SECRET_KEY,
+      projectId: config.SCW_DEFAULT_PROJECT_ID,
+      sshPublicKey: keyToUse.publicKey,
+      sshKeyName: keyToUse.name || 'intriqathon-key',
+    })
+
+    if (res.success && res.ipv4) {
+      setField('IPV4_INSTANCE', res.ipv4)
+      toast.success(
+        isEn
+          ? `Scaleway instance ready! IP: ${res.ipv4}`
+          : `Instance Scaleway prête ! IP : ${res.ipv4}`
+      )
+      if (window.electronAPI?.vaultSave) {
+        await window.electronAPI.vaultSave({ ...config, IPV4_INSTANCE: res.ipv4 })
+      }
+    } else if (res.error) {
+      toast.error(res.error, { duration: 6000 })
+    }
   }
 
   const handleStart = (service: string) => {
@@ -341,8 +392,10 @@ export function ApiConfiguration() {
           description={t('apiConfig.scaleway.desc')}
           status={scalewayStatus}
           isComplete={isScalewayComplete}
-          onStart={() => handleStart('Scaleway')}
-          onCancel={() => handleCancel('Scaleway')}
+          onStart={() => handleStartScaleway()}
+          onCancel={cancelScaleway}
+          logs={scwLogs}
+          progress={scwProgress}
           btnStartLabel={t('apiConfig.btnStart')}
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
@@ -351,6 +404,33 @@ export function ApiConfiguration() {
           manualLabel={t('apiConfig.manualConfig')}
         >
           <div className="form-section">
+            {selectedSshKey && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                backgroundColor: 'var(--color-surface-sunken)',
+                border: '1px solid var(--color-border)',
+                marginBottom: '8px',
+                fontSize: 'var(--font-size-xs)'
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Key size={13} color="var(--color-primary)" />
+                  <span>{isEn ? 'Selected SSH key:' : 'Clé SSH sélectionnée :'} <strong>{selectedSshKey.name}</strong></span>
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{ padding: '2px 8px', fontSize: '11px' }}
+                  onClick={() => setSshModalOpen(true)}
+                >
+                  {isEn ? 'Change' : 'Changer'}
+                </button>
+              </div>
+            )}
+
             <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" />
 
             <div style={{ fontWeight: 600, marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -459,6 +539,12 @@ export function ApiConfiguration() {
         </ServiceConfigBlock>
 
       </div>
+
+      <SshKeyModal
+        isOpen={sshModalOpen}
+        onClose={() => setSshModalOpen(false)}
+        onConfirm={(key) => handleStartScaleway(key)}
+      />
     </WizardLayout>
   )
 }

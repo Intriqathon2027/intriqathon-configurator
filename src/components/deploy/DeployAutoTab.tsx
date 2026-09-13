@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database, FolderOpen } from 'lucide-react'
+import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database, FolderOpen, Key } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import { generateEnvContent } from '../../utils/deploy'
 import { useDeployment } from '../../hooks/useDeployment'
 import { DeployDialog } from './DeployDialog'
 import { IconRowList } from '../ui/IconRowList'
+import { SshKeyModal } from '../ui/SshKeyModal'
+import type { SshKeyInfo } from '../../types/electron'
 import type { DeployLogEntry, DeploymentStatus } from '../../hooks/useDeployment'
 
 function getStatusIcon(status: DeployLogEntry['status']) {
@@ -34,7 +36,9 @@ function getGlobalStatusIcon(status: DeploymentStatus) {
 }
 
 export function DeployAutoTab() {
-  const { t, config, setField, markStepDone } = useApp()
+  const { t, config, setField, markStepDone, selectedSshKey, state } = useApp()
+  const isEn = state.language === 'en'
+  const [sshModalOpen, setSshModalOpen] = useState(false)
   const {
     status,
     logs,
@@ -75,9 +79,13 @@ export function DeployAutoTab() {
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const domain = config.DOMAIN || 'example.com'
 
-  const handleStart = () => {
+  const handleStart = (keyToUse: SshKeyInfo | null = selectedSshKey) => {
+    if (!keyToUse) {
+      setSshModalOpen(true)
+      return
+    }
     const envContent = generateEnvContent(config as unknown as Record<string, string>)
-    start({ deployPath, ipv4, domain, envContent })
+    start({ deployPath, ipv4, domain, envContent, sshKeyPath: keyToUse.privateKeyPath })
   }
 
   const isRunning = status === 'running' || status === 'paused_for_dialog'
@@ -95,7 +103,7 @@ export function DeployAutoTab() {
         </div>
 
         {/* Deploy path selector */}
-        <div className="deploy-path-selector" style={{ marginBottom: 'var(--space-4)' }}>
+        <div className="deploy-path-selector" style={{ marginBottom: 'var(--space-3)' }}>
           <label className="form-label" style={{ marginBottom: 'var(--space-2)', display: 'block' }}>
             {t('step6.auto.deployPath')}
           </label>
@@ -121,6 +129,38 @@ export function DeployAutoTab() {
               <FolderOpen size={16} />
             </button>
           </div>
+        </div>
+
+        {/* SSH key selector */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 14px',
+          borderRadius: '8px',
+          backgroundColor: 'var(--color-surface-sunken)',
+          border: '1px solid var(--color-border)',
+          marginBottom: 'var(--space-4)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Key size={16} color="var(--color-primary)" />
+            <div>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)' }}>
+                {isEn ? 'Authentication SSH key' : 'Clé SSH d\'authentification'}
+              </div>
+              <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
+                {selectedSshKey ? selectedSshKey.name : (isEn ? 'No key selected (required for deploy)' : 'Aucune clé sélectionnée (requise pour le déploiement)')}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)' }}
+            onClick={() => setSshModalOpen(true)}
+          >
+            {selectedSshKey ? (isEn ? 'Change' : 'Changer') : (isEn ? 'Select key' : 'Sélectionner une clé')}
+          </button>
         </div>
 
         {/* Console output */}
@@ -205,8 +245,18 @@ export function DeployAutoTab() {
 
       {/* Dialog overlay */}
       {pendingDialog && (
-        <DeployDialog dialog={pendingDialog} onRespond={respondToDialog} />
+        <DeployDialog
+          dialog={pendingDialog}
+          onRespond={respondToDialog}
+          onCancel={cancel}
+        />
       )}
+
+      <SshKeyModal
+        isOpen={sshModalOpen}
+        onClose={() => setSshModalOpen(false)}
+        onConfirm={(key) => handleStart(key)}
+      />
     </>
   )
 }

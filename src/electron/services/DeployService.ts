@@ -26,7 +26,7 @@ export class DeployService {
     win.webContents.send('deploy:stdout', `[DEBUG] ${msg}`)
   }
 
-  start(ipv4: string, sourceDir: string, win: BrowserWindow, sshPassword?: string): void {
+  start(ipv4: string, sourceDir: string, win: BrowserWindow, sshPassword?: string, sshKeyPath?: string): void {
     this.cancel()
 
     const scriptPath = this.getScriptPath()
@@ -62,6 +62,10 @@ export class DeployService {
     if (sshPassword) {
       env.SSHPASS = sshPassword
       this.debug(win, `SSHPASS configuré pour l'authentification`)
+    }
+    if (sshKeyPath) {
+      env.SSH_KEY_PATH = sshKeyPath
+      this.debug(win, `SSH_KEY_PATH configuré : ${sshKeyPath}`)
     }
 
     const args = isWin
@@ -107,7 +111,7 @@ export class DeployService {
     })
   }
 
-  startRestart(ipv4: string, win: BrowserWindow, sshPassword?: string): void {
+  startRestart(ipv4: string, win: BrowserWindow, sshPassword?: string, sshKeyPath?: string): void {
     this.cancel()
 
     const scriptPath = this.getScriptPath('restart_docker')
@@ -140,6 +144,10 @@ export class DeployService {
     if (sshPassword) {
       env.SSHPASS = sshPassword
       this.debug(win, `SSHPASS configuré pour l'authentification`)
+    }
+    if (sshKeyPath) {
+      env.SSH_KEY_PATH = sshKeyPath
+      this.debug(win, `SSH_KEY_PATH configuré : ${sshKeyPath}`)
     }
 
     const args = isWin

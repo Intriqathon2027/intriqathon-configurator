@@ -20,10 +20,21 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
 	vaultReset: () => electron.ipcRenderer.invoke("vault:reset"),
 	vaultChangePassword: (oldPassword, newPassword) => electron.ipcRenderer.invoke("vault:change-password", oldPassword, newPassword),
 	vaultDecryptFile: (payload, password) => electron.ipcRenderer.invoke("vault:decrypt-file", payload, password),
+	listSshKeys: () => electron.ipcRenderer.invoke("ssh:list-keys"),
+	generateSshKey: (customName) => electron.ipcRenderer.invoke("ssh:generate-key", customName),
+	createScalewayInstance: (options) => electron.ipcRenderer.invoke("scaleway:create-instance", options),
+	cancelScalewayInstance: () => electron.ipcRenderer.invoke("scaleway:cancel"),
+	onScalewayLog: (cb) => {
+		const handler = (_event, log) => cb(log);
+		electron.ipcRenderer.on("scaleway:log", handler);
+		return () => {
+			electron.ipcRenderer.removeListener("scaleway:log", handler);
+		};
+	},
 	getPlatform: () => electron.ipcRenderer.invoke("deploy:get-platform"),
 	writeEnvToDir: (dir, content) => electron.ipcRenderer.invoke("deploy:write-env", dir, content),
-	startDeploy: (ipv4, sourceDir, sshPassword) => electron.ipcRenderer.invoke("deploy:start", ipv4, sourceDir, sshPassword),
-	restartDocker: (ipv4, sshPassword) => electron.ipcRenderer.invoke("deploy:restart", ipv4, sshPassword),
+	startDeploy: (ipv4, sourceDir, sshPassword, sshKeyPath) => electron.ipcRenderer.invoke("deploy:start", ipv4, sourceDir, sshPassword, sshKeyPath),
+	restartDocker: (ipv4, sshPassword, sshKeyPath) => electron.ipcRenderer.invoke("deploy:restart", ipv4, sshPassword, sshKeyPath),
 	cancelDeploy: () => electron.ipcRenderer.invoke("deploy:cancel"),
 	sendDeployInput: (text) => electron.ipcRenderer.invoke("deploy:send-input", text),
 	onDeployStdout: (cb) => {

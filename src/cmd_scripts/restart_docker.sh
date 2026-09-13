@@ -20,6 +20,10 @@ IPV4="$1"
 echo "[SCRIPT] IPV4 = ${IPV4}"
 
 SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=no"
+if [ -n "${SSH_KEY_PATH:-}" ]; then
+    echo "[SCRIPT] Utilisation de la clé SSH : ${SSH_KEY_PATH}"
+    SSH_OPTS="${SSH_OPTS} -i ${SSH_KEY_PATH}"
+fi
 
 echo "=== Redémarrage sur ${IPV4} ==="
 

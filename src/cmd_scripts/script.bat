@@ -31,6 +31,10 @@ echo [SCRIPT] IPV4 = %IPV4%
 echo [SCRIPT] SOURCE_DIR = %SOURCE_DIR%
 
 set "SSH_OPTS=-o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o BatchMode=yes"
+if defined SSH_KEY_PATH (
+    echo [SCRIPT] Utilisation de la cle SSH : %SSH_KEY_PATH%
+    set "SSH_OPTS=%SSH_OPTS% -i "%SSH_KEY_PATH%""
+)
 
 echo === Deploiement vers %IPV4% ===
 echo     Dossier source : %SOURCE_DIR%

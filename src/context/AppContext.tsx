@@ -3,6 +3,7 @@ import type { Language } from '../types/i18n'
 import { translations } from '../i18n/translations'
 import { steps } from '../components/layout/steps'
 import { FONT_SCALE_KEY, clampFontScale, loadFontScale } from '../utils/fontScale'
+import type { SshKeyInfo } from '../types/electron'
 
 // ============================================================
 // CONFIG STATE
@@ -245,6 +246,9 @@ interface AppContextType {
   lockVault: () => Promise<void>
   resetVault: () => Promise<void>
   changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>
+  /** SSH key selected for Scaleway / deployment */
+  selectedSshKey: SshKeyInfo | null
+  setSelectedSshKey: (key: SshKeyInfo | null) => void
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -254,6 +258,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
     resolveTheme(initialState.theme, window.matchMedia(DARK_QUERY).matches)
   )
+  const [selectedSshKey, setSelectedSshKey] = useState<SshKeyInfo | null>(() => {
+    try {
+      const raw = localStorage.getItem('intriqathon-ssh-key')
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  })
+
+  useEffect(() => {
+    if (selectedSshKey) {
+      localStorage.setItem('intriqathon-ssh-key', JSON.stringify(selectedSshKey))
+    } else {
+      localStorage.removeItem('intriqathon-ssh-key')
+    }
+  }, [selectedSshKey])
 
   // Check vault status on mount
   useEffect(() => {
@@ -398,6 +418,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     dispatch({ type: 'RESET_CONFIG' })
     dispatch({ type: 'SET_VAULT_STATUS', exists: false, unlocked: false })
+    setSelectedSshKey(null)
   }
 
   const changePassword = async (oldPassword: string, newPassword: string) => {
@@ -474,6 +495,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       lockVault,
       resetVault,
       changePassword,
+      selectedSshKey,
+      setSelectedSshKey,
     }}>
       {children}
     </AppContext.Provider>

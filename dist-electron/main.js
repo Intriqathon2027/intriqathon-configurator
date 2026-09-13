@@ -2,8 +2,10 @@ import { BrowserWindow, app, dialog, ipcMain, shell } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import crypto from "node:crypto";
+import os from "node:os";
+import { promisify } from "node:util";
 //#region src/electron/services/PlatformService.ts
 var PlatformService = class {
 	static getPlatform() {
@@ -37,7 +39,7 @@ var DeployService = class {
 	debug(win, msg) {
 		win.webContents.send("deploy:stdout", `[DEBUG] ${msg}`);
 	}
-	start(ipv4, sourceDir, win, sshPassword) {
+	start(ipv4, sourceDir, win, sshPassword, sshKeyPath) {
 		this.cancel();
 		const scriptPath = this.getScriptPath();
 		const isWin = PlatformService.isWindows();
@@ -63,6 +65,10 @@ var DeployService = class {
 		if (sshPassword) {
 			env.SSHPASS = sshPassword;
 			this.debug(win, `SSHPASS configuré pour l'authentification`);
+		}
+		if (sshKeyPath) {
+			env.SSH_KEY_PATH = sshKeyPath;
+			this.debug(win, `SSH_KEY_PATH configuré : ${sshKeyPath}`);
 		}
 		const args = isWin ? ["cmd.exe", [
 			"/c",
@@ -104,7 +110,7 @@ var DeployService = class {
 			this.childProcess = null;
 		});
 	}
-	startRestart(ipv4, win, sshPassword) {
+	startRestart(ipv4, win, sshPassword, sshKeyPath) {
 		this.cancel();
 		const scriptPath = this.getScriptPath("restart_docker");
 		const isWin = PlatformService.isWindows();
@@ -129,6 +135,10 @@ var DeployService = class {
 		if (sshPassword) {
 			env.SSHPASS = sshPassword;
 			this.debug(win, `SSHPASS configuré pour l'authentification`);
+		}
+		if (sshKeyPath) {
+			env.SSH_KEY_PATH = sshKeyPath;
+			this.debug(win, `SSH_KEY_PATH configuré : ${sshKeyPath}`);
 		}
 		const args = isWin ? ["cmd.exe", [
 			"/c",
@@ -184,15 +194,15 @@ function registerDeployHandlers(getWin) {
 	const deployService = new DeployService();
 	ipcMain.handle("deploy:get-platform", () => PlatformService.getPlatform());
 	ipcMain.handle("deploy:write-env", (_event, dirPath, content) => PlatformService.writeEnvFile(dirPath, content));
-	ipcMain.handle("deploy:start", (_event, ipv4, sourceDir, sshPassword) => {
+	ipcMain.handle("deploy:start", (_event, ipv4, sourceDir, sshPassword, sshKeyPath) => {
 		const win = getWin();
 		if (!win) throw new Error("No active window");
-		deployService.start(ipv4, sourceDir, win, sshPassword);
+		deployService.start(ipv4, sourceDir, win, sshPassword, sshKeyPath);
 	});
-	ipcMain.handle("deploy:restart", (_event, ipv4, sshPassword) => {
+	ipcMain.handle("deploy:restart", (_event, ipv4, sshPassword, sshKeyPath) => {
 		const win = getWin();
 		if (!win) throw new Error("No active window");
-		deployService.startRestart(ipv4, win, sshPassword);
+		deployService.startRestart(ipv4, win, sshPassword, sshKeyPath);
 	});
 	ipcMain.handle("deploy:cancel", () => deployService.cancel());
 	ipcMain.handle("deploy:send-input", (_event, text) => deployService.sendInput(text));
@@ -544,6 +554,361 @@ function registerVaultHandlers(getWin) {
 	});
 }
 //#endregion
+//#region src/electron/services/SshKeyService.ts
+var execFileAsync = promisify(execFile);
+var SshKeyService = class {
+	static getSshDir() {
+		return path.join(os.homedir(), ".ssh");
+	}
+	/**
+	* Scan ~/.ssh/ directory for public and private SSH keys
+	*/
+	static async listKeys() {
+		const sshDir = this.getSshDir();
+		if (!fs.existsSync(sshDir)) return [];
+		try {
+			const pubFiles = fs.readdirSync(sshDir).filter((f) => f.endsWith(".pub"));
+			const keys = [];
+			for (const pubFile of pubFiles) try {
+				const pubPath = path.join(sshDir, pubFile);
+				const content = fs.readFileSync(pubPath, "utf-8").trim();
+				if (!content) continue;
+				const privateFile = pubFile.replace(/\.pub$/, "");
+				const privatePath = path.join(sshDir, privateFile);
+				const hasPrivate = fs.existsSync(privatePath);
+				const parts = content.split(/\s+/);
+				const keyType = parts[0] || "ssh-unknown";
+				const comment = parts.length > 2 ? parts.slice(2).join(" ") : privateFile;
+				keys.push({
+					name: comment || privateFile,
+					filename: pubFile,
+					publicKey: content,
+					publicKeyPath: pubPath,
+					privateKeyPath: privatePath,
+					hasPrivateKey: hasPrivate,
+					keyType
+				});
+			} catch {}
+			return keys;
+		} catch {
+			return [];
+		}
+	}
+	/**
+	* Generate a new Ed25519 SSH key pair in ~/.ssh/
+	*/
+	static async generateKey(customName) {
+		const sshDir = this.getSshDir();
+		if (!fs.existsSync(sshDir)) fs.mkdirSync(sshDir, {
+			recursive: true,
+			mode: 448
+		});
+		const baseName = (customName || "id_ed25519_intriqathon").replace(/[^a-zA-Z0-9_-]/g, "_");
+		let finalName = baseName;
+		let privatePath = path.join(sshDir, finalName);
+		if (fs.existsSync(privatePath)) {
+			finalName = `${baseName}_${Math.floor(Date.now() / 1e3)}`;
+			privatePath = path.join(sshDir, finalName);
+		}
+		const pubPath = `${privatePath}.pub`;
+		try {
+			await execFileAsync("ssh-keygen", [
+				"-t",
+				"ed25519",
+				"-C",
+				"intriqathon",
+				"-N",
+				"",
+				"-f",
+				privatePath
+			]);
+		} catch (err) {
+			throw new Error(`Échec de la génération de clé SSH avec ssh-keygen : ${err.message || String(err)}`);
+		}
+		if (!fs.existsSync(pubPath)) throw new Error("La clé publique générée est introuvable après ssh-keygen");
+		const content = fs.readFileSync(pubPath, "utf-8").trim();
+		const parts = content.split(/\s+/);
+		const keyType = parts[0] || "ssh-ed25519";
+		return {
+			name: (parts.length > 2 ? parts.slice(2).join(" ") : finalName) || finalName,
+			filename: `${finalName}.pub`,
+			publicKey: content,
+			publicKeyPath: pubPath,
+			privateKeyPath: privatePath,
+			hasPrivateKey: true,
+			keyType
+		};
+	}
+};
+//#endregion
+//#region src/electron/ipc/sshHandlers.ts
+function registerSshHandlers() {
+	ipcMain.handle("ssh:list-keys", async () => {
+		return SshKeyService.listKeys();
+	});
+	ipcMain.handle("ssh:generate-key", async (_event, customName) => {
+		try {
+			return {
+				success: true,
+				key: await SshKeyService.generateKey(customName)
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: err.message || String(err)
+			};
+		}
+	});
+}
+//#endregion
+//#region src/electron/services/ScalewayService.ts
+var ScalewayService = class {
+	isCancelled = false;
+	cancel() {
+		this.isCancelled = true;
+	}
+	log(win, message, status = "info", progress) {
+		console.log(`[ScalewayService] [${status.toUpperCase()}] ${message}`);
+		if (win && !win.isDestroyed()) win.webContents.send("scaleway:log", {
+			message,
+			status,
+			progress
+		});
+	}
+	formatScalewayError(status, rawBody, context) {
+		let parsedMessage = rawBody;
+		let errorType = "";
+		let errorHelp = "";
+		try {
+			const parsed = JSON.parse(rawBody);
+			if (parsed.message) parsedMessage = parsed.message;
+			if (parsed.type) errorType = parsed.type;
+			if (parsed.help) errorHelp = ` (Conseil: ${parsed.help})`;
+			if (parsed.fields && typeof parsed.fields === "object") {
+				const fieldDetails = Object.entries(parsed.fields).map(([k, v]) => {
+					if (Array.isArray(v)) return `${k}: ${v.map((item) => typeof item === "object" ? item.message || JSON.stringify(item) : item).join(", ")}`;
+					return `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`;
+				}).join(" ; ");
+				if (fieldDetails) parsedMessage += ` [Champs: ${fieldDetails}]`;
+			}
+		} catch {}
+		if (status === 401 || status === 403) return `[ERREUR ${status}] Accès refusé par Scaleway lors de: ${context}. Vérifiez que votre SCW_SECRET_KEY est correcte (étape 1) et possède les droits IAM nécessaires. Détail: "${parsedMessage}"${errorHelp}`;
+		if (status === 404) return `[ERREUR 404] Ressource ou Projet Scaleway introuvable lors de: ${context}. Vérifiez l'ID de votre projet (SCW_DEFAULT_PROJECT_ID) à l'étape 1. Détail: "${parsedMessage}"`;
+		if (status === 400) return `[ERREUR 400] Paramètre invalide lors de: ${context}. Détail: "${parsedMessage}"${errorType ? ` (${errorType})` : ""}${errorHelp}`;
+		return `[ERREUR HTTP ${status}] Échec lors de: ${context}. Détail: "${parsedMessage}"${errorType ? ` (${errorType})` : ""}`;
+	}
+	/**
+	* Upload SSH key to Scaleway IAM if not already present
+	*/
+	async ensureSshKey(options, win) {
+		const { secretKey, projectId, sshPublicKey, sshKeyName = "intriqathon-key" } = options;
+		const normalizedKey = sshPublicKey.trim().split(/\s+/).slice(0, 2).join(" ");
+		this.log(win, "Vérification de la présence de la clé SSH sur Scaleway (API IAM)...", "running", 15);
+		let listRes;
+		try {
+			listRes = await fetch("https://api.scaleway.com/iam/v1alpha1/ssh-keys?page_size=100", { headers: {
+				"X-Auth-Token": secretKey,
+				"Content-Type": "application/json"
+			} });
+		} catch (netErr) {
+			const msg = `[ERREUR RÉSEAU] Impossible de contacter l'API Scaleway IAM: ${netErr.message || String(netErr)}`;
+			this.log(win, msg, "error");
+			throw new Error(msg);
+		}
+		if (!listRes.ok) {
+			const errBody = await listRes.text();
+			const formatted = this.formatScalewayError(listRes.status, errBody, "Vérification des clés SSH IAM");
+			this.log(win, formatted, "error");
+			throw new Error(formatted);
+		}
+		const existing = ((await listRes.json()).ssh_keys || []).find((k) => {
+			return (k.public_key || "").trim().split(/\s+/).slice(0, 2).join(" ") === normalizedKey;
+		});
+		if (existing) {
+			this.log(win, `Clé SSH déjà enregistrée sur votre compte Scaleway (${existing.name}).`, "info", 25);
+			return;
+		}
+		const finalKeyName = `${sshKeyName}-${Date.now().toString().slice(-4)}`;
+		this.log(win, `Ajout de la clé SSH ("${finalKeyName}") sur Scaleway...`, "running", 20);
+		let createRes;
+		try {
+			createRes = await fetch("https://api.scaleway.com/iam/v1alpha1/ssh-keys", {
+				method: "POST",
+				headers: {
+					"X-Auth-Token": secretKey,
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify({
+					name: finalKeyName,
+					public_key: sshPublicKey.trim(),
+					project_id: projectId
+				})
+			});
+		} catch (netErr) {
+			const msg = `[ERREUR RÉSEAU] Impossible d'envoyer la clé SSH à Scaleway: ${netErr.message || String(netErr)}`;
+			this.log(win, msg, "error");
+			throw new Error(msg);
+		}
+		if (!createRes.ok) {
+			const errBody = await createRes.text();
+			if (createRes.status === 409 || errBody.toLowerCase().includes("already exist")) {
+				this.log(win, "Clé SSH déjà présente sur Scaleway.", "info", 30);
+				return;
+			}
+			const formatted = this.formatScalewayError(createRes.status, errBody, "Ajout de la clé SSH IAM");
+			this.log(win, formatted, "error");
+			throw new Error(formatted);
+		}
+		this.log(win, "Clé SSH ajoutée avec succès sur votre compte Scaleway.", "info", 30);
+	}
+	/**
+	* Resolve Ubuntu 24.04 local image ID for the given zone and commercial type
+	*/
+	async resolveUbuntuNobleImage(zone, commercialType = "DEV1-M") {
+		const fallbackImageId = "91cb8918-98c0-46ed-8c80-02cbd00b6a66";
+		try {
+			const res = await fetch(`https://api.scaleway.com/marketplace/v2/local-images?image_label=ubuntu_noble&zone=${encodeURIComponent(zone)}&per_page=100`);
+			if (res.ok) {
+				const images = (await res.json()).local_images || [];
+				const matched = images.find((img) => Array.isArray(img.compatible_commercial_types) && img.compatible_commercial_types.includes(commercialType));
+				if (matched?.id) return matched.id;
+				const matchedLocal = images.find((img) => img.zone === zone && img.arch === "x86_64" && img.type === "instance_local");
+				if (matchedLocal?.id) return matchedLocal.id;
+			}
+		} catch {}
+		return fallbackImageId;
+	}
+	/**
+	* Main method: creates an instance, powers it on, and retrieves the public IPv4
+	*/
+	async createInstance(options, win) {
+		this.isCancelled = false;
+		const zone = options.zone || "fr-par-1";
+		const commercialType = options.commercialType || "DEV1-M";
+		this.log(win, `Démarrage de la configuration automatisée Scaleway (Zone: ${zone})...`, "running", 5);
+		try {
+			await this.ensureSshKey(options, win);
+			if (this.isCancelled) throw new Error("Opération annulée par l'utilisateur");
+			this.log(win, "Recherche de l'image système Ubuntu 24.04 LTS (Noble Numbat)...", "running", 35);
+			const imageId = await this.resolveUbuntuNobleImage(zone, commercialType);
+			this.log(win, `Image Ubuntu 24.04 identifiée: ${imageId}`, "info", 40);
+			this.log(win, `Création de l'instance (${commercialType})...`, "running", 45);
+			const createPayload = {
+				name: `intriqathon-${Date.now().toString().slice(-4)}`,
+				project: options.projectId,
+				commercial_type: commercialType,
+				image: imageId,
+				dynamic_ip_required: true
+			};
+			let serverRes;
+			try {
+				serverRes = await fetch(`https://api.scaleway.com/instance/v1/zones/${zone}/servers`, {
+					method: "POST",
+					headers: {
+						"X-Auth-Token": options.secretKey,
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify(createPayload)
+				});
+			} catch (netErr) {
+				const msg = `[ERREUR RÉSEAU] Impossible de contacter l'API Scaleway Instances: ${netErr.message || String(netErr)}`;
+				this.log(win, msg, "error");
+				throw new Error(msg);
+			}
+			if (!serverRes.ok) {
+				const errBody = await serverRes.text();
+				const formatted = this.formatScalewayError(serverRes.status, errBody, `Création du serveur (${commercialType})`);
+				this.log(win, formatted, "error");
+				throw new Error(formatted);
+			}
+			const server = (await serverRes.json()).server;
+			const serverId = server.id;
+			this.log(win, `Instance créée avec succès (ID: ${serverId}, Nom: ${server.name}).`, "info", 55);
+			this.log(win, "Démarrage (poweron) de l'instance...", "running", 60);
+			let actionRes = null;
+			try {
+				actionRes = await fetch(`https://api.scaleway.com/instance/v1/zones/${zone}/servers/${serverId}/action`, {
+					method: "POST",
+					headers: {
+						"X-Auth-Token": options.secretKey,
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify({ action: "poweron" })
+				});
+			} catch (netErr) {
+				this.log(win, `Avertissement réseau poweron: ${netErr.message || String(netErr)}`, "info", 62);
+			}
+			if (actionRes && !actionRes.ok) {
+				const errBody = await actionRes.text();
+				this.log(win, `Notification démarrage : ${errBody}`, "info", 65);
+			}
+			this.log(win, "Attente de l'initialisation et de l'attribution de l'IPv4 publique...", "running", 70);
+			let ipv4 = server.public_ip?.address || "";
+			let isRunning = server.state === "running";
+			let attempts = 0;
+			const maxAttempts = 60;
+			while ((!isRunning || !ipv4) && attempts < maxAttempts) {
+				if (this.isCancelled) throw new Error("Opération annulée par l'utilisateur");
+				await new Promise((r) => setTimeout(r, 3e3));
+				attempts++;
+				try {
+					const pollRes = await fetch(`https://api.scaleway.com/instance/v1/zones/${zone}/servers/${serverId}`, { headers: {
+						"X-Auth-Token": options.secretKey,
+						"Content-Type": "application/json"
+					} });
+					if (pollRes.ok) {
+						const currentServer = (await pollRes.json()).server;
+						isRunning = currentServer.state === "running";
+						ipv4 = currentServer.public_ip?.address || ipv4;
+						const currentProgress = Math.min(70 + Math.floor(attempts / maxAttempts * 25), 95);
+						this.log(win, `Statut instance : ${currentServer.state} (IP: ${ipv4 || "en cours d'attribution"})...`, "running", currentProgress);
+					}
+				} catch {}
+			}
+			if (!ipv4) {
+				const msg = "[ERREUR] L'instance a démarré mais aucune IPv4 publique n'a été attribuée après 3 minutes.";
+				this.log(win, msg, "error");
+				throw new Error(msg);
+			}
+			this.log(win, `✓ Instance opérationnelle ! IPv4 publique allouée : ${ipv4}`, "done", 100);
+			return {
+				ipv4,
+				serverId
+			};
+		} catch (err) {
+			const msg = err.message || String(err);
+			if (!msg.startsWith("[ERREUR")) this.log(win, `[ERREUR] ${msg}`, "error");
+			throw err;
+		}
+	}
+};
+//#endregion
+//#region src/electron/ipc/scalewayHandlers.ts
+function registerScalewayHandlers(getWin) {
+	let activeService = null;
+	ipcMain.handle("scaleway:create-instance", async (_event, options) => {
+		const win = getWin();
+		activeService = new ScalewayService();
+		try {
+			return {
+				success: true,
+				...await activeService.createInstance(options, win)
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: err.message || String(err)
+			};
+		} finally {
+			activeService = null;
+		}
+	});
+	ipcMain.handle("scaleway:cancel", () => {
+		if (activeService) activeService.cancel();
+		return { success: true };
+	});
+}
+//#endregion
 //#region electron/main.ts
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
@@ -634,6 +999,8 @@ app.on("activate", () => {
 });
 registerDeployHandlers(() => win);
 registerVaultHandlers(() => win);
+registerSshHandlers();
+registerScalewayHandlers(() => win);
 app.whenReady().then(createWindow);
 //#endregion
 export { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL };

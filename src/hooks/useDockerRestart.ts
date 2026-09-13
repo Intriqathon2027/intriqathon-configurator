@@ -5,6 +5,7 @@ import type { DeployLogEntry, DeploymentStatus } from './useDeployment'
 export interface DockerRestartConfig {
   ipv4: string
   sshPassword?: string
+  sshKeyPath?: string
 }
 
 export function useDockerRestart() {
@@ -69,7 +70,7 @@ export function useDockerRestart() {
 
     addLog('Lancement du redémarrage Docker...', 'info')
     
-    bridge.restartDocker(config.ipv4, config.sshPassword)
+    bridge.restartDocker(config.ipv4, config.sshPassword, config.sshKeyPath)
       .catch(err => {
         addLog(`Échec du lancement (IPC) : ${err}`, 'error')
         setStatus('error')

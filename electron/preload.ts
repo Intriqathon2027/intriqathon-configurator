@@ -25,11 +25,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
   vaultChangePassword: (oldPassword: string, newPassword: string) => ipcRenderer.invoke('vault:change-password', oldPassword, newPassword),
   vaultDecryptFile: (payload: any, password: string) => ipcRenderer.invoke('vault:decrypt-file', payload, password),
 
+  // SSH Keys
+  listSshKeys: () => ipcRenderer.invoke('ssh:list-keys'),
+  generateSshKey: (customName?: string) => ipcRenderer.invoke('ssh:generate-key', customName),
+
+  // Scaleway Automation
+  createScalewayInstance: (options: {
+    secretKey: string
+    projectId: string
+    sshPublicKey: string
+    sshKeyName?: string
+    zone?: string
+    commercialType?: string
+  }) => ipcRenderer.invoke('scaleway:create-instance', options),
+  cancelScalewayInstance: () => ipcRenderer.invoke('scaleway:cancel'),
+  onScalewayLog: (cb: (log: { message: string; status: 'info' | 'running' | 'done' | 'error'; progress?: number }) => void) => {
+    const handler = (_event: any, log: any) => cb(log)
+    ipcRenderer.on('scaleway:log', handler)
+    return () => { ipcRenderer.removeListener('scaleway:log', handler) }
+  },
+
   // Deploy
   getPlatform: () => ipcRenderer.invoke('deploy:get-platform'),
   writeEnvToDir: (dir: string, content: string) => ipcRenderer.invoke('deploy:write-env', dir, content),
-  startDeploy: (ipv4: string, sourceDir: string, sshPassword?: string) => ipcRenderer.invoke('deploy:start', ipv4, sourceDir, sshPassword),
-  restartDocker: (ipv4: string, sshPassword?: string) => ipcRenderer.invoke('deploy:restart', ipv4, sshPassword),
+  startDeploy: (ipv4: string, sourceDir: string, sshPassword?: string, sshKeyPath?: string) => ipcRenderer.invoke('deploy:start', ipv4, sourceDir, sshPassword, sshKeyPath),
+  restartDocker: (ipv4: string, sshPassword?: string, sshKeyPath?: string) => ipcRenderer.invoke('deploy:restart', ipv4, sshPassword, sshKeyPath),
   cancelDeploy: () => ipcRenderer.invoke('deploy:cancel'),
   sendDeployInput: (text: string) => ipcRenderer.invoke('deploy:send-input', text),
   onDeployStdout: (cb: (line: string) => void) => {

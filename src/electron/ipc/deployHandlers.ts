@@ -8,15 +8,15 @@ export function registerDeployHandlers(getWin: () => BrowserWindow | null): void
 
   ipcMain.handle('deploy:get-platform', () => PlatformService.getPlatform())
   ipcMain.handle('deploy:write-env', (_event, dirPath: string, content: string) => PlatformService.writeEnvFile(dirPath, content))
-  ipcMain.handle('deploy:start', (_event, ipv4: string, sourceDir: string, sshPassword?: string) => {
+  ipcMain.handle('deploy:start', (_event, ipv4: string, sourceDir: string, sshPassword?: string, sshKeyPath?: string) => {
     const win = getWin()
     if (!win) throw new Error('No active window')
-    deployService.start(ipv4, sourceDir, win, sshPassword)
+    deployService.start(ipv4, sourceDir, win, sshPassword, sshKeyPath)
   })
-  ipcMain.handle('deploy:restart', (_event, ipv4: string, sshPassword?: string) => {
+  ipcMain.handle('deploy:restart', (_event, ipv4: string, sshPassword?: string, sshKeyPath?: string) => {
     const win = getWin()
     if (!win) throw new Error('No active window')
-    deployService.startRestart(ipv4, win, sshPassword)
+    deployService.startRestart(ipv4, win, sshPassword, sshKeyPath)
   })
   ipcMain.handle('deploy:cancel', () => deployService.cancel())
   ipcMain.handle('deploy:send-input', (_event, text: string) => deployService.sendInput(text))
