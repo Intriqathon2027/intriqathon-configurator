@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Globe, CheckCircle, Info, Database, Check, Terminal, KeyRound, UserPlus, AlertTriangle } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { ExternalLinkBtn } from '../components/ui/ExternalLinkBtn'
 import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
@@ -10,6 +11,7 @@ import { useDockerRestart } from '../hooks/useDockerRestart'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
 import { CopyRow } from '../components/ui/CopyBlock'
+import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshKeySelector'
 
 const SQL_COMMANDS = `GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO anon, authenticated, service_role;
@@ -147,8 +149,9 @@ function HelpContent() {
 }
 
 export function ConfigSite() {
-  const { t, config, state, markStepDone } = useApp()
+  const { t, config, state, markStepDone, selectedSshKey } = useApp()
   const { status, logs, progress, start, cancel } = useDockerRestart()
+  const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
   const domain = config.DOMAIN || '<DOMAIN>'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const isEn = state.language === 'en'
@@ -157,7 +160,16 @@ export function ConfigSite() {
   const serviceKey = config.SUPABASE_SERVICE_ROLE_KEY
 
   const handleRestart = () => {
-    start({ ipv4 })
+    if (!selectedSshKey) {
+      sshSelectorRef.current?.openModal()
+      toast(
+        isEn
+          ? 'Please select an SSH key to connect to the server.'
+          : 'Veuillez sélectionner une clé SSH pour vous connecter au serveur.'
+      )
+      return
+    }
+    start({ ipv4, sshKeyPath: selectedSshKey.privateKeyPath })
   }
 
   // Validate the site-config step once the Docker restart succeeds
@@ -234,10 +246,12 @@ export function ConfigSite() {
           manualLabel={isEn ? 'Manual Configuration' : 'Configuration manuelle'}
         >
           <div className="form-section">
+            <SshKeySelector ref={sshSelectorRef} />
+
             <div style={{ marginBottom: '8px' }}>
               <strong>{isEn ? "Connect via SSH:" : "Connectez-vous en SSH :"}</strong>
             </div>
-            <DockerBlock command={`ssh root@${ipv4}`} />
+            <DockerBlock command={selectedSshKey?.privateKeyPath ? `ssh -i "${selectedSshKey.privateKeyPath}" root@${ipv4}` : `ssh root@${ipv4}`} />
             
             <div style={{ marginBottom: '8px', marginTop: '12px' }}>
               <strong>{isEn ? "Restart command:" : "Commande de redémarrage :"}</strong>

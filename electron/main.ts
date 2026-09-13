@@ -6,6 +6,8 @@ import fs from 'node:fs'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 import { registerDeployHandlers } from '../src/electron/ipc/deployHandlers'
 import { registerVaultHandlers } from '../src/electron/ipc/vaultHandlers'
+import { registerSshHandlers } from '../src/electron/ipc/sshHandlers'
+import { registerScalewayHandlers } from '../src/electron/ipc/scalewayHandlers'
 
 // The built directory structure
 process.env.APP_ROOT = path.join(__dirname, '..')
@@ -114,4 +116,6 @@ app.on('activate', () => {
 
 registerDeployHandlers(() => win)
 registerVaultHandlers(() => win)
+registerSshHandlers()
+registerScalewayHandlers(() => win)
 app.whenReady().then(createWindow)

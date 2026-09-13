@@ -1626,13 +1626,18 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(4px);
-  z-index: 100;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: var(--space-4);
   animation: fadeIn 0.15s ease;
+  overflow-y: auto;
 }
 
 @keyframes fadeIn {
@@ -1647,14 +1652,16 @@ body {
 
 .modal {
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
-  width: 540px;
-  max-width: calc(100vw - 48px);
-  max-height: calc(100vh - 80px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  width: 560px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
   display: flex;
   flex-direction: column;
   animation: modalSlide 0.2s ease;
+  overflow: hidden;
 }
 
 @keyframes modalSlide {

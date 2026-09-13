@@ -61,6 +61,7 @@ export interface DeploymentConfig {
   domain: string
   envContent: string
   sshPassword?: string
+  sshKeyPath?: string
 }
 
 // ============================================================
@@ -164,8 +165,8 @@ export function useDeployment() {
     console.log('[useDeployment] Calling bridge.startDeploy...')
     addLog('Lancement du script de déploiement...', 'info')
     
-    // Pass sshPassword to the bridge/service so it can use sshpass
-    bridge.startDeploy(config.ipv4, config.deployPath, config.sshPassword)
+    // Pass sshPassword and sshKeyPath to the bridge/service
+    bridge.startDeploy(config.ipv4, config.deployPath, config.sshPassword, config.sshKeyPath)
       .then(() => console.log('[useDeployment] bridge.startDeploy resolved'))
       .catch(err => {
         console.error('[useDeployment] bridge.startDeploy failed:', err)

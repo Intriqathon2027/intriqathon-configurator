@@ -128,14 +128,14 @@ function HelpContent() {
         ? 'Sign up on console.scaleway.com and confirm your email.'
         : "Inscrivez-vous sur console.scaleway.com et confirmez votre email.",
       url: 'https://console.scaleway.com/register',
-    },
-    {
-      key: 'payment',
-      title: isEn ? 'Add a payment method' : 'Ajouter un moyen de paiement',
-      desc: isEn
-        ? <><code>Billing</code> ➔ <code>Payment and billing</code> ➔ <code>Add a credit card</code>. No instance can be created in step 2 without it.</>
-        : <><code>Billing</code> ➔ <code>Payment and billing</code> ➔ <code>Add a credit card</code>. Sans cela, aucune instance ne peut être créée à l'étape 2.</>,
-      url: 'https://console.scaleway.com/billing/payment',
+      extra: (
+        <p className="help-note">
+          <strong>{isEn ? 'Important reminder: ' : 'Rappel important : '}</strong>
+          {isEn
+            ? <>Add a payment method during onboarding (or via <code>Billing</code> ➔ <code>Payment and billing</code>). Without it, no instance can be created in step 2.</>
+            : <>Pensez à ajouter un moyen de paiement lors de l'onboarding (ou via <code>Billing</code> ➔ <code>Payment and billing</code>). Sans cela, aucune instance ne peut être créée à l'étape 2.</>}
+        </p>
+      ),
     },
     {
       key: 'apikey',

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
 import { FormField } from '../components/ui/FormField'
@@ -10,6 +11,9 @@ import { FieldHelpSections } from '../components/ui/HelpSection'
 import { IconRowList, type IconRowItem } from '../components/ui/IconRowList'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
+import { useScalewayInstance } from '../hooks/useScalewayInstance'
+import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshKeySelector'
+import type { SshKeyInfo } from '../types/electron'
 
 type Status = 'idle' | 'running' | 'done' | 'error'
 
@@ -253,13 +257,65 @@ export function ApiConfiguration() {
   // For now, hardcode statuses to 'idle' since automation isn't implemented
   const [supabaseStatus] = useState<Status>('idle')
   const [spaceshipStatus] = useState<Status>('idle')
-  const [scalewayStatus] = useState<Status>('idle')
   const [resendStatus] = useState<Status>('idle')
+
+  const {
+    status: scalewayStatus,
+    logs: scwLogs,
+    progress: scwProgress,
+    start: startScaleway,
+    cancel: cancelScaleway,
+  } = useScalewayInstance()
+
+  const { selectedSshKey } = useApp()
+  const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
 
   const statusLabels = {
     done: t('apiConfig.status.done'),
     running: t('apiConfig.status.running'),
     error: t('apiConfig.status.error'),
+  }
+
+  const handleStartScaleway = async (keyToUse: SshKeyInfo | null = selectedSshKey) => {
+    if (!config.SCW_SECRET_KEY || !config.SCW_DEFAULT_PROJECT_ID) {
+      toast.error(
+        isEn
+          ? 'Please provide your Scaleway Secret Key and Project ID in step 1.'
+          : "Veuillez renseigner votre clé secrète Scaleway et votre Project ID à l'étape 1."
+      )
+      return
+    }
+
+    if (!keyToUse) {
+      sshSelectorRef.current?.openModal()
+      toast(
+        isEn
+          ? 'Please select an SSH key, then click Launch.'
+          : 'Veuillez choisir une clé SSH, puis cliquez sur Lancer.'
+      )
+      return
+    }
+
+    const res = await startScaleway({
+      secretKey: config.SCW_SECRET_KEY,
+      projectId: config.SCW_DEFAULT_PROJECT_ID,
+      sshPublicKey: keyToUse.publicKey,
+      sshKeyName: keyToUse.name || 'intriqathon-key',
+    })
+
+    if (res.success && res.ipv4) {
+      setField('IPV4_INSTANCE', res.ipv4)
+      toast.success(
+        isEn
+          ? `Scaleway instance ready! IP: ${res.ipv4}`
+          : `Instance Scaleway prête ! IP : ${res.ipv4}`
+      )
+      if (window.electronAPI?.vaultSave) {
+        await window.electronAPI.vaultSave({ ...config, IPV4_INSTANCE: res.ipv4 })
+      }
+    } else if (res.error) {
+      toast.error(res.error, { duration: 6000 })
+    }
   }
 
   const handleStart = (service: string) => {
@@ -341,8 +397,10 @@ export function ApiConfiguration() {
           description={t('apiConfig.scaleway.desc')}
           status={scalewayStatus}
           isComplete={isScalewayComplete}
-          onStart={() => handleStart('Scaleway')}
-          onCancel={() => handleCancel('Scaleway')}
+          onStart={() => handleStartScaleway()}
+          onCancel={cancelScaleway}
+          logs={scwLogs}
+          progress={scwProgress}
           btnStartLabel={t('apiConfig.btnStart')}
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
@@ -351,6 +409,8 @@ export function ApiConfiguration() {
           manualLabel={t('apiConfig.manualConfig')}
         >
           <div className="form-section">
+            <SshKeySelector ref={sshSelectorRef} />
+
             <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" />
 
             <div style={{ fontWeight: 600, marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>

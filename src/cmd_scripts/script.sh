@@ -28,6 +28,10 @@ echo "[SCRIPT] IPV4 = ${IPV4}"
 echo "[SCRIPT] SOURCE_DIR = ${SOURCE_DIR}"
 
 SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=no"
+if [ -n "${SSH_KEY_PATH:-}" ]; then
+    echo "[SCRIPT] Utilisation de la clé SSH : ${SSH_KEY_PATH}"
+    SSH_OPTS="${SSH_OPTS} -i ${SSH_KEY_PATH}"
+fi
 
 echo "=== Déploiement vers ${IPV4} ==="
 echo "    Dossier source : ${SOURCE_DIR}"

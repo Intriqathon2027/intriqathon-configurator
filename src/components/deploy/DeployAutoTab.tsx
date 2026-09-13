@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database, FolderOpen } from 'lucide-react'
+import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database, FolderOpen, Key } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import { generateEnvContent } from '../../utils/deploy'
 import { useDeployment } from '../../hooks/useDeployment'
 import { DeployDialog } from './DeployDialog'
 import { IconRowList } from '../ui/IconRowList'
+import { SshKeySelector, type SshKeySelectorHandle } from '../ui/SshKeySelector'
+import type { SshKeyInfo } from '../../types/electron'
 import type { DeployLogEntry, DeploymentStatus } from '../../hooks/useDeployment'
 
 function getStatusIcon(status: DeployLogEntry['status']) {
@@ -34,7 +36,9 @@ function getGlobalStatusIcon(status: DeploymentStatus) {
 }
 
 export function DeployAutoTab() {
-  const { t, config, setField, markStepDone } = useApp()
+  const { t, config, setField, markStepDone, selectedSshKey, state } = useApp()
+  const isEn = state.language === 'en'
+  const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
   const {
     status,
     logs,
@@ -75,9 +79,13 @@ export function DeployAutoTab() {
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const domain = config.DOMAIN || 'example.com'
 
-  const handleStart = () => {
+  const handleStart = (keyToUse: SshKeyInfo | null = selectedSshKey) => {
+    if (!keyToUse) {
+      sshSelectorRef.current?.openModal()
+      return
+    }
     const envContent = generateEnvContent(config as unknown as Record<string, string>)
-    start({ deployPath, ipv4, domain, envContent })
+    start({ deployPath, ipv4, domain, envContent, sshKeyPath: keyToUse.privateKeyPath })
   }
 
   const isRunning = status === 'running' || status === 'paused_for_dialog'
@@ -95,7 +103,7 @@ export function DeployAutoTab() {
         </div>
 
         {/* Deploy path selector */}
-        <div className="deploy-path-selector" style={{ marginBottom: 'var(--space-4)' }}>
+        <div className="deploy-path-selector" style={{ marginBottom: 'var(--space-3)' }}>
           <label className="form-label" style={{ marginBottom: 'var(--space-2)', display: 'block' }}>
             {t('step6.auto.deployPath')}
           </label>
@@ -122,6 +130,13 @@ export function DeployAutoTab() {
             </button>
           </div>
         </div>
+
+        {/* SSH key selector */}
+        <SshKeySelector
+          ref={sshSelectorRef}
+          label={isEn ? 'Authentication SSH key' : 'Clé SSH d\'authentification'}
+          style={{ marginBottom: 'var(--space-4)' }}
+        />
 
         {/* Console output */}
         <div className="deploy-console" ref={consoleRef}>
@@ -205,7 +220,11 @@ export function DeployAutoTab() {
 
       {/* Dialog overlay */}
       {pendingDialog && (
-        <DeployDialog dialog={pendingDialog} onRespond={respondToDialog} />
+        <DeployDialog
+          dialog={pendingDialog}
+          onRespond={respondToDialog}
+          onCancel={cancel}
+        />
       )}
     </>
   )
