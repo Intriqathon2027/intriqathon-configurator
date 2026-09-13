@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Key, Plus, Check, Shield, AlertCircle, Loader2, RefreshCw } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import type { SshKeyInfo } from '../../types/electron'
@@ -56,6 +57,11 @@ export function SshKeyModal({
     if (isOpen) {
       setSelected(selectedSshKey)
       loadKeys()
+      const originalOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = originalOverflow
+      }
     }
   }, [isOpen])
 
@@ -88,9 +94,37 @@ export function SshKeyModal({
     onClose()
   }
 
-  return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ width: '560px', maxWidth: '95vw' }}>
+  return createPortal(
+    <div
+      className="modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 9999,
+        background: 'rgba(0, 0, 0, 0.65)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+        overflowY: 'auto',
+      }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="modal"
+        style={{
+          width: '560px',
+          maxWidth: '95vw',
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--color-border)',
+        }}
+      >
         <div className="modal-header">
           <div className="modal-title">
             <Key size={18} color="var(--color-primary-text)" />
@@ -320,6 +354,7 @@ export function SshKeyModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -288,6 +288,11 @@ export function ApiConfiguration() {
 
     if (!keyToUse) {
       setSshModalOpen(true)
+      toast(
+        isEn
+          ? 'Please select an SSH key, then click Launch.'
+          : 'Veuillez choisir une clé SSH, puis cliquez sur Lancer.'
+      )
       return
     }
 
@@ -404,7 +409,7 @@ export function ApiConfiguration() {
           manualLabel={t('apiConfig.manualConfig')}
         >
           <div className="form-section">
-            {selectedSshKey && (
+            {selectedSshKey ? (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -427,6 +432,31 @@ export function ApiConfiguration() {
                   onClick={() => setSshModalOpen(true)}
                 >
                   {isEn ? 'Change' : 'Changer'}
+                </button>
+              </div>
+            ) : (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                backgroundColor: 'var(--color-surface-sunken)',
+                border: '1px dashed var(--color-border)',
+                marginBottom: '8px',
+                fontSize: 'var(--font-size-xs)'
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-secondary)' }}>
+                  <Key size={13} />
+                  <span>{isEn ? 'No SSH key selected' : 'Aucune clé SSH sélectionnée'}</span>
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '2px 10px', fontSize: '11px' }}
+                  onClick={() => setSshModalOpen(true)}
+                >
+                  {isEn ? 'Select key' : 'Sélectionner une clé'}
                 </button>
               </div>
             )}
@@ -543,7 +573,11 @@ export function ApiConfiguration() {
       <SshKeyModal
         isOpen={sshModalOpen}
         onClose={() => setSshModalOpen(false)}
-        onConfirm={(key) => handleStartScaleway(key)}
+        onConfirm={(key) => {
+          toast.success(
+            isEn ? `SSH key "${key.name}" selected` : `Clé SSH "${key.name}" sélectionnée`
+          )
+        }}
       />
     </WizardLayout>
   )
