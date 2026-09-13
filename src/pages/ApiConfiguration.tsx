@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus } from 'lucide-react'
+import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus, KeyRound } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
@@ -17,6 +17,7 @@ import type { SshKeyInfo } from '../types/electron'
 import { useServiceProvision } from '../hooks/useServiceProvision'
 import { useSession } from '../context/SessionContext'
 import { ManualCheck } from '../components/ui/ManualCheck'
+import { ManualSection } from '../components/ui/ManualSection'
 import { STORAGE_BUCKETS } from '../shared/supabaseBuckets'
 import { isAccountComplete } from '../utils/serviceCompletion'
 import type { Config } from '../context/AppContext'
@@ -223,7 +224,7 @@ function HelpContent() {
 
 export function ApiConfiguration() {
   const { t, config, setField, setFields, saveConfig, state } = useApp()
-  const { isRunDone, markRunDone, isManualChecked } = useSession()
+  const { isRunDone, markRunDone, isManualChecked, confirmManual } = useSession()
   const isEn = state.language === 'en'
 
   // The automation pre-fills the very same fields the manual fallback edits, so
@@ -291,8 +292,6 @@ export function ApiConfiguration() {
   const spaceshipManualDone = isManualChecked('spaceship-dns')
   const resendManualDone = isManualChecked('resend-subdomain') && isResendComplete
 
-  const manualDoneLabel = isEn ? 'Confirmed manually' : 'Confirmé manuellement'
-
   // Supabase copies its Postgres URLs out with `[YOUR-PASSWORD]` still in them;
   // both fields offer to substitute the database password on the spot.
   const pwFill = {
@@ -338,7 +337,11 @@ export function ApiConfiguration() {
     : scalewayStatus
 
   useEffect(() => {
-    if (supabase.status === 'done') markRunDone('api-supabase')
+    if (supabase.status !== 'done') return
+    markRunDone('api-supabase')
+    // The run created and verified the five buckets: the box states a fact that
+    // is now true, so it is ticked rather than left for the reader to repeat.
+    confirmManual('supabase-buckets')
   }, [supabase.status])
 
   useEffect(() => {
@@ -467,7 +470,6 @@ export function ApiConfiguration() {
           status={supabaseStatus}
           isComplete={supabaseManualDone}
           manuallyConfirmed={supabaseManualDone}
-          manualDoneLabel={manualDoneLabel}
           logs={supabase.logs}
           progress={supabase.progress}
           locked={!!supabaseLock}
@@ -487,14 +489,11 @@ export function ApiConfiguration() {
           <div className="form-section">
             {/* The buckets have to exist before anything is uploaded — same
                 walkthrough as the help panel, kept at hand in the card. */}
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FolderPlus size={16} color="var(--color-primary-text)" />
-                {t('apiConfig.supabase.buckets.title')}
-              </div>
-              <p className="text-muted" style={{ margin: '0 0 12px', fontSize: 'var(--font-size-base)', lineHeight: 1.5 }}>
-                {t('apiConfig.supabase.buckets.desc')}
-              </p>
+            <ManualSection
+              icon={<FolderPlus size={16} />}
+              title={t('apiConfig.supabase.buckets.title')}
+              desc={t('apiConfig.supabase.buckets.desc')}
+            >
               <ul className="bucket-list">
                 {STORAGE_BUCKETS.map(b => (
                   <li key={b.name}>
@@ -507,7 +506,7 @@ export function ApiConfiguration() {
                   </li>
                 ))}
               </ul>
-              <div className="link-buttons-row" style={{ margin: '12px 0 8px' }}>
+              <div className="link-buttons-row">
                 <ExternalLinkBtn url={BUCKETS_URL} label={t('apiConfig.supabase.buckets.btn')} />
               </div>
               {/* The buckets leave nothing in the config — without this box,
@@ -515,21 +514,24 @@ export function ApiConfiguration() {
               <ManualCheck
                 checkKey="supabase-buckets"
                 label={isEn
-                  ? `I created the ${STORAGE_BUCKETS.length} buckets with these exact names`
-                  : `J'ai créé les ${STORAGE_BUCKETS.length} buckets avec exactement ces noms`}
-                hint={isEn
-                  ? 'Not needed when the automatic run above succeeded — it creates them itself.'
-                  : "Inutile si le lancement automatique ci-dessus a réussi — il les crée lui-même."}
+                  ? `The ${STORAGE_BUCKETS.length} buckets exist, with these exact names`
+                  : `Les ${STORAGE_BUCKETS.length} buckets sont créés, avec exactement ces noms`}
               />
-            </div>
+            </ManualSection>
 
+            <ManualSection
+              icon={<KeyRound size={16} />}
+              title={isEn ? 'Connection values' : 'Valeurs de connexion'}
+              desc={isEn
+                ? 'From the project: the Connect panel for the URL and the Postgres URLs, Project Settings ➔ API Keys for the keys.'
+                : 'Depuis le projet : le panneau Connect pour l\'URL et les URLs Postgres, Project Settings ➔ API Keys pour les clés.'}
+            >
             <FormField id="supabase-url" label={t('apiConfig.supabase.url')} value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" />
             <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." multiline />
             <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." type="password" multiline />
             <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." type="password" multiline tokenFill={pwFill} />
             <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." type="password" multiline tokenFill={pwFill} />
-
-
+            </ManualSection>
           </div>
         </ServiceConfigBlock>
 
@@ -564,11 +566,9 @@ export function ApiConfiguration() {
           <div className="form-section">
             <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" />
 
-            <div style={{ fontWeight: 600, marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Server size={16} color="var(--color-primary-text)" />
-              {t('step1.specs.title')}
-            </div>
-            <IconRowList className="icon-row-list--spaced" items={specs} />
+            <ManualSection icon={<Server size={16} />} title={t('step1.specs.title')}>
+              <IconRowList items={specs} />
+            </ManualSection>
           </div>
         </ServiceConfigBlock>
 
@@ -580,7 +580,6 @@ export function ApiConfiguration() {
           description={t('apiConfig.spaceship.desc')}
           status={spaceshipStatus}
           manuallyConfirmed={spaceshipManualDone}
-          manualDoneLabel={manualDoneLabel}
           locked={!!spaceshipLock}
           lockedReason={spaceshipLock ?? undefined}
           onStart={() => handleStart('Spaceship')}
@@ -593,18 +592,15 @@ export function ApiConfiguration() {
           manualLabel={t('apiConfig.manualConfig')}
         >
           <div className="form-section">
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Info size={16} color="var(--color-primary-text)" />
-                {t('step4.dns.title')}
-              </div>
-              <p className="text-muted" style={{ margin: '0 0 12px', fontSize: 'var(--font-size-base)', lineHeight: 1.5 }}>
-                {t('apiConfig.spaceship.dnsPath')}
-              </p>
-              <p className="text-muted" style={{ margin: '0 0 12px', fontSize: 'var(--font-size-base)', lineHeight: 1.5 }}>
+            <ManualSection
+              icon={<Info size={16} />}
+              title={t('step4.dns.title')}
+              desc={t('apiConfig.spaceship.dnsPath')}
+            >
+              <p className="manual-section__desc">
                 {t('apiConfig.spaceship.hostNote')}
               </p>
-              <div className="link-buttons-row" style={{ marginBottom: '16px' }}>
+              <div className="link-buttons-row">
                 <ExternalLinkBtn url={SPACESHIP_LAUNCHPAD_URL} label="Launchpad" />
                 <ExternalLinkBtn url={SPACESHIP_DNS_HELP_URL} label={isEn ? 'Spaceship DNS help' : 'Aide DNS Spaceship'} />
               </div>
@@ -637,20 +633,17 @@ export function ApiConfiguration() {
                   ))}
                 </tbody>
               </table>
-              <div className="info-box warning" style={{ marginTop: '16px' }}>
+              <div className="info-box warning">
                 <AlertTriangle size={15} className="info-box-icon" />
                 <div className="info-box-text">{t('step4.warning')}</div>
               </div>
               <ManualCheck
                 checkKey="spaceship-dns"
                 label={isEn
-                  ? 'I added these records in Advanced DNS'
-                  : "J'ai ajouté ces enregistrements dans Advanced DNS"}
-                hint={isEn
-                  ? 'The two A records and the DMARC record, plus the MX and TXT records Resend hands you.'
-                  : 'Les deux enregistrements A et le DMARC, plus les MX et TXT fournis par Resend.'}
+                  ? 'These records are added in Advanced DNS'
+                  : 'Ces enregistrements sont ajoutés dans Advanced DNS'}
               />
-            </div>
+            </ManualSection>
           </div>
         </ServiceConfigBlock>
 
@@ -663,7 +656,6 @@ export function ApiConfiguration() {
           status={resendStatus}
           isComplete={resendManualDone}
           manuallyConfirmed={resendManualDone}
-          manualDoneLabel={manualDoneLabel}
           locked={!!resendLock}
           lockedReason={resendLock ?? undefined}
           onStart={() => handleStart('Resend')}
@@ -676,25 +668,23 @@ export function ApiConfiguration() {
           manualLabel={t('apiConfig.manualConfig')}
         >
           <div className="form-section">
-            <div>
-            <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Mail size={16} color="var(--color-primary-text)" />
-              {t('step4.subdomain')}
-            </div>
-            <CopyRow label={t('step4.subdomain')} content={mailSubdomain} />
-            <ManualCheck
-              checkKey="resend-subdomain"
-              label={isEn
-                ? 'I added this subdomain in Resend and verified it'
-                : "J'ai ajouté ce sous-domaine dans Resend et l'ai vérifié"}
-              hint={isEn
-                ? 'Resend then hands you the MX and TXT records to add at Spaceship; the domain must read Verified before a single email goes out.'
-                : "Resend fournit ensuite les enregistrements MX et TXT à ajouter chez Spaceship ; le domaine doit afficher Verified avant tout envoi."}
-            />
-          </div>
+            <ManualSection icon={<Mail size={16} />} title={t('step4.subdomain')}>
+              <CopyRow content={mailSubdomain} />
+              <ManualCheck
+                checkKey="resend-subdomain"
+                label={isEn
+                  ? 'This subdomain is added in Resend and verified'
+                  : 'Ce sous-domaine est ajouté dans Resend et vérifié'}
+              />
+            </ManualSection>
 
-            <FormField id="from-email" label={t('apiConfig.supabase.fromEmail')} value={config.FROM_EMAIL} onChange={v => setField('FROM_EMAIL', v)} placeholder="Hackathon Team <onboarding@mail.domain.com>" />
-            <FormField id="allowed-emails" label={t('apiConfig.supabase.allowedEmails')} value={config.ALLOWED_EMAILS} onChange={v => setField('ALLOWED_EMAILS', v)} placeholder="*" />
+            <ManualSection
+              icon={<Mail size={16} />}
+              title={isEn ? 'Sending settings' : "Réglages d'envoi"}
+            >
+              <FormField id="from-email" label={t('apiConfig.supabase.fromEmail')} value={config.FROM_EMAIL} onChange={v => setField('FROM_EMAIL', v)} placeholder="Hackathon Team <onboarding@mail.domain.com>" />
+              <FormField id="allowed-emails" label={t('apiConfig.supabase.allowedEmails')} value={config.ALLOWED_EMAILS} onChange={v => setField('ALLOWED_EMAILS', v)} placeholder="*" />
+            </ManualSection>
           </div>
         </ServiceConfigBlock>
 

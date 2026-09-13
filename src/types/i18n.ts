@@ -134,7 +134,6 @@ export type TranslationKeys = {
   'accountCreation.supabase.nameTaken': string
   'accountCreation.supabase.nameTaken.switch': string
   'accountCreation.supabase.created': string
-  'accountCreation.supabase.created.next': string
   'accountCreation.supabase.projects.none': string
   'accountCreation.supabase.dbPassword.generate': string
   'accountCreation.supabase.dbPassword.requirements': string

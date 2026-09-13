@@ -39,8 +39,8 @@ function getGlobalStatusIcon(status: DeploymentStatus) {
 }
 
 export function DeployAutoTab() {
-  const { t, config, setField, markStepDone, selectedSshKey, state } = useApp()
-  const { isRunDone, markRunDone, isManualChecked } = useSession()
+  const { t, config, setField, selectedSshKey, state } = useApp()
+  const { isRunDone, markRunDone, isManualChecked, confirmManual } = useSession()
   const isEn = state.language === 'en'
   const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
   /**
@@ -61,13 +61,12 @@ export function DeployAutoTab() {
 
   const consoleRef = useRef<HTMLDivElement>(null)
 
-  // Validate the deploy step once the deployment succeeds, and record it for
-  // the session so leaving the step and coming back still shows it as done.
+  // Record the success for the session: it is what keeps the step ticked and
+  // the console hidden after leaving this step and coming back.
   useEffect(() => {
-    if (status === 'completed') {
-      markStepDone(3)
-      markRunDone('deploy')
-    }
+    if (status !== 'completed') return
+    markRunDone('deploy')
+    confirmManual('deploy-manual')
   }, [status])
 
   // Auto-scroll console to bottom

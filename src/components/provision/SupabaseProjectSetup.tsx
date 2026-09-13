@@ -647,9 +647,6 @@ export function SupabaseProjectSetup() {
                       <li><strong>{t('accountCreation.supabase.verify.region')}</strong> {projectWithTypedName.region}</li>
                     )}
                   </ul>
-                  <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', margin: 0 }}>
-                    {t('accountCreation.supabase.created.next')}
-                  </p>
                 </div>
               )}
 

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Language } from '../types/i18n'
 import { translations } from '../i18n/translations'
-import { steps } from '../components/layout/steps'
 import { FONT_SCALE_KEY, clampFontScale, loadFontScale } from '../utils/fontScale'
 import type { SshKeyInfo } from '../types/electron'
 import { deriveProjectRef, withEffectiveProjectRef } from '../shared/supabaseProject'
@@ -189,8 +188,6 @@ type Action =
   | { type: 'STOP_CONFIG' }
   | { type: 'SET_THEME'; theme: ThemePreference }
   | { type: 'SET_FONT_SCALE'; scale: number }
-  | { type: 'MARK_STEP_DONE'; step: number }
-  | { type: 'UNMARK_STEP_DONE'; step: number }
   | { type: 'SET_VAULT_STATUS'; exists: boolean; unlocked: boolean }
   | { type: 'VAULT_UNLOCKED'; config?: Partial<Config> }
   | { type: 'VAULT_LOCKED' }
@@ -207,23 +204,17 @@ interface AppState {
   theme: ThemePreference
   /** Multiplier applied to every typography token. 1 is the design default. */
   fontScale: number
-  /** Steps validated by an action (deployment, docker restart) rather than by form fields. */
-  actionSteps: number[]
+  /**
+   * Bumped every time a whole configuration is loaded, replaced or reset —
+   * opening a saved file, importing one, starting a new one, unlocking the
+   * vault. What is being configured has changed, and anything remembered about
+   * the previous one (a run that succeeded, a box ticked) describes a project
+   * nobody is looking at any more.
+   */
+  configGeneration: number
   /** Vault encryption state */
   isVaultUnlocked: boolean
   vaultExists: boolean | null
-}
-
-const ACTION_STEPS_KEY = 'intriqathon-action-steps'
-
-function loadActionSteps(): number[] {
-  try {
-    const raw = localStorage.getItem(ACTION_STEPS_KEY)
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed.filter((n): n is number => typeof n === 'number') : []
-  } catch {
-    return []
-  }
 }
 
 const initialState: AppState = {
@@ -233,7 +224,7 @@ const initialState: AppState = {
   hasStarted: false,
   theme: loadThemePreference(),
   fontScale: loadFontScale(),
-  actionSteps: loadActionSteps(),
+  configGeneration: 0,
   isVaultUnlocked: false,
   vaultExists: null,
 }
@@ -263,9 +254,10 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         config: withEffectiveProjectRef({ ...state.config, ...action.config }),
+        configGeneration: state.configGeneration + 1,
       }
     case 'RESET_CONFIG':
-      return { ...state, config: defaultConfig, actionSteps: [] }
+      return { ...state, config: defaultConfig, configGeneration: state.configGeneration + 1 }
     case 'START_CONFIG':
       return { ...state, hasStarted: true }
     case 'STOP_CONFIG':
@@ -274,14 +266,6 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, theme: action.theme }
     case 'SET_FONT_SCALE':
       return { ...state, fontScale: clampFontScale(action.scale) }
-    case 'MARK_STEP_DONE':
-      if (state.actionSteps.includes(action.step)) return state
-      return { ...state, actionSteps: [...state.actionSteps, action.step] }
-    // Untick the box that validated the step by hand: what the reader asserted,
-    // the reader can take back.
-    case 'UNMARK_STEP_DONE':
-      if (!state.actionSteps.includes(action.step)) return state
-      return { ...state, actionSteps: state.actionSteps.filter(step => step !== action.step) }
     case 'SET_VAULT_STATUS':
       return { ...state, vaultExists: action.exists, isVaultUnlocked: action.unlocked }
     case 'VAULT_UNLOCKED':
@@ -292,6 +276,7 @@ function reducer(state: AppState, action: Action): AppState {
         config: action.config
           ? withEffectiveProjectRef({ ...state.config, ...action.config })
           : state.config,
+        configGeneration: state.configGeneration + 1,
       }
     case 'VAULT_LOCKED':
       return { ...state, isVaultUnlocked: false }
@@ -332,11 +317,6 @@ interface AppContextType {
   setFontScale: (scale: number) => void
   /** The theme actually applied — 'system' resolved against the OS setting. */
   resolvedTheme: ResolvedTheme
-  /** True when every requirement of the given step is satisfied. */
-  isStepComplete: (step: number) => boolean
-  markStepDone: (step: number) => void
-  /** Takes back a step validated by an action — the manual checkboxes untick. */
-  unmarkStepDone: (step: number) => void
   /** Vault encryption methods */
   isVaultUnlocked: boolean
   vaultExists: boolean | null
@@ -446,11 +426,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     derivedRef.current = { domain, subdomain: nextSubdomain }
     if (Object.keys(patch).length > 0) dispatch({ type: 'SET_FIELDS', patch })
   }, [state.config.DOMAIN, state.config.MAIL_SUBDOMAIN, state.config.FROM_EMAIL])
-
-  // Persist action-validated steps
-  useEffect(() => {
-    localStorage.setItem(ACTION_STEPS_KEY, JSON.stringify(state.actionSteps))
-  }, [state.actionSteps])
 
   // Apply the theme, following the OS appearance while the preference is 'system'
   useEffect(() => {
@@ -601,20 +576,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_THEME', theme })
   }
 
-  const markStepDone = (step: number) => {
-    dispatch({ type: 'MARK_STEP_DONE', step })
-  }
-
-  const unmarkStepDone = (step: number) => {
-    dispatch({ type: 'UNMARK_STEP_DONE', step })
-  }
-
-  const isStepComplete = (step: number): boolean => {
-    const fields = steps[step]?.requiredFields ?? []
-    if (fields.length === 0) return state.actionSteps.includes(step)
-    return fields.every(key => (state.config[key] ?? '').trim() !== '')
-  }
-
   const hasSavedConfig = Object.entries(state.config).some(([k, v]) => k !== 'ALLOWED_EMAILS' && v !== '')
 
   return (
@@ -636,9 +597,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTheme,
       setFontScale,
       resolvedTheme,
-      isStepComplete,
-      markStepDone,
-      unmarkStepDone,
       isVaultUnlocked: state.isVaultUnlocked,
       vaultExists: state.vaultExists,
       unlockVault,

@@ -9,6 +9,7 @@ import { DockerBlock } from '../components/ui/DockerBlock'
 import { useApp, type Config } from '../context/AppContext'
 import { useSession } from '../context/SessionContext'
 import { ManualCheck } from '../components/ui/ManualCheck'
+import { ManualSection } from '../components/ui/ManualSection'
 import { useDockerRestart } from '../hooks/useDockerRestart'
 import { useServiceProvision } from '../hooks/useServiceProvision'
 import { GRANTS_SQL, REALTIME_TABLE } from '../shared/supabaseSiteSetup'
@@ -164,8 +165,8 @@ function HelpContent() {
 }
 
 export function ConfigSite() {
-  const { t, config, state, markStepDone, unmarkStepDone, selectedSshKey, setFields, saveConfig } = useApp()
-  const { isRunDone, markRunDone, isManualChecked } = useSession()
+  const { t, config, state, selectedSshKey, setFields, saveConfig } = useApp()
+  const { isRunDone, markRunDone, isManualChecked, confirmManual } = useSession()
   const { status, logs, progress, start, cancel } = useDockerRestart()
   const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
 
@@ -240,14 +241,17 @@ export function ConfigSite() {
   // Validate the site-config step once the Docker restart succeeds, and record
   // the run so the block stays green across a remount of this page.
   useEffect(() => {
-    if (status === 'completed') {
-      markStepDone(4)
-      markRunDone('site-docker')
-    }
+    if (status !== 'completed') return
+    markRunDone('site-docker')
+    confirmManual('docker-manual')
   }, [status])
 
   useEffect(() => {
-    if (siteSetup.status === 'done') markRunDone('site-supabase')
+    if (siteSetup.status !== 'done') return
+    markRunDone('site-supabase')
+    // The run applies the grants and the four settings — both halves of what
+    // the manual fallback asks the reader to do by hand.
+    confirmManual('site-supabase-sql', 'site-supabase-actions')
   }, [siteSetup.status])
 
   // map hook status to ServiceConfigBlock status
@@ -278,7 +282,6 @@ export function ConfigSite() {
   const settingsDone = isManualChecked('site-supabase-actions')
   const siteSetupManualDone = sqlDone && settingsDone
   const dockerManualDone = isManualChecked('docker-manual')
-  const manualDoneLabel = isEn ? 'Confirmed manually' : 'Confirmé manuellement'
 
   const statusLabels = {
     done: isEn ? 'Done' : 'Fait',
@@ -346,7 +349,6 @@ export function ConfigSite() {
           status={siteSetupStatus}
           isComplete={siteSetupStatus === 'done'}
           manuallyConfirmed={siteSetupManualDone}
-          manualDoneLabel={manualDoneLabel}
           logs={siteSetup.logs}
           progress={siteSetup.progress}
           locked={!!supabaseLock}
@@ -362,40 +364,37 @@ export function ConfigSite() {
           manualLabel={isEn ? 'Manual Configuration' : 'Configuration manuelle'}
         >
           <div className="form-section">
-            <div style={{ marginBottom: '8px', fontSize: 'var(--font-size-md)', lineHeight: '1.5' }}>
-              <strong>{isEn ? "1. Inject this SQL directly in your Supabase SQL Editor:" : "1. Injectez ce SQL directement dans le SQL Editor de Supabase :"}</strong>
-              <p className="text-muted" style={{ margin: '4px 0 0' }}>
-                {isEn ? "Go to SQL Editor ➔ Paste and Run. This ensures your database has the proper default privileges." : "Allez dans SQL Editor ➔ Coller et Run. Permet d'octroyer les permissions adéquates sur la base de données."}
-              </p>
-            </div>
-            <SqlBlock sql={SQL_COMMANDS} />
-            <div className="link-buttons-row" style={{ marginTop: '12px' }}>
-              <ExternalLinkBtn url={SQL_EDITOR_URL} label="SQL Editor" />
-            </div>
-            <ManualCheck
-              checkKey="site-supabase-sql"
-              label={isEn
-                ? 'I ran this SQL in the SQL Editor'
-                : "J'ai exécuté ce SQL dans le SQL Editor"}
-              hint={isEn
-                ? 'Not needed when the automatic run above succeeded — it applies the same statements.'
-                : "Inutile si le lancement automatique ci-dessus a réussi — il applique les mêmes instructions."}
-            />
+            <ManualSection
+              icon={<Database size={16} />}
+              title={isEn ? '1. Run the SQL in the SQL Editor' : '1. Exécuter le SQL dans le SQL Editor'}
+              desc={isEn
+                ? 'SQL Editor ➔ paste and Run. This grants the default privileges the app needs on the public schema.'
+                : "SQL Editor ➔ coller puis Run. Octroie les permissions par défaut dont l'application a besoin sur le schéma public."}
+            >
+              <SqlBlock sql={SQL_COMMANDS} />
+              <div className="link-buttons-row">
+                <ExternalLinkBtn url={SQL_EDITOR_URL} label="SQL Editor" />
+              </div>
+              <ManualCheck
+                checkKey="site-supabase-sql"
+                label={isEn
+                  ? 'This SQL has been run in the SQL Editor'
+                  : 'Ce SQL a été exécuté dans le SQL Editor'}
+              />
+            </ManualSection>
 
-            <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
-              <Check size={16} color="var(--color-primary-text)" />
-              {isEn ? '2. Other Supabase Actions' : '2. Autres Actions Supabase'}
-            </div>
-            <HelpFlow steps={supabaseFinalSteps(isEn)} />
-            <ManualCheck
-              checkKey="site-supabase-actions"
-              label={isEn
-                ? 'I applied these four settings in the dashboard'
-                : "J'ai appliqué ces quatre réglages dans le dashboard"}
-              hint={isEn
-                ? 'Exposed schema, Realtime, email confirmation off and RLS on every table.'
-                : "Schéma exposé, Realtime, confirmation d'email désactivée et RLS sur chaque table."}
-            />
+            <ManualSection
+              icon={<Check size={16} />}
+              title={isEn ? '2. Other Supabase actions' : '2. Autres actions Supabase'}
+            >
+              <HelpFlow steps={supabaseFinalSteps(isEn)} />
+              <ManualCheck
+                checkKey="site-supabase-actions"
+                label={isEn
+                  ? 'These four settings are applied'
+                  : 'Ces quatre réglages sont appliqués'}
+              />
+            </ManualSection>
           </div>
         </ServiceConfigBlock>
 
@@ -407,7 +406,6 @@ export function ConfigSite() {
           description={t('step7.docker.desc')}
           status={serviceStatus}
           manuallyConfirmed={dockerManualDone}
-          manualDoneLabel={manualDoneLabel}
           onStart={handleRestart}
           onCancel={cancel}
           logs={logs.map(l => l.message)}
@@ -425,26 +423,25 @@ export function ConfigSite() {
           manualLabel={isEn ? 'Manual Configuration' : 'Configuration manuelle'}
         >
           <div className="form-section">
-            <div style={{ marginBottom: '8px' }}>
-              <strong>{isEn ? "Connect via SSH:" : "Connectez-vous en SSH :"}</strong>
-            </div>
-            <DockerBlock command={selectedSshKey?.privateKeyPath ? `ssh -i "${selectedSshKey.privateKeyPath}" root@${ipv4}` : `ssh root@${ipv4}`} />
-            
-            <div style={{ marginBottom: '8px', marginTop: '12px' }}>
-              <strong>{isEn ? "Restart command:" : "Commande de redémarrage :"}</strong>
-            </div>
-            <DockerBlock command="docker restart discord_bot" />
+            <ManualSection
+              icon={<Terminal size={16} />}
+              title={isEn ? 'Connect over SSH' : 'Se connecter en SSH'}
+            >
+              <DockerBlock command={selectedSshKey?.privateKeyPath ? `ssh -i "${selectedSshKey.privateKeyPath}" root@${ipv4}` : `ssh root@${ipv4}`} />
+            </ManualSection>
 
-            {/* The restart leaves no trace in the config either — run by hand,
-                this box is what validates the step. */}
-            <ManualCheck
-              checkKey="docker-manual"
-              label={isEn ? 'I restarted the bot over SSH myself' : "J'ai redémarré le bot moi-même en SSH"}
-              hint={isEn
-                ? 'Validates this step, exactly as a successful automatic restart would.'
-                : "Valide cette étape, comme le ferait un redémarrage automatique réussi."}
-              onChange={checked => (checked ? markStepDone(4) : unmarkStepDone(4))}
-            />
+            <ManualSection
+              icon={<Terminal size={16} />}
+              title={isEn ? 'Restart the bot' : 'Redémarrer le bot'}
+            >
+              <DockerBlock command="docker restart discord_bot" />
+              {/* The restart leaves no trace in the config either — run by hand,
+                  this box is what validates the step. */}
+              <ManualCheck
+                checkKey="docker-manual"
+                label={isEn ? 'The bot has been restarted' : 'Le bot a été redémarré'}
+              />
+            </ManualSection>
           </div>
         </ServiceConfigBlock>
 
@@ -453,7 +450,6 @@ export function ConfigSite() {
           stepNumber={3}
           serviceName={isEn ? 'NEXT STEPS' : 'PROCHAINES ÉTAPES'}
           serviceIcon={<Globe size={18} color="var(--color-primary-text)" />}
-          description={isEn ? 'Access your platforms and finish the setup.' : 'Accédez à vos plateformes et terminez la configuration.'}
           status="none"
           btnStartLabel=""
           btnCancelLabel=""
@@ -507,11 +503,6 @@ export function ConfigSite() {
                           </div>
                         </div>}
                     {serviceKeyField}
-                    <p className="config-screen__note">
-                      {isEn
-                        ? 'If the project already holds data, the panel offers to download a backup and reset it before continuing.'
-                        : 'Si le projet contient déjà des données, le panneau propose de les télécharger puis de les réinitialiser avant de continuer.'}
-                    </p>
                   </div>
                 </li>
 

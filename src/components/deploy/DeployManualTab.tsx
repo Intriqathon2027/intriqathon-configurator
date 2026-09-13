@@ -6,7 +6,7 @@ import { useApp } from '../../context/AppContext'
 import { generateEnvContent } from '../../utils/deploy'
 
 export function DeployManualTab() {
-  const { t, config, state, markStepDone, unmarkStepDone } = useApp()
+  const { t, config, state } = useApp()
   const deployPath = config.DEPLOY_PATH || '/path/to/hackathon-deploy'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const isEn = state.language === 'en'
@@ -105,11 +105,7 @@ export function DeployManualTab() {
             route's equivalent. */}
         <ManualCheck
           checkKey="deploy-manual"
-          label={isEn ? 'I ran these commands and the deployment finished' : "J'ai exécuté ces commandes et le déploiement s'est terminé"}
-          hint={isEn
-            ? 'Validates the deployment step, exactly as a successful automatic run would.'
-            : "Valide l'étape de déploiement, comme le ferait un lancement automatique réussi."}
-          onChange={checked => (checked ? markStepDone(3) : unmarkStepDone(3))}
+          label={isEn ? 'The deployment has been carried out' : 'Le déploiement a été effectué'}
         />
       </div>
     </>

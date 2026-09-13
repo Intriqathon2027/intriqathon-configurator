@@ -816,10 +816,9 @@ body {
    ============================================= */
 .manual-check {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
-  margin-top: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-secondary);
@@ -839,31 +838,19 @@ body {
 .manual-check input {
   accent-color: var(--color-primary);
   cursor: pointer;
-  margin-top: 2px;
   flex-shrink: 0;
-}
-
-.manual-check__text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
 }
 
 .manual-check__label {
   font-size: var(--font-size-base);
   font-weight: 500;
   color: var(--color-text);
+  line-height: 1.4;
+  min-width: 0;
 }
 
 .manual-check--done .manual-check__label {
   color: var(--color-primary-text);
-}
-
-.manual-check__hint {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  line-height: 1.45;
 }
 
 /* =============================================
@@ -1357,6 +1344,13 @@ body {
   line-height: 1.45;
 }
 
+/* A value offered for copying, with an optional caption above it */
+.copy-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
 .form-row {
   display: flex;
   flex-wrap: wrap;
@@ -1400,8 +1394,62 @@ body {
   margin-bottom: var(--space-4);
 }
 
+/* The fallback is read, not skimmed: its parts stand further apart than the
+   fields inside any one of them, so the eye can tell a new errand from the
+   next line of the current one. */
 .manual-config-details[open] > .form-section {
   margin-top: var(--space-5);
+  gap: var(--space-6);
+}
+
+.manual-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.manual-section__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.35;
+}
+
+.manual-section__icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-primary-text);
+  flex-shrink: 0;
+}
+
+.manual-section__desc {
+  margin: 0;
+  font-size: var(--font-size-base);
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+/* Inside a part, the steps sit closer together than the parts do */
+.manual-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* A section is a heading plus its content — nothing inside it needs to push
+   itself away from a neighbour the gap already separates. */
+.manual-section__body > .link-buttons-row,
+.manual-section__body > .info-box,
+.manual-section__body > .manual-check,
+.manual-section__body > .dns-table,
+.manual-section__body > .bucket-list {
+  margin: 0;
 }
 
 .manual-config-details[open] > summary::before {

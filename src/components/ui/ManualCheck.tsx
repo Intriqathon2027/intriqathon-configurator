@@ -4,8 +4,6 @@ interface ManualCheckProps {
   /** Which manual action this box records. */
   checkKey: ManualKey
   label: string
-  /** One line under the label, when the action needs a word of context. */
-  hint?: string
   /** Run when the box is ticked or unticked — used to validate a wizard step. */
   onChange?: (checked: boolean) => void
 }
@@ -19,7 +17,7 @@ interface ManualCheckProps {
  * the reader's word, deliberately: no API call can prove the record they added
  * is the one that was asked for.
  */
-export function ManualCheck({ checkKey, label, hint, onChange }: ManualCheckProps) {
+export function ManualCheck({ checkKey, label, onChange }: ManualCheckProps) {
   const { isManualChecked, setManualCheck } = useSession()
   const checked = isManualChecked(checkKey)
 
@@ -35,10 +33,7 @@ export function ManualCheck({ checkKey, label, hint, onChange }: ManualCheckProp
         checked={checked}
         onChange={e => toggle(e.target.checked)}
       />
-      <span className="manual-check__text">
-        <span className="manual-check__label">{label}</span>
-        {hint && <span className="manual-check__hint">{hint}</span>}
-      </span>
+      <span className="manual-check__label">{label}</span>
     </label>
   )
 }

@@ -1,5 +1,5 @@
 import { useRef, useEffect, type ReactNode } from 'react'
-import { Check, Play, XCircle, Loader, AlertTriangle, RotateCcw, Lock } from 'lucide-react'
+import { Play, XCircle, Loader, AlertTriangle, RotateCcw, Lock } from 'lucide-react'
 import { HelpAnchorBtn } from './HelpAnchorBtn'
 
 type ServiceConfigStatus = 'idle' | 'running' | 'done' | 'error' | 'none'
@@ -8,7 +8,8 @@ interface ServiceConfigBlockProps {
   stepNumber: number
   serviceName: string
   serviceIcon: ReactNode
-  description: string
+  /** Omit on a block whose content already says what it is for. */
+  description?: string
   status: ServiceConfigStatus
   /**
    * Marks the block as validated — same green treatment as a completed
@@ -22,8 +23,6 @@ interface ServiceConfigBlockProps {
    * greying out a step someone just declared finished would contradict them.
    */
   manuallyConfirmed?: boolean
-  /** What the success banner reads when only the checkboxes carried the step. */
-  manualDoneLabel?: string
   logs?: string[]
   progress?: number
   onStart?: () => void
@@ -75,7 +74,6 @@ export function ServiceConfigBlock({
   status,
   isComplete,
   manuallyConfirmed = false,
-  manualDoneLabel,
   logs = [],
   progress = 0,
   onStart,
@@ -95,21 +93,20 @@ export function ServiceConfigBlock({
   children,
 }: ServiceConfigBlockProps) {
   /**
+   * Three ways to be finished, and a run that succeeded is the plainest of
+   * them: whatever `isComplete` is derived from, the service was just
+   * configured, so the block says so.
+   *
    * A locked block is not green on filled-in values alone: some of them are
    * auto-derived — FROM_EMAIL from the domain, for one — and as long as the
    * step it depends on is unfinished, that would state something untrue of the
    * service. A ticked checkbox is different: it is the reader saying they did
    * the work, which no derivation can contradict.
    */
-  const complete = manuallyConfirmed || ((isComplete ?? status === 'done') && !locked)
+  const complete = status === 'done'
+    || manuallyConfirmed
+    || ((isComplete ?? false) && !locked)
   const terminalRef = useRef<HTMLDivElement>(null)
-
-  /**
-   * A run that succeeded speaks for itself; otherwise the banner is what the
-   * ticked boxes produce, so the block reports the same thing whichever route
-   * the reader took.
-   */
-  const showManualBanner = manuallyConfirmed && status !== 'done' && status !== 'running'
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -136,27 +133,10 @@ export function ServiceConfigBlock({
           <span className="service-config-block__name">{serviceName}</span>
         </div>
 
-        <p className="service-config-block__description">{description}</p>
+        {description && <p className="service-config-block__description">{description}</p>}
 
-        {/* Status: Done */}
-        {status === 'done' && (
-          <div className="service-config-block__info-box service-config-block__info-box--success">
-            <Check size={16} />
-            <span>
-              {statusLabels.done} — {serviceName} — Success
-            </span>
-          </div>
-        )}
-
-        {/* Status: done by hand — the checkboxes are the only account of it */}
-        {showManualBanner && (
-          <div className="service-config-block__info-box service-config-block__info-box--success">
-            <Check size={16} />
-            <span>
-              {statusLabels.done} — {serviceName} — {manualDoneLabel ?? statusLabels.done}
-            </span>
-          </div>
-        )}
+        {/* Success has no banner: the block turning green says it, and a box
+            repeating it only pushed the next step further down. */}
 
         {/* Status: Error — the provider's wording is what makes it actionable */}
         {status === 'error' && (

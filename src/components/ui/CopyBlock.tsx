@@ -38,7 +38,8 @@ export function CopyBlock({ label, content, multiLine = false }: CopyBlockProps)
 }
 
 interface CopyRowProps {
-  label: string
+  /** Omit where the row already sits under a heading saying the same thing. */
+  label?: string
   content: string
 }
 
@@ -53,8 +54,8 @@ export function CopyRow({ label, content }: CopyRowProps) {
   }
 
   return (
-    <div style={{ marginBottom: '8px' }}>
-      <div className="form-hint" style={{ marginBottom: '4px' }}>{label}</div>
+    <div className="copy-row">
+      {label && <div className="form-hint copy-row__label">{label}</div>}
       <div className="copy-block-row">
         <span className="copy-block-row-text">{content}</span>
         <button
