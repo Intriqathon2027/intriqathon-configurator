@@ -4,6 +4,7 @@ import { translations } from '../i18n/translations'
 import { steps } from '../components/layout/steps'
 import { FONT_SCALE_KEY, clampFontScale, loadFontScale } from '../utils/fontScale'
 import type { SshKeyInfo } from '../types/electron'
+import { deriveProjectRef, withEffectiveProjectRef } from '../shared/supabaseProject'
 
 // ============================================================
 // CONFIG STATE
@@ -22,8 +23,13 @@ export interface Config {
    * copy-paste into something the automation can build on its own.
    */
   SUPABASE_DB_PASSWORD: string
-  /** The project the rest of the wizard works against, whichever mode produced it. */
+  /**
+   * The project the rest of the wizard works against — always the one the
+   * chosen mode designates. Derived from the two below, never set on its own.
+   */
   SUPABASE_PROJECT_REF: string
+  /** The project picked from the account, in "use an existing project" mode. */
+  SUPABASE_SELECTED_PROJECT_REF: string
   /**
    * Only ever written when the configurator itself created a project. Kept
    * apart from SUPABASE_PROJECT_REF because picking an existing project must
@@ -80,6 +86,7 @@ const defaultConfig: Config = {
   SUPABASE_ACCESS_TOKEN: '',
   SUPABASE_DB_PASSWORD: '',
   SUPABASE_PROJECT_REF: '',
+  SUPABASE_SELECTED_PROJECT_REF: '',
   SUPABASE_CREATED_PROJECT_REF: '',
   SUPABASE_PROJECT_MODE: 'existing',
   SUPABASE_ORG_SLUG: '',
@@ -197,15 +204,20 @@ const initialState: AppState = {
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    // `SUPABASE_PROJECT_REF` is derived here rather than assigned by callers.
+    // Three of them used to assign it — the project dropdown, the mode switch
+    // and the provisioning patch — and an event arriving after the mode had
+    // changed left the field designating a project the current mode does not.
+    // Deriving it on every write makes that state unreachable.
     case 'SET_FIELD':
       return {
         ...state,
-        config: { ...state.config, [action.key]: action.value },
+        config: deriveProjectRef({ ...state.config, [action.key]: action.value }),
       }
     case 'SET_FIELDS':
       return {
         ...state,
-        config: { ...state.config, ...action.patch },
+        config: deriveProjectRef({ ...state.config, ...action.patch }),
       }
     case 'SET_LANGUAGE':
       return { ...state, language: action.lang }
@@ -214,7 +226,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'LOAD_SAVED':
       return {
         ...state,
-        config: { ...state.config, ...action.config },
+        config: withEffectiveProjectRef({ ...state.config, ...action.config }),
       }
     case 'RESET_CONFIG':
       return { ...state, config: defaultConfig, actionSteps: [] }
@@ -236,7 +248,9 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         isVaultUnlocked: true,
         vaultExists: true,
-        config: action.config ? { ...state.config, ...action.config } : state.config,
+        config: action.config
+          ? withEffectiveProjectRef({ ...state.config, ...action.config })
+          : state.config,
       }
     case 'VAULT_LOCKED':
       return { ...state, isVaultUnlocked: false }
@@ -413,7 +427,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const saveConfig = async (override?: Partial<Config>) => {
-    await persist(override ? { ...state.config, ...override } : state.config)
+    // Derived here as well as in the reducer: `override` is merged onto the
+    // pre-dispatch `state.config`, whose reference was computed before it
+    // arrived. Reading it back would put it right, but there is no reason to
+    // write a stale one into the vault in the first place.
+    await persist(deriveProjectRef(override ? { ...state.config, ...override } : state.config))
   }
 
   const goToStep = (step: number) => {

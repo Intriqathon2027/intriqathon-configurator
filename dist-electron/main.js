@@ -1395,8 +1395,7 @@ var SupabaseProvisionService = class {
 				win.webContents.send("provision:done", {
 					service: SERVICE,
 					patch: {
-						SUPABASE_PROJECT_REF: ref,
-						...req.mode === "create" ? { SUPABASE_CREATED_PROJECT_REF: ref } : {},
+						...req.mode === "create" ? { SUPABASE_CREATED_PROJECT_REF: ref } : { SUPABASE_SELECTED_PROJECT_REF: ref },
 						SUPABASE_URL: projectUrl(ref)
 					}
 				});
@@ -1406,8 +1405,7 @@ var SupabaseProvisionService = class {
 			const urls = await this.buildUrls(win, client, ref, req.dbPassword);
 			await this.ensureBuckets(win, client, ref, keys.service);
 			const patch = {
-				SUPABASE_PROJECT_REF: ref,
-				...req.mode === "create" ? { SUPABASE_CREATED_PROJECT_REF: ref } : {},
+				...req.mode === "create" ? { SUPABASE_CREATED_PROJECT_REF: ref } : { SUPABASE_SELECTED_PROJECT_REF: ref },
 				SUPABASE_URL: projectUrl(ref),
 				SUPABASE_ANON_KEY: keys.anon,
 				SUPABASE_SERVICE_ROLE_KEY: keys.service,

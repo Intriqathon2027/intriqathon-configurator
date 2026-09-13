@@ -54,6 +54,12 @@ export function SupabaseProjectSetup() {
   // `null` means "not fetched yet", which an empty array cannot express — and
   // the difference is what the loading indicator is derived from.
   const [projects, setProjects] = useState<SupabaseProjectSummary[] | null>(null)
+  /**
+   * Bumped to ask for the listing again. Clearing `projects` alone did not do
+   * it: the fetching effect keys on the token, so wiping the result left it
+   * with nothing to react to — and the list never came back.
+   */
+  const [projectsRefresh, setProjectsRefresh] = useState(0)
   const [projectsError, setProjectsError] = useState<string | null>(null)
   const [verification, setVerification] = useState<SupabaseProjectVerification | null>(null)
   /**
@@ -76,6 +82,14 @@ export function SupabaseProjectSetup() {
    */
   const projectWithTypedName = projects?.find(p => p.name === typedName) ?? null
   /**
+   * The project matching the name is the one this app created. Worth telling
+   * apart: right after a successful creation the name is, of course, taken —
+   * and pointing the reader at "use the existing project instead" would be a
+   * strange thing to say about the project they just asked for.
+   */
+  const createdByConfigurator = !!projectWithTypedName
+    && projectWithTypedName.ref === config.SUPABASE_CREATED_PROJECT_REF
+  /**
    * Create mode does not verify anything: finding the name in the account's own
    * listing is the whole answer, and it points the reader at the other mode
    * rather than confirming a project they did not ask to inspect.
@@ -91,7 +105,7 @@ export function SupabaseProjectSetup() {
    * result carrying another ref is stale by definition, so a success and a
    * failure can never appear side by side.
    */
-  const selectedRef = isCreateMode ? '' : config.SUPABASE_PROJECT_REF
+  const selectedRef = isCreateMode ? '' : config.SUPABASE_SELECTED_PROJECT_REF
   const currentVerification = verification?.ref === selectedRef ? verification : null
   const currentVerifyError = verifyError?.ref === selectedRef ? verifyError.message : null
   const verifying = !!selectedRef && !currentVerification && !currentVerifyError
@@ -121,9 +135,10 @@ export function SupabaseProjectSetup() {
     const typed = patch as Partial<Config>
     setFields(typed)
     void saveConfig(typed)
-    // The account has one project more than the last listing says. Dropping it
-    // forces a refetch, and keeps the button locked in the meantime.
+    // The account has one project more than the last listing says: ask for it
+    // again. The button stays locked until the new list lands.
     setProjects(null)
+    setProjectsRefresh(n => n + 1)
   })
 
   /**
@@ -142,13 +157,39 @@ export function SupabaseProjectSetup() {
     && !passwordBlocks
     && !projectAlreadyExists
 
+  // Records the selection only: which reference is *in force* follows from the
+  // mode, and the reducer derives it.
   const selectProject = (ref: string) => {
-    setField('SUPABASE_PROJECT_REF', ref)
+    setField('SUPABASE_SELECTED_PROJECT_REF', ref)
+  }
+
+  /**
+   * Switching mode swaps which reference is in force — by changing the mode
+   * alone. The reference itself is derived from it, so the two cannot drift
+   * apart the way they did when this function assigned both.
+   */
+  const switchMode = (mode: 'existing' | 'create') => {
+    // The listing is fetched once, so the "single project, no choice to make"
+    // adoption cannot live only at fetch time: arriving in existing mode by
+    // switching into it has to reach the same conclusion.
+    const selected = mode === 'existing'
+      && !config.SUPABASE_SELECTED_PROJECT_REF
+      && projects?.length === 1
+      ? projects[0].ref
+      : config.SUPABASE_SELECTED_PROJECT_REF
+
+    setFields({
+      SUPABASE_PROJECT_MODE: mode,
+      SUPABASE_SELECTED_PROJECT_REF: selected,
+    })
   }
 
   /** Switches to the other mode with the project already picked. */
   const adoptExistingProject = (ref: string) => {
-    setFields({ SUPABASE_PROJECT_MODE: 'existing', SUPABASE_PROJECT_REF: ref })
+    setFields({
+      SUPABASE_PROJECT_MODE: 'existing',
+      SUPABASE_SELECTED_PROJECT_REF: ref,
+    })
   }
 
   /** An account with no project at all: the dropdown would be silently empty. */
@@ -198,8 +239,48 @@ export function SupabaseProjectSetup() {
     }
     setProjectsError(null)
     setProjects(result.data)
-    // A single project is not a choice — adopt it so the detection can confirm it.
-    if (result.data.length === 1) setField('SUPABASE_PROJECT_REF', result.data[0].ref)
+
+    /**
+     * A stored reference is a *claim* that a project was picked or created. The
+     * account's own listing is what settles it, and a reference absent from
+     * that listing names nothing: a project deleted from the dashboard, or one
+     * a saved config asserts without it ever having existed.
+     *
+     * Until now such a claim was believed forever. It survived every reload —
+     * the loader faithfully re-derived the card's state from it — so no amount
+     * of correcting the logic downstream could contradict it. Dropping it here
+     * is what lets a config repair itself instead of carrying the assertion
+     * from run to run.
+     *
+     * Not while a run is in flight: a project created seconds ago may not be in
+     * a listing that was already on its way.
+     */
+    if (provision.status !== 'running') {
+      const onAccount = new Set(result.data.map(project => project.ref))
+      const disproved: Partial<Config> = {}
+      if (config.SUPABASE_CREATED_PROJECT_REF && !onAccount.has(config.SUPABASE_CREATED_PROJECT_REF)) {
+        disproved.SUPABASE_CREATED_PROJECT_REF = ''
+      }
+      if (config.SUPABASE_SELECTED_PROJECT_REF && !onAccount.has(config.SUPABASE_SELECTED_PROJECT_REF)) {
+        disproved.SUPABASE_SELECTED_PROJECT_REF = ''
+      }
+      if (Object.keys(disproved).length > 0) {
+        setFields(disproved)
+        // Written through as well: leaving a disproved claim in the vault would
+        // bring it back, green, on the next launch.
+        void saveConfig(disproved)
+        return
+      }
+    }
+
+    /**
+     * A single project is not a choice, so the dropdown adopts it — but only in
+     * the mode that owns that dropdown. The listing is fetched in create mode
+     * too, where it answers a different question entirely ("is this name
+     * taken?"); auto-selecting there would put a project into effect that the
+     * reader never picked, and that the configurator has not created.
+     */
+    if (!isCreateMode && result.data.length === 1) selectProject(result.data[0].ref)
   }
 
   const applyVerification = (ref: string, result: ProvisionQueryResult<SupabaseProjectVerification>) => {
@@ -245,7 +326,7 @@ export function SupabaseProjectSetup() {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [bridge, canListProjects, token])
+  }, [bridge, canListProjects, token, projectsRefresh])
 
   /**
    * Confirmation for whichever project is selected. Listing proves the token
@@ -350,7 +431,7 @@ export function SupabaseProjectSetup() {
             type="radio"
             name="supabase-project-mode"
             checked={!isCreateMode}
-            onChange={() => setField('SUPABASE_PROJECT_MODE', 'existing')}
+            onChange={() => switchMode('existing')}
           />
           <span>{t('accountCreation.supabase.projectMode.existing')}</span>
         </label>
@@ -359,7 +440,7 @@ export function SupabaseProjectSetup() {
             type="radio"
             name="supabase-project-mode"
             checked={isCreateMode}
-            onChange={() => setField('SUPABASE_PROJECT_MODE', 'create')}
+            onChange={() => switchMode('create')}
           />
           <span>{t('accountCreation.supabase.projectMode.create')}</span>
         </label>
@@ -374,7 +455,7 @@ export function SupabaseProjectSetup() {
             <select
               id="supabase-existing-project"
               className="form-input"
-              value={config.SUPABASE_PROJECT_REF}
+              value={config.SUPABASE_SELECTED_PROJECT_REF}
               onChange={e => selectProject(e.target.value)}
             >
               <option value="">
@@ -553,7 +634,26 @@ export function SupabaseProjectSetup() {
                   {t('accountCreation.supabase.createBtn.missing')}
                 </p>
               )}
-              {projectWithTypedName && (
+              {createdByConfigurator && projectWithTypedName && (
+                <div className="project-verification project-verification--ok">
+                  <div className="project-create-status project-create-status--done">
+                    <Check size={15} />
+                    <span>{t('accountCreation.supabase.created')}</span>
+                  </div>
+                  <ul className="project-verification__facts">
+                    <li><strong>{t('accountCreation.supabase.verify.name')}</strong> {projectWithTypedName.name}</li>
+                    <li><strong>{t('accountCreation.supabase.verify.ref')}</strong> <code>{projectWithTypedName.ref}</code></li>
+                    {projectWithTypedName.region && (
+                      <li><strong>{t('accountCreation.supabase.verify.region')}</strong> {projectWithTypedName.region}</li>
+                    )}
+                  </ul>
+                  <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', margin: 0 }}>
+                    {t('accountCreation.supabase.created.next')}
+                  </p>
+                </div>
+              )}
+
+              {projectWithTypedName && !createdByConfigurator && (
                 <div className="info-box existing-project-hint">
                   <Info size={15} className="info-box-icon" />
                   <div className="info-box-text">

@@ -111,8 +111,9 @@ class MockProvisionBridge implements ProvisionBridge {
       this.doneCbs.forEach(cb => cb({
         service: 'supabase',
         patch: {
-          SUPABASE_PROJECT_REF: ref,
-          ...(req.mode === 'create' ? { SUPABASE_CREATED_PROJECT_REF: ref } : {}),
+          ...(req.mode === 'create'
+            ? { SUPABASE_CREATED_PROJECT_REF: ref }
+            : { SUPABASE_SELECTED_PROJECT_REF: ref }),
           SUPABASE_URL: `https://${ref}.supabase.co`,
         },
       }))
@@ -140,7 +141,11 @@ class MockProvisionBridge implements ProvisionBridge {
     this.doneCbs.forEach(cb => cb({
       service: 'supabase',
       patch: {
-        SUPABASE_PROJECT_REF: ref,
+        // Same rule as the real service: report what was resolved and how, and
+        // leave the reference in force to be derived from the mode.
+        ...(req.mode === 'create'
+          ? { SUPABASE_CREATED_PROJECT_REF: ref }
+          : { SUPABASE_SELECTED_PROJECT_REF: ref }),
         SUPABASE_URL: `https://${ref}.supabase.co`,
         SUPABASE_ANON_KEY: 'eyJmock.anon.key',
         SUPABASE_SERVICE_ROLE_KEY: 'eyJmock.service.key',

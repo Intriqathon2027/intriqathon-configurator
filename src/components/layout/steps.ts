@@ -18,7 +18,7 @@ export const steps: Step[] = [
     labelKey: 'step1.label',
     Icon: KeyRound,
     requiredFields: [
-      'SUPABASE_ACCESS_TOKEN', 'SUPABASE_DB_PASSWORD',
+      'SUPABASE_ACCESS_TOKEN', 'SUPABASE_DB_PASSWORD', 'SUPABASE_PROJECT_REF',
       'RESEND_API_KEY',
       'DOMAIN', 'SPACESHIP_API_KEY', 'SPACESHIP_API_SECRET',
       'SCW_SECRET_KEY', 'SCW_DEFAULT_PROJECT_ID', 'DEPLOY_PATH',

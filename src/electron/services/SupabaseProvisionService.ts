@@ -38,9 +38,17 @@ export interface SupabaseProvisionRequest {
  * goes on to retrieve.
  */
 export interface SupabaseProvisionPatch {
-  SUPABASE_PROJECT_REF: string
+  /**
+   * The run reports which project it resolved and *how* — never which one is in
+   * force. A run outlives the screen that started it: by the time it lands the
+   * reader may have switched modes, and a patch asserting the reference in
+   * force would then point the wizard at a project the current mode does not
+   * designate. The renderer derives that field from the mode instead.
+   */
   /** Present only for a `create` run — the project this app brought into being. */
   SUPABASE_CREATED_PROJECT_REF?: string
+  /** Present only for an `existing` run — the project adopted from the account. */
+  SUPABASE_SELECTED_PROJECT_REF?: string
   SUPABASE_URL: string
   SUPABASE_ANON_KEY?: string
   SUPABASE_SERVICE_ROLE_KEY?: string
@@ -146,8 +154,11 @@ export class SupabaseProvisionService {
         win.webContents.send('provision:done', {
           service: SERVICE,
           patch: {
-            SUPABASE_PROJECT_REF: ref,
-            ...(req.mode === 'create' ? { SUPABASE_CREATED_PROJECT_REF: ref } : {}),
+            // Recorded under the mode that produced it, so the two modes keep
+            // their own reference and neither inherits the other's.
+            ...(req.mode === 'create'
+              ? { SUPABASE_CREATED_PROJECT_REF: ref }
+              : { SUPABASE_SELECTED_PROJECT_REF: ref }),
             SUPABASE_URL: projectUrl(ref),
           },
         })
@@ -159,8 +170,9 @@ export class SupabaseProvisionService {
       await this.ensureBuckets(win, client, ref, keys.service)
 
       const patch: SupabaseProvisionPatch = {
-        SUPABASE_PROJECT_REF: ref,
-        ...(req.mode === 'create' ? { SUPABASE_CREATED_PROJECT_REF: ref } : {}),
+        ...(req.mode === 'create'
+          ? { SUPABASE_CREATED_PROJECT_REF: ref }
+          : { SUPABASE_SELECTED_PROJECT_REF: ref }),
         SUPABASE_URL: projectUrl(ref),
         SUPABASE_ANON_KEY: keys.anon,
         SUPABASE_SERVICE_ROLE_KEY: keys.service,
