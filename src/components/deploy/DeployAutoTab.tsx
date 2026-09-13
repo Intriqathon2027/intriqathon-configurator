@@ -5,7 +5,7 @@ import { generateEnvContent } from '../../utils/deploy'
 import { useDeployment } from '../../hooks/useDeployment'
 import { DeployDialog } from './DeployDialog'
 import { IconRowList } from '../ui/IconRowList'
-import { SshKeyModal } from '../ui/SshKeyModal'
+import { SshKeySelector, type SshKeySelectorHandle } from '../ui/SshKeySelector'
 import type { SshKeyInfo } from '../../types/electron'
 import type { DeployLogEntry, DeploymentStatus } from '../../hooks/useDeployment'
 
@@ -38,7 +38,7 @@ function getGlobalStatusIcon(status: DeploymentStatus) {
 export function DeployAutoTab() {
   const { t, config, setField, markStepDone, selectedSshKey, state } = useApp()
   const isEn = state.language === 'en'
-  const [sshModalOpen, setSshModalOpen] = useState(false)
+  const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
   const {
     status,
     logs,
@@ -81,7 +81,7 @@ export function DeployAutoTab() {
 
   const handleStart = (keyToUse: SshKeyInfo | null = selectedSshKey) => {
     if (!keyToUse) {
-      setSshModalOpen(true)
+      sshSelectorRef.current?.openModal()
       return
     }
     const envContent = generateEnvContent(config as unknown as Record<string, string>)
@@ -132,36 +132,11 @@ export function DeployAutoTab() {
         </div>
 
         {/* SSH key selector */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '10px 14px',
-          borderRadius: '8px',
-          backgroundColor: 'var(--color-surface-sunken)',
-          border: '1px solid var(--color-border)',
-          marginBottom: 'var(--space-4)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Key size={16} color="var(--color-primary)" />
-            <div>
-              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)' }}>
-                {isEn ? 'Authentication SSH key' : 'Clé SSH d\'authentification'}
-              </div>
-              <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
-                {selectedSshKey ? selectedSshKey.name : (isEn ? 'No key selected (required for deploy)' : 'Aucune clé sélectionnée (requise pour le déploiement)')}
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)' }}
-            onClick={() => setSshModalOpen(true)}
-          >
-            {selectedSshKey ? (isEn ? 'Change' : 'Changer') : (isEn ? 'Select key' : 'Sélectionner une clé')}
-          </button>
-        </div>
+        <SshKeySelector
+          ref={sshSelectorRef}
+          label={isEn ? 'Authentication SSH key' : 'Clé SSH d\'authentification'}
+          style={{ marginBottom: 'var(--space-4)' }}
+        />
 
         {/* Console output */}
         <div className="deploy-console" ref={consoleRef}>
@@ -251,12 +226,6 @@ export function DeployAutoTab() {
           onCancel={cancel}
         />
       )}
-
-      <SshKeyModal
-        isOpen={sshModalOpen}
-        onClose={() => setSshModalOpen(false)}
-        onConfirm={(key) => handleStart(key)}
-      />
     </>
   )
 }

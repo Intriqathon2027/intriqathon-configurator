@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus, Key } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
@@ -12,7 +12,7 @@ import { IconRowList, type IconRowItem } from '../components/ui/IconRowList'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
 import { useScalewayInstance } from '../hooks/useScalewayInstance'
-import { SshKeyModal } from '../components/ui/SshKeyModal'
+import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshKeySelector'
 import type { SshKeyInfo } from '../types/electron'
 
 type Status = 'idle' | 'running' | 'done' | 'error'
@@ -268,7 +268,7 @@ export function ApiConfiguration() {
   } = useScalewayInstance()
 
   const { selectedSshKey } = useApp()
-  const [sshModalOpen, setSshModalOpen] = useState(false)
+  const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
 
   const statusLabels = {
     done: t('apiConfig.status.done'),
@@ -287,7 +287,7 @@ export function ApiConfiguration() {
     }
 
     if (!keyToUse) {
-      setSshModalOpen(true)
+      sshSelectorRef.current?.openModal()
       toast(
         isEn
           ? 'Please select an SSH key, then click Launch.'
@@ -409,57 +409,7 @@ export function ApiConfiguration() {
           manualLabel={t('apiConfig.manualConfig')}
         >
           <div className="form-section">
-            {selectedSshKey ? (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--color-surface-sunken)',
-                border: '1px solid var(--color-border)',
-                marginBottom: '8px',
-                fontSize: 'var(--font-size-xs)'
-              }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Key size={13} color="var(--color-primary)" />
-                  <span>{isEn ? 'Selected SSH key:' : 'Clé SSH sélectionnée :'} <strong>{selectedSshKey.name}</strong></span>
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  style={{ padding: '2px 8px', fontSize: '11px' }}
-                  onClick={() => setSshModalOpen(true)}
-                >
-                  {isEn ? 'Change' : 'Changer'}
-                </button>
-              </div>
-            ) : (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--color-surface-sunken)',
-                border: '1px dashed var(--color-border)',
-                marginBottom: '8px',
-                fontSize: 'var(--font-size-xs)'
-              }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-secondary)' }}>
-                  <Key size={13} />
-                  <span>{isEn ? 'No SSH key selected' : 'Aucune clé SSH sélectionnée'}</span>
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ padding: '2px 10px', fontSize: '11px' }}
-                  onClick={() => setSshModalOpen(true)}
-                >
-                  {isEn ? 'Select key' : 'Sélectionner une clé'}
-                </button>
-              </div>
-            )}
+            <SshKeySelector ref={sshSelectorRef} />
 
             <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" />
 
@@ -569,16 +519,6 @@ export function ApiConfiguration() {
         </ServiceConfigBlock>
 
       </div>
-
-      <SshKeyModal
-        isOpen={sshModalOpen}
-        onClose={() => setSshModalOpen(false)}
-        onConfirm={(key) => {
-          toast.success(
-            isEn ? `SSH key "${key.name}" selected` : `Clé SSH "${key.name}" sélectionnée`
-          )
-        }}
-      />
     </WizardLayout>
   )
 }
