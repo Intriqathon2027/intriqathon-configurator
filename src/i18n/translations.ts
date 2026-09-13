@@ -146,7 +146,6 @@ export const translations: Translations = {
     'accountCreation.supabase.dbPassword.rule.noShellBreakers': "Aucun de ces caractères : $ ` \" ' \\ — ils sont interprétés par le shell qui lit le fichier .env",
     'accountCreation.supabase.dbPassword.rule.variety': 'Recommandé : mélanger minuscules, majuscules, chiffres et symboles',
     'accountCreation.supabase.dbPassword.rule.recommendedLength': 'Recommandé : 16 caractères ou plus',
-    'accountCreation.supabase.createWarning': "Le configurateur créera un vrai projet Supabase dans l'organisation choisie, facturé selon son plan. L'opération n'est pas réversible depuis cette application : la suppression se fait uniquement depuis le dashboard Supabase.",
     'accountCreation.supabase.projectName': 'Nom du projet',
     'accountCreation.supabase.projectName.hint': "Nom affiché dans le dashboard Supabase. Sans incidence sur les URLs : celles-ci dérivent de la référence générée par Supabase.",
     'accountCreation.supabase.organization': 'Organisation',
@@ -173,6 +172,8 @@ export const translations: Translations = {
     'accountCreation.resend.apiKey': 'Clé API Resend',
     'accountCreation.resend.apiKey.path': 'API Keys (menu gauche) > Create API Key',
     'accountCreation.resend.apiKey.hint': 'Clé serveur utilisée pour l\'envoi des emails du hackathon (invitations, notifications). Affichée une seule fois — copiez-la immédiatement.',
+    'accountCreation.resend.mailSubdomain': 'Sous-domaine d\'envoi',
+    'accountCreation.resend.mailSubdomain.hint': 'Sous-domaine dédié aux emails, à ajouter dans Resend. Pré-rempli avec mail.votredomaine ; changez-le si ce sous-domaine sert déjà à autre chose. Les enregistrements DNS et l\'adresse d\'expédition en découlent.',
 
     // Spaceship
     'accountCreation.spaceship.title': 'SPACESHIP',
@@ -205,7 +206,8 @@ export const translations: Translations = {
     'apiConfig.desc': 'Configuration automatique des services tiers via leurs APIs. Lancez chaque service séquentiellement.',
     'apiConfig.btnStart': 'Lancer',
     'apiConfig.btnCancel': 'Annuler',
-    'apiConfig.btnRetry': 'Relancer',
+    'apiConfig.btnRetry': 'Réessayer',
+    'apiConfig.btnRerun': 'Relancer',
     'apiConfig.locked.supabaseToken': "En attente de l'étape 1 : jeton d'accès Supabase non renseigné.",
     'apiConfig.locked.supabasePassword': "En attente de l'étape 1 : mot de passe de la base de données non renseigné.",
     'apiConfig.locked.scalewayKeys': "En attente de l'étape 1 : clé API et Project ID Scaleway non renseignés.",
@@ -254,7 +256,8 @@ export const translations: Translations = {
 
     // Spaceship API config
     'apiConfig.spaceship.helpHint': 'Launchpad, Advanced DNS et enregistrements A.',
-    'apiConfig.spaceship.dnsPath': 'Launchpad > Domain Portfolio > votre domaine > Manage > Advanced DNS.',
+    'apiConfig.spaceship.dnsPath': 'Launchpad (ou recherche / ou ⌘ K) > Advanced DNS > votre domaine > DNS records > Custom records > Add record.',
+    'apiConfig.spaceship.hostNote': 'Le champ Host de Spaceship attend le nom sans le domaine : @ pour le domaine lui-même, config pour le panneau d\'administration. Les valeurs ci-dessous sont déjà écrites sous cette forme.',
     'apiConfig.spaceship.desc': 'Configuration des entrées DNS (A records, DMARC, TXT) pour votre domaine',
     'apiConfig.spaceship.ipv4': 'Adresse IPv4 de l\'instance',
     'apiConfig.spaceship.ipv4.path': 'Console Scaleway > Compute > Instances > Votre instance',
@@ -344,6 +347,7 @@ export const translations: Translations = {
     'step6.auto.browse': 'Parcourir',
     'step6.auto.pathLabel': 'Dossier de configuration',
     'step6.auto.btnStart': 'Lancer le déploiement',
+    'step6.auto.btnRestart': 'Relancer le déploiement',
     'step6.auto.btnCancel': 'Annuler',
     'step6.auto.status.idle': 'Prêt à déployer',
     'step6.auto.status.running': 'Déploiement en cours…',
@@ -523,7 +527,6 @@ export const translations: Translations = {
     'accountCreation.supabase.dbPassword.rule.noShellBreakers': "None of these characters: $ ` \" ' \\ — the shell that reads the .env would interpret them",
     'accountCreation.supabase.dbPassword.rule.variety': 'Recommended: mix lowercase, uppercase, digits and symbols',
     'accountCreation.supabase.dbPassword.rule.recommendedLength': 'Recommended: 16 characters or more',
-    'accountCreation.supabase.createWarning': 'The configurator will create a real Supabase project in the chosen organization, billed under its plan. It cannot be undone from this app: deleting a project is done from the Supabase dashboard only.',
     'accountCreation.supabase.projectName': 'Project name',
     'accountCreation.supabase.projectName.hint': 'Name shown in the Supabase dashboard. It does not affect the URLs, which derive from the reference Supabase generates.',
     'accountCreation.supabase.organization': 'Organization',
@@ -550,6 +553,8 @@ export const translations: Translations = {
     'accountCreation.resend.apiKey': 'Resend API Key',
     'accountCreation.resend.apiKey.path': 'API Keys (left menu) > Create API Key',
     'accountCreation.resend.apiKey.hint': 'Server key used to send the hackathon emails (invitations, notifications). Shown only once — copy it immediately.',
+    'accountCreation.resend.mailSubdomain': 'Sending subdomain',
+    'accountCreation.resend.mailSubdomain.hint': 'The dedicated email subdomain to add in Resend. Pre-filled with mail.yourdomain; change it if that subdomain is already in use. The DNS records and the sender address derive from it.',
 
     // Spaceship
     'accountCreation.spaceship.title': 'SPACESHIP',
@@ -582,7 +587,8 @@ export const translations: Translations = {
     'apiConfig.desc': 'Automatic configuration of third-party services via their APIs. Launch each service sequentially.',
     'apiConfig.btnStart': 'Launch',
     'apiConfig.btnCancel': 'Cancel',
-    'apiConfig.btnRetry': 'Run again',
+    'apiConfig.btnRetry': 'Retry',
+    'apiConfig.btnRerun': 'Run again',
     'apiConfig.locked.supabaseToken': 'Waiting on step 1: the Supabase access token is missing.',
     'apiConfig.locked.supabasePassword': 'Waiting on step 1: the database password is missing.',
     'apiConfig.locked.scalewayKeys': 'Waiting on step 1: the Scaleway API key and Project ID are missing.',
@@ -631,7 +637,8 @@ export const translations: Translations = {
 
     // Spaceship API config
     'apiConfig.spaceship.helpHint': 'Launchpad, Advanced DNS and A records.',
-    'apiConfig.spaceship.dnsPath': 'Launchpad > Domain Portfolio > your domain > Manage > Advanced DNS.',
+    'apiConfig.spaceship.dnsPath': 'Launchpad (or the / or ⌘ K search) > Advanced DNS > your domain > DNS records > Custom records > Add record.',
+    'apiConfig.spaceship.hostNote': 'Spaceship\'s Host field takes the name without the domain: @ for the domain itself, config for the admin panel. The values below are already written that way.',
     'apiConfig.spaceship.desc': 'DNS records configuration (A records, DMARC, TXT) for your domain',
     'apiConfig.spaceship.ipv4': 'Instance IPv4 address',
     'apiConfig.spaceship.ipv4.path': 'Scaleway console > Compute > Instances > Your instance',
@@ -721,6 +728,7 @@ export const translations: Translations = {
     'step6.auto.browse': 'Browse',
     'step6.auto.pathLabel': 'Configuration folder',
     'step6.auto.btnStart': 'Start deployment',
+    'step6.auto.btnRestart': 'Run the deployment again',
     'step6.auto.btnCancel': 'Cancel',
     'step6.auto.status.idle': 'Ready to deploy',
     'step6.auto.status.running': 'Deployment in progress…',

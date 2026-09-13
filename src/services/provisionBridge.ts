@@ -104,6 +104,7 @@ class MockProvisionBridge implements ProvisionBridge {
     const projectSteps: [string, number][] = [
       [req.mode === 'create' ? `Création du projet « ${req.projectName || 'demo'} »…` : 'Recherche du projet Supabase…', 10],
       ['Projet actif.', 45],
+      ['Clé service_role legacy récupérée.', 50],
     ]
 
     if (req.stopAfterProject) {
@@ -121,6 +122,9 @@ class MockProvisionBridge implements ProvisionBridge {
             ? { SUPABASE_CREATED_PROJECT_REF: ref }
             : { SUPABASE_SELECTED_PROJECT_REF: ref }),
           SUPABASE_URL: `https://${ref}.supabase.co`,
+          // Same as the real service: the panel key is resolved as soon as the
+          // project exists.
+          SUPABASE_PANEL_SERVICE_KEY: 'eyJmock.legacy.service.key',
         },
       }))
       return
@@ -155,6 +159,7 @@ class MockProvisionBridge implements ProvisionBridge {
         SUPABASE_URL: `https://${ref}.supabase.co`,
         SUPABASE_ANON_KEY: 'eyJmock.anon.key',
         SUPABASE_SERVICE_ROLE_KEY: 'eyJmock.service.key',
+        SUPABASE_PANEL_SERVICE_KEY: 'eyJmock.legacy.service.key',
         DATABASE_URL: `postgresql://postgres.${ref}:mock@pooler.supabase.com:6543/postgres`,
         DIRECT_URL: `postgresql://postgres.${ref}:mock@pooler.supabase.com:5432/postgres`,
       },

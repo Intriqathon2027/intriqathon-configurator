@@ -2,7 +2,7 @@ import type { BrowserWindow } from 'electron'
 import { STORAGE_BUCKETS } from '../../shared/supabaseBuckets'
 import { SupabaseApiClient, SupabaseApiError } from './supabase/SupabaseApiClient'
 import { buildPostgresUrls, projectUrl } from './supabase/connectionStrings'
-import { MANAGED_KEY_NAME, describeKeyFormat, needsKeyProvisioning, resolveKeyPair } from './supabase/keys'
+import { MANAGED_KEY_NAME, describeKeyFormat, findLegacyServiceKey, needsKeyProvisioning, resolveKeyPair } from './supabase/keys'
 import { Redactor } from './supabase/redact'
 import type { SupabaseApiKey, SupabaseOrganization, SupabaseProject } from './supabase/types'
 import type { SupabaseProjectVerification } from '../../types/provision'
@@ -54,6 +54,13 @@ export interface SupabaseProvisionPatch {
   SUPABASE_SERVICE_ROLE_KEY?: string
   DATABASE_URL?: string
   DIRECT_URL?: string
+  /**
+   * The JWT legacy `service_role` key, for the browser panel at
+   * `config.<domain>`. Resolved as soon as the project exists — a
+   * `stopAfterProject` run included — so the value the last screen asks for is
+   * already in hand rather than waiting on a run three steps later.
+   */
+  SUPABASE_PANEL_SERVICE_KEY?: string
 }
 
 export class SupabaseProvisionService {
@@ -149,6 +156,12 @@ export class SupabaseProvisionService {
         : await this.adoptProject(win, client, req)
 
       if (req.stopAfterProject) {
+        // Fetched here rather than left to step 8: the panel key is a property
+        // of the project, available the moment it is ready, and the reader who
+        // creates the project from this screen should not have to run a later
+        // step to be handed the value `config.<domain>` asks for.
+        const panelKey = await this.resolvePanelServiceKey(win, client, ref)
+
         this.progress(win, 100)
         this.log(win, 'Projet prêt. Les clés et les buckets seront récupérés à l\'étape 2.', 'done')
         win.webContents.send('provision:done', {
@@ -160,6 +173,7 @@ export class SupabaseProvisionService {
               ? { SUPABASE_CREATED_PROJECT_REF: ref }
               : { SUPABASE_SELECTED_PROJECT_REF: ref }),
             SUPABASE_URL: projectUrl(ref),
+            ...(panelKey ? { SUPABASE_PANEL_SERVICE_KEY: panelKey } : {}),
           },
         })
         return
@@ -176,6 +190,7 @@ export class SupabaseProvisionService {
         SUPABASE_URL: projectUrl(ref),
         SUPABASE_ANON_KEY: keys.anon,
         SUPABASE_SERVICE_ROLE_KEY: keys.service,
+        ...(keys.panel ? { SUPABASE_PANEL_SERVICE_KEY: keys.panel } : {}),
         ...urls,
       }
 
@@ -300,7 +315,7 @@ export class SupabaseProvisionService {
     win: BrowserWindow,
     client: SupabaseApiClient,
     ref: string,
-  ): Promise<{ anon: string; service: string }> {
+  ): Promise<{ anon: string; service: string; panel: string | null }> {
     this.log(win, 'Récupération des clés API…')
 
     let keys = await client.listApiKeys(ref)
@@ -346,7 +361,69 @@ export class SupabaseProvisionService {
     )
     this.progress(win, 60)
 
-    return { anon: pair.anon.value, service: pair.service.value }
+    /**
+     * The browser panel needs the JWT one specifically. When the service key
+     * above already is legacy, that is the same value and nothing more is
+     * asked of the API; otherwise the listing just fetched is searched for it.
+     */
+    const panel = pair.service.format === 'legacy'
+      ? pair.service.value
+      : findLegacyServiceKey(keys)
+    if (panel) this.redactor.add(panel)
+
+    return { anon: pair.anon.value, service: pair.service.value, panel }
+  }
+
+  /**
+   * The `service_role` key in JWT format, or null when the project offers none.
+   *
+   * `config.<domain>` is a browser app querying the Data API with whatever
+   * service key it is handed, and Supabase answers 401 to a `sb_secret_…` key
+   * on any request carrying an Origin — so the legacy format is the only one
+   * that works there. A project with the legacy keys switched off gets them
+   * switched back on, the same cheap repair `resolveKeys` performs.
+   *
+   * Anything that goes wrong is reported and swallowed: the project itself is
+   * provisioned either way, and failing the run over an auxiliary lookup would
+   * cost the reader the step they actually asked for.
+   */
+  private async resolvePanelServiceKey(
+    win: BrowserWindow,
+    client: SupabaseApiClient,
+    ref: string,
+  ): Promise<string | null> {
+    try {
+      this.log(win, 'Récupération de la clé service_role legacy (pour le panneau de configuration)…')
+      let key = findLegacyServiceKey(await client.listApiKeys(ref))
+
+      if (!key) {
+        const legacy = await client.getLegacyKeysEnabled(ref)
+        if (legacy && !legacy.enabled) {
+          this.log(win, 'Clés JWT legacy désactivées — réactivation…')
+          await client.setLegacyKeysEnabled(ref, true)
+          key = findLegacyServiceKey(await client.listApiKeys(ref))
+        }
+      }
+
+      if (!key) {
+        this.log(
+          win,
+          'Aucune clé service_role legacy sur ce projet — elle pourra être récupérée depuis le dashboard.',
+          'error',
+        )
+        return null
+      }
+
+      // Registered before it can reach a log line or an error message.
+      this.redactor.add(key)
+      this.log(win, 'Clé service_role legacy récupérée.', 'done')
+      return key
+    } catch (err) {
+      if (this.wasCancelled()) throw err
+      const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err)
+      this.log(win, `Clé service_role legacy indisponible : ${this.redactor.redact(message)}`, 'error')
+      return null
+    }
   }
 
   // ── Step 3 — the Postgres URLs ─────────────────────────────────────────

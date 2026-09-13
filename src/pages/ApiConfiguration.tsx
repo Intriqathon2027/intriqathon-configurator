@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { WizardLayout } from '../components/layout/WizardLayout'
@@ -15,6 +15,8 @@ import { useScalewayInstance } from '../hooks/useScalewayInstance'
 import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshKeySelector'
 import type { SshKeyInfo } from '../types/electron'
 import { useServiceProvision } from '../hooks/useServiceProvision'
+import { useSession } from '../context/SessionContext'
+import { ManualCheck } from '../components/ui/ManualCheck'
 import { STORAGE_BUCKETS } from '../shared/supabaseBuckets'
 import { isAccountComplete } from '../utils/serviceCompletion'
 import type { Config } from '../context/AppContext'
@@ -23,10 +25,20 @@ type Status = 'idle' | 'running' | 'done' | 'error'
 
 const BUCKETS_URL = 'https://supabase.com/dashboard/project/_/storage/buckets'
 
+/**
+ * Spaceship's entry points. Everything in the account is reached through the
+ * Launchpad — DNS included: `Advanced DNS` is an app of its own there, not a
+ * tab inside a domain's page, which is where the previous instructions sent
+ * the reader.
+ */
+const SPACESHIP_LAUNCHPAD_URL = 'https://www.spaceship.com/application/launchpad/'
+const SPACESHIP_DNS_HELP_URL = 'https://www.spaceship.com/knowledgebase/category/knowledgebase-dns/'
+
 function HelpContent() {
   const { state, config } = useApp()
   const isEn = state.language === 'en'
   const domain = config.DOMAIN || 'votredomaine.fr'
+  const mailSubdomain = config.MAIL_SUBDOMAIN || `mail.${domain}`
 
   const supabase: HelpFlowStep[] = [
     {
@@ -115,37 +127,44 @@ function HelpContent() {
   const spaceship: HelpFlowStep[] = [
     {
       key: 'launchpad',
-      title: 'Launchpad',
+      title: isEn ? 'Open Advanced DNS' : 'Ouvrir Advanced DNS',
       desc: isEn
-        ? <>Everything in Spaceship is reached through the <strong>Launchpad</strong>, its app launcher: the <code>Launchpad</code> button in the top navigation bar, or the <code>/</code> or <code>⌘ K</code> shortcut. Type <code>Domain Portfolio</code> to open the list of your domains.</>
-        : <>Tout, chez Spaceship, passe par le <strong>Launchpad</strong>, son lanceur d'applications : bouton <code>Launchpad</code> dans la barre de navigation, ou raccourci <code>/</code> ou <code>⌘ K</code>. Tapez <code>Domain Portfolio</code> pour ouvrir la liste de vos domaines.</>,
-      url: 'https://www.spaceship.com/application/launchpad/',
+        ? <>DNS is its own app on Spaceship, reached from the <strong>Launchpad</strong>: the <code>Launchpad</code> button in the top navigation bar, or the search icon (<code>/</code> or <code>⌘ K</code>). Type <code>Advanced DNS</code> and open it — it is not a tab inside a domain's page.</>
+        : <>Le DNS est une application à part entière chez Spaceship, ouverte depuis le <strong>Launchpad</strong> : bouton <code>Launchpad</code> dans la barre de navigation, ou icône de recherche (<code>/</code> ou <code>⌘ K</code>). Tapez <code>Advanced DNS</code> et ouvrez-la — ce n'est pas un onglet dans la page d'un domaine.</>,
+      url: SPACESHIP_LAUNCHPAD_URL,
       linkLabel: 'Launchpad',
     },
     {
       key: 'dns',
-      title: 'Advanced DNS',
+      title: isEn ? 'Pick the domain and open its records' : 'Choisir le domaine et ouvrir ses enregistrements',
       desc: isEn
-        ? <><code>Domain Portfolio</code> ➔ click <code>{domain}</code> ➔ <code>Manage</code> ➔ <code>Advanced DNS</code>. This is where the records below are added.</>
-        : <><code>Domain Portfolio</code> ➔ cliquez sur <code>{domain}</code> ➔ <code>Manage</code> ➔ <code>Advanced DNS</code>. C'est ici que s'ajoutent les enregistrements ci-dessous.</>,
-      url: 'https://www.spaceship.com/application/domain-portfolio/',
-      linkLabel: 'Domain Portfolio',
+        ? <>In <code>Advanced DNS</code>, select <code>{domain}</code>, then <code>DNS records</code> ➔ <code>Custom records</code>. <code>Add record</code> opens the type list; each row is then filled in and saved with <code>Add</code>.</>
+        : <>Dans <code>Advanced DNS</code>, sélectionnez <code>{domain}</code>, puis <code>DNS records</code> ➔ <code>Custom records</code>. <code>Add record</code> ouvre la liste des types ; chaque ligne se remplit puis se valide avec <code>Add</code>.</>,
+      url: SPACESHIP_DNS_HELP_URL,
+      linkLabel: isEn ? 'Spaceship DNS help' : 'Aide DNS Spaceship',
+      extra: (
+        <p className="help-note">
+          {isEn
+            ? 'These records only take effect while the domain uses Spaceship\'s own nameservers. If you pointed it at custom nameservers (Cloudflare, for one), the records have to be created there instead.'
+            : "Ces enregistrements ne s'appliquent que si le domaine utilise les serveurs de noms de Spaceship. Si vous l'avez basculé sur des serveurs de noms personnalisés (Cloudflare, par exemple), c'est là qu'il faut créer les enregistrements."}
+        </p>
+      ),
     },
     {
       key: 'records',
       title: isEn ? 'Add the DNS records' : 'Ajouter les enregistrements DNS',
       desc: isEn
-        ? <>Two A records pointing at the Scaleway IPv4 — the site and the admin panel — plus the MX and TXT records Resend hands you below.</>
-        : <>Deux enregistrements A vers l'IPv4 Scaleway — le site et le panneau admin — plus les enregistrements MX et TXT fournis par Resend ci-dessous.</>,
+        ? <>Two A records pointing at the Scaleway IPv4 — the site and the admin panel — plus the MX and TXT records Resend hands you below. The <code>Host</code> field takes the name <strong>without the domain</strong>: <code>@</code> for the site itself, <code>config</code> for the admin panel.</>
+        : <>Deux enregistrements A vers l'IPv4 Scaleway — le site et le panneau admin — plus les enregistrements MX et TXT fournis par Resend ci-dessous. Le champ <code>Host</code> attend le nom <strong>sans le domaine</strong> : <code>@</code> pour le site lui-même, <code>config</code> pour le panneau d'administration.</>,
       copyValues: [
-        { value: domain, note: isEn ? 'A record — the site' : 'Enregistrement A — le site' },
-        { value: `config.${domain}`, note: isEn ? 'A record — the admin panel' : "Enregistrement A — le panneau d'administration" },
+        { value: '@', note: isEn ? 'A record — the site' : 'Enregistrement A — le site' },
+        { value: 'config', note: isEn ? 'A record — the admin panel' : "Enregistrement A — le panneau d'administration" },
       ],
       extra: (
         <p className="help-note">
           {isEn
-            ? 'Propagation can take a few minutes; HTTPS certificates are only issued once the A records resolve.'
-            : "La propagation peut prendre quelques minutes ; les certificats HTTPS ne sont émis qu'une fois les enregistrements A résolus."}
+            ? <>Typing <code>config.{domain}</code> in that field would create <code>config.{domain}.{domain}</code>. Propagation can take a few minutes; HTTPS certificates are only issued once the A records resolve.</>
+            : <>Saisir <code>config.{domain}</code> dans ce champ créerait <code>config.{domain}.{domain}</code>. La propagation peut prendre quelques minutes ; les certificats HTTPS ne sont émis qu'une fois les enregistrements A résolus.</>}
         </p>
       ),
     },
@@ -159,14 +178,14 @@ function HelpContent() {
         ? <><code>Domains</code> (left menu) ➔ <code>Add Domain</code>. Use a dedicated subdomain, and pick the region closest to your participants.</>
         : <><code>Domains</code> (menu gauche) ➔ <code>Add Domain</code>. Utilisez un sous-domaine dédié, et choisissez la région la plus proche de vos participants.</>,
       url: 'https://resend.com/domains',
-      copyValues: [{ value: `mail.${domain}`, note: isEn ? 'sending subdomain' : "sous-domaine d'envoi" }],
+      copyValues: [{ value: mailSubdomain, note: isEn ? 'sending subdomain' : "sous-domaine d'envoi" }],
     },
     {
       key: 'records',
       title: isEn ? 'Copy the records into Spaceship' : 'Copier les enregistrements dans Spaceship',
       desc: isEn
-        ? <>Resend then displays a MX record and TXT records (DKIM, SPF). Copy them character for character into <code>Advanced DNS</code> on Spaceship.</>
-        : <>Resend affiche alors un enregistrement MX et des enregistrements TXT (DKIM, SPF). Recopiez-les à l'identique dans <code>Advanced DNS</code> chez Spaceship.</>,
+        ? <>Resend then displays a MX record and TXT records (DKIM, SPF). Copy their values character for character into <code>Advanced DNS</code> on Spaceship — dropping the domain from each host, as Spaceship's <code>Host</code> field expects (<code>{mailSubdomain}</code> becomes <code>{mailSubdomain.endsWith(`.${domain}`) ? mailSubdomain.slice(0, -(domain.length + 1)) : mailSubdomain}</code>).</>
+        : <>Resend affiche alors un enregistrement MX et des enregistrements TXT (DKIM, SPF). Recopiez leurs valeurs à l'identique dans <code>Advanced DNS</code> chez Spaceship — en retirant le domaine de chaque hôte, comme l'attend le champ <code>Host</code> de Spaceship (<code>{mailSubdomain}</code> devient <code>{mailSubdomain.endsWith(`.${domain}`) ? mailSubdomain.slice(0, -(domain.length + 1)) : mailSubdomain}</code>).</>,
     },
     {
       key: 'verify',
@@ -204,6 +223,7 @@ function HelpContent() {
 
 export function ApiConfiguration() {
   const { t, config, setField, setFields, saveConfig, state } = useApp()
+  const { isRunDone, markRunDone, isManualChecked } = useSession()
   const isEn = state.language === 'en'
 
   // The automation pre-fills the very same fields the manual fallback edits, so
@@ -222,12 +242,23 @@ export function ApiConfiguration() {
 
   const domain = config.DOMAIN || '<DOMAIN>'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4_INSTANCE>'
-  const mailSubdomain = `mail.${domain}`
+  const mailSubdomain = config.MAIL_SUBDOMAIN || `mail.${domain}`
+
+  /**
+   * Spaceship's Host field takes the name *without* the domain — `@` for the
+   * apex, `config` for the admin panel — which is also what its API documents
+   * ("name of resource record excluding domain name part"). Pasting the full
+   * hostname there creates `config.domain.fr.domain.fr`, a record that resolves
+   * for nobody and looks right in the table.
+   */
+  const mailHost = mailSubdomain.endsWith(`.${domain}`)
+    ? mailSubdomain.slice(0, -(domain.length + 1))
+    : mailSubdomain
 
   const dnsRecords = [
-    { type: 'TXT', host: `_dmarc.mail.${domain}`, answer: 'v=DMARC1;p=none;', ttl: 'Auto' },
-    { type: 'A', host: domain, answer: ipv4, ttl: 'Auto' },
-    { type: 'A', host: `config.${domain}`, answer: ipv4, ttl: 'Auto' },
+    { type: 'TXT', host: `_dmarc.${mailHost}`, answer: 'v=DMARC1;p=none;', ttl: '3600' },
+    { type: 'A', host: '@', answer: ipv4, ttl: '3600' },
+    { type: 'A', host: 'config', answer: ipv4, ttl: '3600' },
   ]
 
 
@@ -248,7 +279,7 @@ export function ApiConfiguration() {
     config.DIRECT_URL
   )
   const isScalewayComplete = !!config.IPV4_INSTANCE
-  const isResendComplete = !!(config.FROM_EMAIL && config.ALLOWED_EMAILS)
+  const isResendComplete = !!(config.FROM_EMAIL && config.ALLOWED_EMAILS && isManualChecked('resend-subdomain'))
 
   // Supabase copies its Postgres URLs out with `[YOUR-PASSWORD]` still in them;
   // both fields offer to substitute the database password on the spot.
@@ -259,7 +290,8 @@ export function ApiConfiguration() {
     btnLabel: t('apiConfig.supabase.pwFill.btn'),
   }
 
-  // Not yet automated — these three still run on the manual fallback.
+  // Not yet automated — these two still run on the manual fallback, and their
+  // checkboxes are what say the work was done.
   const [spaceshipStatus] = useState<Status>('idle')
   const [resendStatus] = useState<Status>('idle')
 
@@ -279,6 +311,27 @@ export function ApiConfiguration() {
     running: t('apiConfig.status.running'),
     error: t('apiConfig.status.error'),
   }
+
+  /**
+   * A run that succeeded earlier in this session keeps its block green after
+   * the page is remounted — leaving step 2 and coming back resets the hooks,
+   * not what happened. The config the run brought back is already persisted;
+   * this only concerns how the block reads.
+   */
+  const supabaseStatus: Status = supabase.status === 'idle' && isRunDone('api-supabase')
+    ? 'done'
+    : supabase.status
+  const scwStatus: Status = scalewayStatus === 'idle' && isRunDone('api-scaleway')
+    ? 'done'
+    : scalewayStatus
+
+  useEffect(() => {
+    if (supabase.status === 'done') markRunDone('api-supabase')
+  }, [supabase.status])
+
+  useEffect(() => {
+    if (scalewayStatus === 'done') markRunDone('api-scaleway')
+  }, [scalewayStatus])
 
   const handleStartScaleway = async (keyToUse: SshKeyInfo | null = selectedSshKey) => {
     if (!config.SCW_SECRET_KEY || !config.SCW_DEFAULT_PROJECT_ID) {
@@ -399,7 +452,7 @@ export function ApiConfiguration() {
           serviceName="SUPABASE"
           serviceIcon={<Database size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.supabase.desc')}
-          status={supabase.status}
+          status={supabaseStatus}
           isComplete={isSupabaseComplete}
           logs={supabase.logs}
           progress={supabase.progress}
@@ -410,6 +463,7 @@ export function ApiConfiguration() {
           onCancel={supabase.cancel}
           btnStartLabel={t('apiConfig.btnStart')}
           btnRetryLabel={t('apiConfig.btnRetry')}
+          btnRerunLabel={t('apiConfig.btnRerun')}
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
           helpAnchor="svc-supabase"
@@ -439,9 +493,20 @@ export function ApiConfiguration() {
                   </li>
                 ))}
               </ul>
-              <div className="link-buttons-row" style={{ margin: '12px 0 20px' }}>
+              <div className="link-buttons-row" style={{ margin: '12px 0 8px' }}>
                 <ExternalLinkBtn url={BUCKETS_URL} label={t('apiConfig.supabase.buckets.btn')} />
               </div>
+              {/* The buckets leave nothing in the config — without this box,
+                  nothing downstream can tell they exist. */}
+              <ManualCheck
+                checkKey="supabase-buckets"
+                label={isEn
+                  ? `I created the ${STORAGE_BUCKETS.length} buckets with these exact names`
+                  : `J'ai créé les ${STORAGE_BUCKETS.length} buckets avec exactement ces noms`}
+                hint={isEn
+                  ? 'Not needed when the automatic run above succeeded — it creates them itself.'
+                  : "Inutile si le lancement automatique ci-dessus a réussi — il les crée lui-même."}
+              />
             </div>
 
             <FormField id="supabase-url" label={t('apiConfig.supabase.url')} value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" />
@@ -460,7 +525,7 @@ export function ApiConfiguration() {
           serviceName="SCALEWAY"
           serviceIcon={<Server size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.scaleway.desc')}
-          status={scalewayStatus}
+          status={scwStatus}
           isComplete={isScalewayComplete}
           locked={!!scalewayLock}
           lockedReason={scalewayLock ?? undefined}
@@ -469,15 +534,20 @@ export function ApiConfiguration() {
           logs={scwLogs}
           progress={scwProgress}
           btnStartLabel={t('apiConfig.btnStart')}
+          btnRerunLabel={t('apiConfig.btnRerun')}
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
           helpAnchor="svc-scaleway"
           helpHint={t('apiConfig.scaleway.helpHint')}
+          extra={
+            <SshKeySelector
+              ref={sshSelectorRef}
+              label={isEn ? 'Authentication SSH key' : "Clé SSH d'authentification"}
+            />
+          }
           manualLabel={t('apiConfig.manualConfig')}
         >
           <div className="form-section">
-            <SshKeySelector ref={sshSelectorRef} />
-
             <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" />
 
             <div style={{ fontWeight: 600, marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -515,9 +585,12 @@ export function ApiConfiguration() {
               <p className="text-muted" style={{ margin: '0 0 12px', fontSize: 'var(--font-size-base)', lineHeight: 1.5 }}>
                 {t('apiConfig.spaceship.dnsPath')}
               </p>
+              <p className="text-muted" style={{ margin: '0 0 12px', fontSize: 'var(--font-size-base)', lineHeight: 1.5 }}>
+                {t('apiConfig.spaceship.hostNote')}
+              </p>
               <div className="link-buttons-row" style={{ marginBottom: '16px' }}>
-                <ExternalLinkBtn url="https://www.spaceship.com/application/launchpad/" label="Launchpad" />
-                <ExternalLinkBtn url="https://www.spaceship.com/application/domain-portfolio/" label="Domain Portfolio" />
+                <ExternalLinkBtn url={SPACESHIP_LAUNCHPAD_URL} label="Launchpad" />
+                <ExternalLinkBtn url={SPACESHIP_DNS_HELP_URL} label={isEn ? 'Spaceship DNS help' : 'Aide DNS Spaceship'} />
               </div>
               <table className="dns-table">
                 <thead>
@@ -552,6 +625,15 @@ export function ApiConfiguration() {
                 <AlertTriangle size={15} className="info-box-icon" />
                 <div className="info-box-text">{t('step4.warning')}</div>
               </div>
+              <ManualCheck
+                checkKey="spaceship-dns"
+                label={isEn
+                  ? 'I added these records in Advanced DNS'
+                  : "J'ai ajouté ces enregistrements dans Advanced DNS"}
+                hint={isEn
+                  ? 'The two A records and the DMARC record, plus the MX and TXT records Resend hands you.'
+                  : 'Les deux enregistrements A et le DMARC, plus les MX et TXT fournis par Resend.'}
+              />
             </div>
           </div>
         </ServiceConfigBlock>
@@ -582,6 +664,15 @@ export function ApiConfiguration() {
               {t('step4.subdomain')}
             </div>
             <CopyRow label={t('step4.subdomain')} content={mailSubdomain} />
+            <ManualCheck
+              checkKey="resend-subdomain"
+              label={isEn
+                ? 'I added this subdomain in Resend and verified it'
+                : "J'ai ajouté ce sous-domaine dans Resend et l'ai vérifié"}
+              hint={isEn
+                ? 'Resend then hands you the MX and TXT records to add at Spaceship; the domain must read Verified before a single email goes out.'
+                : "Resend fournit ensuite les enregistrements MX et TXT à ajouter chez Spaceship ; le domaine doit afficher Verified avant tout envoi."}
+            />
           </div>
 
             <FormField id="from-email" label={t('apiConfig.supabase.fromEmail')} value={config.FROM_EMAIL} onChange={v => setField('FROM_EMAIL', v)} placeholder="Hackathon Team <onboarding@mail.domain.com>" />

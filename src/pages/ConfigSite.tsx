@@ -7,6 +7,8 @@ import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
 import { SqlBlock } from '../components/ui/SqlBlock'
 import { DockerBlock } from '../components/ui/DockerBlock'
 import { useApp, type Config } from '../context/AppContext'
+import { useSession } from '../context/SessionContext'
+import { ManualCheck } from '../components/ui/ManualCheck'
 import { useDockerRestart } from '../hooks/useDockerRestart'
 import { useServiceProvision } from '../hooks/useServiceProvision'
 import { GRANTS_SQL, REALTIME_TABLE } from '../shared/supabaseSiteSetup'
@@ -113,8 +115,8 @@ function HelpContent() {
       extra: (
         <p className="help-note">
           {isEn
-            ? 'The service key has to be the JWT-format legacy one: the panel is a browser app, and Supabase refuses a sb_secret_… key on any request that carries an Origin. Step 1 of the card above reads it back from the project, so the Next steps block shows the value that works.'
-            : "La clé de service doit être celle au format JWT legacy : le panneau est une application navigateur, et Supabase refuse une clé sb_secret_… sur toute requête portant une origine. L'étape 1 de la carte ci-dessus la récupère depuis le projet, de sorte que le bloc Prochaines étapes affiche la valeur qui fonctionne."}
+            ? 'The service key has to be the JWT-format legacy one: the panel is a browser app, and Supabase refuses a sb_secret_… key on any request that carries an Origin. It is read back from the project as soon as the project is resolved — at step 1, when the project is created or adopted, and again by the card above — so the Next steps block shows the value that works.'
+            : "La clé de service doit être celle au format JWT legacy : le panneau est une application navigateur, et Supabase refuse une clé sb_secret_… sur toute requête portant une origine. Elle est récupérée depuis le projet dès qu'il est résolu — à l'étape 1, à la création ou à l'adoption du projet, puis de nouveau par la carte ci-dessus — de sorte que le bloc Prochaines étapes affiche la valeur qui fonctionne."}
         </p>
       ),
     },
@@ -162,7 +164,8 @@ function HelpContent() {
 }
 
 export function ConfigSite() {
-  const { t, config, state, markStepDone, selectedSshKey, setFields, saveConfig } = useApp()
+  const { t, config, state, markStepDone, unmarkStepDone, selectedSshKey, setFields, saveConfig } = useApp()
+  const { isRunDone, markRunDone } = useSession()
   const { status, logs, progress, start, cancel } = useDockerRestart()
   const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
 
@@ -234,16 +237,35 @@ export function ConfigSite() {
     })
   }
 
-  // Validate the site-config step once the Docker restart succeeds
+  // Validate the site-config step once the Docker restart succeeds, and record
+  // the run so the block stays green across a remount of this page.
   useEffect(() => {
-    if (status === 'completed') markStepDone(4)
+    if (status === 'completed') {
+      markStepDone(4)
+      markRunDone('site-docker')
+    }
   }, [status])
+
+  useEffect(() => {
+    if (siteSetup.status === 'done') markRunDone('site-supabase')
+  }, [siteSetup.status])
 
   // map hook status to ServiceConfigBlock status
   let serviceStatus: 'idle' | 'running' | 'done' | 'error' = 'idle'
   if (status === 'running') serviceStatus = 'running'
   else if (status === 'completed') serviceStatus = 'done'
   else if (status === 'error') serviceStatus = 'error'
+  if (serviceStatus === 'idle' && isRunDone('site-docker')) serviceStatus = 'done'
+
+  /**
+   * The settings run is the one automation whose result outlives the session —
+   * SUPABASE_SITE_SETUP_AT records it — so a config carrying that date reads as
+   * done here too, with the same "Relancer" button.
+   */
+  const siteSetupStatus = siteSetup.status === 'idle'
+    && (isRunDone('site-supabase') || !!config.SUPABASE_SITE_SETUP_AT)
+    ? 'done'
+    : siteSetup.status
 
   const statusLabels = {
     done: isEn ? 'Done' : 'Fait',
@@ -308,8 +330,8 @@ export function ConfigSite() {
           description={isEn
             ? `Privileges, exposed schema, Realtime on ${REALTIME_TABLE}, email confirmation off and RLS on every table — applied through the Supabase API.`
             : `Privilèges, schéma exposé, Realtime sur ${REALTIME_TABLE}, confirmation d'email désactivée et RLS sur chaque table — appliqués via l'API Supabase.`}
-          status={siteSetup.status}
-          isComplete={siteSetup.status === 'done' || !!config.SUPABASE_SITE_SETUP_AT}
+          status={siteSetupStatus}
+          isComplete={siteSetupStatus === 'done' || !!config.SUPABASE_SITE_SETUP_AT}
           logs={siteSetup.logs}
           progress={siteSetup.progress}
           locked={!!supabaseLock}
@@ -318,7 +340,8 @@ export function ConfigSite() {
           onStart={handleSupabaseSetup}
           onCancel={siteSetup.cancel}
           btnStartLabel={isEn ? 'Launch' : 'Lancer'}
-          btnRetryLabel={isEn ? 'Retry' : 'Relancer'}
+          btnRetryLabel={isEn ? 'Retry' : 'Réessayer'}
+          btnRerunLabel={isEn ? 'Run again' : 'Relancer'}
           btnCancelLabel={isEn ? 'Cancel' : 'Annuler'}
           statusLabels={statusLabels}
           manualLabel={isEn ? 'Manual Configuration' : 'Configuration manuelle'}
@@ -355,13 +378,18 @@ export function ConfigSite() {
           logs={logs.map(l => l.message)}
           progress={progress}
           btnStartLabel={isEn ? 'Restart Docker' : 'Redémarrer Docker'}
+          btnRerunLabel={isEn ? 'Restart again' : 'Relancer'}
           btnCancelLabel={isEn ? 'Cancel' : 'Annuler'}
           statusLabels={statusLabels}
+          extra={
+            <SshKeySelector
+              ref={sshSelectorRef}
+              label={isEn ? 'Authentication SSH key' : "Clé SSH d'authentification"}
+            />
+          }
           manualLabel={isEn ? 'Manual Configuration' : 'Configuration manuelle'}
         >
           <div className="form-section">
-            <SshKeySelector ref={sshSelectorRef} />
-
             <div style={{ marginBottom: '8px' }}>
               <strong>{isEn ? "Connect via SSH:" : "Connectez-vous en SSH :"}</strong>
             </div>
@@ -371,6 +399,17 @@ export function ConfigSite() {
               <strong>{isEn ? "Restart command:" : "Commande de redémarrage :"}</strong>
             </div>
             <DockerBlock command="docker restart discord_bot" />
+
+            {/* The restart leaves no trace in the config either — run by hand,
+                this box is what validates the step. */}
+            <ManualCheck
+              checkKey="docker-manual"
+              label={isEn ? 'I restarted the bot over SSH myself' : "J'ai redémarré le bot moi-même en SSH"}
+              hint={isEn
+                ? 'Validates this step, exactly as a successful automatic restart would.'
+                : "Valide cette étape, comme le ferait un redémarrage automatique réussi."}
+              onChange={checked => (checked ? markStepDone(4) : unmarkStepDone(4))}
+            />
           </div>
         </ServiceConfigBlock>
 

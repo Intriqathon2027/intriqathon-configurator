@@ -1428,13 +1428,15 @@ var SupabaseProvisionService = class {
 		try {
 			const ref = req.mode === "create" ? await this.createProject(win, client, req) : await this.adoptProject(win, client, req);
 			if (req.stopAfterProject) {
+				const panelKey = await this.resolvePanelServiceKey(win, client, ref);
 				this.progress(win, 100);
 				this.log(win, "Projet prêt. Les clés et les buckets seront récupérés à l'étape 2.", "done");
 				win.webContents.send("provision:done", {
 					service: SERVICE$1,
 					patch: {
 						...req.mode === "create" ? { SUPABASE_CREATED_PROJECT_REF: ref } : { SUPABASE_SELECTED_PROJECT_REF: ref },
-						SUPABASE_URL: projectUrl(ref)
+						SUPABASE_URL: projectUrl(ref),
+						...panelKey ? { SUPABASE_PANEL_SERVICE_KEY: panelKey } : {}
 					}
 				});
 				return;
@@ -1447,6 +1449,7 @@ var SupabaseProvisionService = class {
 				SUPABASE_URL: projectUrl(ref),
 				SUPABASE_ANON_KEY: keys.anon,
 				SUPABASE_SERVICE_ROLE_KEY: keys.service,
+				...keys.panel ? { SUPABASE_PANEL_SERVICE_KEY: keys.panel } : {},
 				...urls
 			};
 			this.progress(win, 100);
@@ -1563,10 +1566,57 @@ var SupabaseProvisionService = class {
 		this.redactor.add(pair.anon.value, pair.service.value);
 		this.log(win, `Clés récupérées — anon : ${describeKeyFormat(pair.anon.format)}, service : ${describeKeyFormat(pair.service.format)}.`, "done");
 		this.progress(win, 60);
+		/**
+		* The browser panel needs the JWT one specifically. When the service key
+		* above already is legacy, that is the same value and nothing more is
+		* asked of the API; otherwise the listing just fetched is searched for it.
+		*/
+		const panel = pair.service.format === "legacy" ? pair.service.value : findLegacyServiceKey(keys);
+		if (panel) this.redactor.add(panel);
 		return {
 			anon: pair.anon.value,
-			service: pair.service.value
+			service: pair.service.value,
+			panel
 		};
+	}
+	/**
+	* The `service_role` key in JWT format, or null when the project offers none.
+	*
+	* `config.<domain>` is a browser app querying the Data API with whatever
+	* service key it is handed, and Supabase answers 401 to a `sb_secret_…` key
+	* on any request carrying an Origin — so the legacy format is the only one
+	* that works there. A project with the legacy keys switched off gets them
+	* switched back on, the same cheap repair `resolveKeys` performs.
+	*
+	* Anything that goes wrong is reported and swallowed: the project itself is
+	* provisioned either way, and failing the run over an auxiliary lookup would
+	* cost the reader the step they actually asked for.
+	*/
+	async resolvePanelServiceKey(win, client, ref) {
+		try {
+			this.log(win, "Récupération de la clé service_role legacy (pour le panneau de configuration)…");
+			let key = findLegacyServiceKey(await client.listApiKeys(ref));
+			if (!key) {
+				const legacy = await client.getLegacyKeysEnabled(ref);
+				if (legacy && !legacy.enabled) {
+					this.log(win, "Clés JWT legacy désactivées — réactivation…");
+					await client.setLegacyKeysEnabled(ref, true);
+					key = findLegacyServiceKey(await client.listApiKeys(ref));
+				}
+			}
+			if (!key) {
+				this.log(win, "Aucune clé service_role legacy sur ce projet — elle pourra être récupérée depuis le dashboard.", "error");
+				return null;
+			}
+			this.redactor.add(key);
+			this.log(win, "Clé service_role legacy récupérée.", "done");
+			return key;
+		} catch (err) {
+			if (this.wasCancelled()) throw err;
+			const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
+			this.log(win, `Clé service_role legacy indisponible : ${this.redactor.redact(message)}`, "error");
+			return null;
+		}
 	}
 	async buildUrls(win, client, ref, dbPassword) {
 		this.log(win, "Récupération des URLs Postgres…");

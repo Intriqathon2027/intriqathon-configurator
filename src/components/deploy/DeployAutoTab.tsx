@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database, FolderOpen, Key } from 'lucide-react'
+import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database, FolderOpen } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
+import { useSession } from '../../context/SessionContext'
 import { generateEnvContent } from '../../utils/deploy'
+import { collectPreDeployGaps, type PreDeployGap } from '../../utils/preDeployChecks'
 import { useDeployment } from '../../hooks/useDeployment'
 import { DeployDialog } from './DeployDialog'
+import { PreDeployWarning } from './PreDeployWarning'
 import { IconRowList } from '../ui/IconRowList'
 import { SshKeySelector, type SshKeySelectorHandle } from '../ui/SshKeySelector'
 import type { SshKeyInfo } from '../../types/electron'
@@ -37,8 +40,15 @@ function getGlobalStatusIcon(status: DeploymentStatus) {
 
 export function DeployAutoTab() {
   const { t, config, setField, markStepDone, selectedSshKey, state } = useApp()
+  const { isRunDone, markRunDone, isManualChecked } = useSession()
   const isEn = state.language === 'en'
   const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
+  /**
+   * The gaps the reader was warned about, held while the dialog is up. The key
+   * they chose comes back with the answer: a warning shown for a run started
+   * without a selected key must not start the deployment with none.
+   */
+  const [pendingStart, setPendingStart] = useState<{ key: SshKeyInfo; gaps: PreDeployGap[] } | null>(null)
   const {
     status,
     logs,
@@ -51,9 +61,13 @@ export function DeployAutoTab() {
 
   const consoleRef = useRef<HTMLDivElement>(null)
 
-  // Validate the deploy step once the deployment succeeds
+  // Validate the deploy step once the deployment succeeds, and record it for
+  // the session so leaving the step and coming back still shows it as done.
   useEffect(() => {
-    if (status === 'completed') markStepDone(3)
+    if (status === 'completed') {
+      markStepDone(3)
+      markRunDone('deploy')
+    }
   }, [status])
 
   // Auto-scroll console to bottom
@@ -79,17 +93,38 @@ export function DeployAutoTab() {
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const domain = config.DOMAIN || 'example.com'
 
+  const launch = (keyToUse: SshKeyInfo) => {
+    const envContent = generateEnvContent(config as unknown as Record<string, string>)
+    start({ deployPath, ipv4, domain, envContent, sshKeyPath: keyToUse.privateKeyPath })
+  }
+
   const handleStart = (keyToUse: SshKeyInfo | null = selectedSshKey) => {
     if (!keyToUse) {
       sshSelectorRef.current?.openModal()
       return
     }
-    const envContent = generateEnvContent(config as unknown as Record<string, string>)
-    start({ deployPath, ipv4, domain, envContent, sshKeyPath: keyToUse.privateKeyPath })
+
+    // What steps 2 and 3 have not provided yet. Said once, before the transfer:
+    // afterwards the stack is up and the blanks only show as runtime failures.
+    const gaps = collectPreDeployGaps({ config, isManualChecked, isRunDone, isEn })
+    if (gaps.length > 0) {
+      setPendingStart({ key: keyToUse, gaps })
+      return
+    }
+
+    launch(keyToUse)
   }
 
   const isRunning = status === 'running' || status === 'paused_for_dialog'
   const isFinished = status === 'completed' || status === 'error' || status === 'cancelled'
+  /**
+   * A deployment that succeeded earlier in this session, on a tab that has
+   * since been remounted: the hook is back to `idle`, the session is not.
+   */
+  const deployedThisSession = status === 'idle' && isRunDone('deploy')
+  const succeeded = status === 'completed' || deployedThisSession
+  // Nothing to read in a console that reported success — the badge says it.
+  const showConsole = status !== 'completed'
 
   const statusKey = `step6.auto.status.${status}` as string
   const statusText = t(statusKey)
@@ -138,20 +173,22 @@ export function DeployAutoTab() {
           style={{ marginBottom: 'var(--space-4)' }}
         />
 
-        {/* Console output */}
-        <div className="deploy-console" ref={consoleRef}>
-          {logs.length === 0 && status === 'idle' && (
-            <span className="deploy-console-placeholder">
-              {t('step6.auto.status.idle')}
-            </span>
-          )}
-          {logs.map((log) => (
-            <div key={log.id} className={`deploy-log-line ${log.status}`}>
-              {getStatusIcon(log.status)}
-              <span className="deploy-log-text">{log.message}</span>
-            </div>
-          ))}
-        </div>
+        {/* Console output — hidden once the deployment has succeeded */}
+        {showConsole && (
+          <div className="deploy-console" ref={consoleRef}>
+            {logs.length === 0 && status === 'idle' && (
+              <span className="deploy-console-placeholder">
+                {t('step6.auto.status.idle')}
+              </span>
+            )}
+            {logs.map((log) => (
+              <div key={log.id} className={`deploy-log-line ${log.status}`}>
+                {getStatusIcon(log.status)}
+                <span className="deploy-log-text">{log.message}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Progress bar */}
         <div className="deploy-progress-bar">
@@ -169,7 +206,13 @@ export function DeployAutoTab() {
               {statusText}
             </span>
           )}
-          {!isFinished && (
+          {deployedThisSession && (
+            <span className="deploy-status-badge completed">
+              <CheckCircle2 size={16} />
+              {t('step6.auto.status.completed')}
+            </span>
+          )}
+          {!isFinished && !deployedThisSession && (
             <span className="deploy-path-label">{t('step6.auto.pathLabel')} : {deployPath}</span>
           )}
         </div>
@@ -188,11 +231,11 @@ export function DeployAutoTab() {
           ) : (
             <button
               className="btn deploy-btn-start"
-              onClick={handleStart}
+              onClick={() => handleStart()}
               id="btn-deploy-start"
             >
-              {isFinished ? <Rocket size={16} /> : <Upload size={16} />}
-              {t('step6.auto.btnStart')}
+              {isFinished || deployedThisSession ? <Rocket size={16} /> : <Upload size={16} />}
+              {succeeded ? t('step6.auto.btnRestart') : t('step6.auto.btnStart')}
             </button>
           )}
         </div>
@@ -218,12 +261,25 @@ export function DeployAutoTab() {
         />
       </div>
 
+      {/* Unfinished steps, raised before the transfer starts */}
+      {pendingStart && (
+        <PreDeployWarning
+          gaps={pendingStart.gaps}
+          isEn={isEn}
+          onCancel={() => setPendingStart(null)}
+          onProceed={() => {
+            const { key } = pendingStart
+            setPendingStart(null)
+            launch(key)
+          }}
+        />
+      )}
+
       {/* Dialog overlay */}
       {pendingDialog && (
         <DeployDialog
           dialog={pendingDialog}
           onRespond={respondToDialog}
-          onCancel={cancel}
         />
       )}
     </>

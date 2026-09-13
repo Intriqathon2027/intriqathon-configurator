@@ -42,6 +42,7 @@ export const fieldHelpByStep: Record<number, FieldHelpGroup[]> = {
       title: 'RESEND',
       fields: [
         { id: 'resend-api-key', labelKey: 'accountCreation.resend.apiKey', envKey: 'RESEND_API_KEY', pathKey: 'accountCreation.resend.apiKey.path', hintKey: 'accountCreation.resend.apiKey.hint' },
+        { id: 'mail-subdomain', labelKey: 'accountCreation.resend.mailSubdomain', envKey: 'MAIL_SUBDOMAIN', hintKey: 'accountCreation.resend.mailSubdomain.hint' },
       ],
     },
     {

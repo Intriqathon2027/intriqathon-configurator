@@ -1,11 +1,12 @@
 import { FileDown, Download, Terminal } from 'lucide-react'
 import { CommandBlock } from '../ui/CopyBlock'
+import { ManualCheck } from '../ui/ManualCheck'
 import { useApp } from '../../context/AppContext'
 
 import { generateEnvContent } from '../../utils/deploy'
 
 export function DeployManualTab() {
-  const { t, config, state } = useApp()
+  const { t, config, state, markStepDone, unmarkStepDone } = useApp()
   const deployPath = config.DEPLOY_PATH || '/path/to/hackathon-deploy'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const isEn = state.language === 'en'
@@ -98,6 +99,18 @@ export function DeployManualTab() {
         <div style={{ marginTop: '8px' }}>
           <CommandBlock label={t('step6.cmd.install')} command="./install_hackathon.sh" />
         </div>
+
+        {/* Nothing else records a deployment run from a terminal: the automatic
+            tab validates the step when it succeeds, and this is the manual
+            route's equivalent. */}
+        <ManualCheck
+          checkKey="deploy-manual"
+          label={isEn ? 'I ran these commands and the deployment finished' : "J'ai exécuté ces commandes et le déploiement s'est terminé"}
+          hint={isEn
+            ? 'Validates the deployment step, exactly as a successful automatic run would.'
+            : "Valide l'étape de déploiement, comme le ferait un lancement automatique réussi."}
+          onChange={checked => (checked ? markStepDone(3) : unmarkStepDone(3))}
+        />
       </div>
     </>
   )

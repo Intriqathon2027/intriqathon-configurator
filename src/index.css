@@ -747,8 +747,169 @@ body {
   align-self: flex-start;
 }
 
+.service-config-block__btn-rerun {
+  align-self: flex-start;
+}
+
 .service-config-block__children {
   min-width: 0;
+}
+
+/* Inputs the run consumes, between its button and the manual dropdown */
+.service-config-block__extra {
+  min-width: 0;
+  margin-top: var(--space-4);
+}
+
+/* =============================================
+   SSH KEY SELECTOR
+   ============================================= */
+.ssh-key-selector {
+  margin-bottom: var(--space-3);
+  min-width: 0;
+}
+
+/* Same box as a text field — only its content is chosen rather than typed */
+.ssh-key-selector__value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-md);
+  background: var(--color-input-bg);
+  color: var(--color-input-text);
+  font-size: var(--font-size-base);
+  overflow: hidden;
+}
+
+.ssh-key-selector__value--empty {
+  border-style: dashed;
+  color: var(--color-text-muted);
+}
+
+.ssh-key-selector__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ssh-key-selector__caption {
+  color: var(--color-text-secondary);
+}
+
+.ssh-key-selector__type {
+  margin-left: var(--space-2);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+/* =============================================
+   MANUAL ACTION CHECKBOX
+   ============================================= */
+.manual-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  margin-top: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.manual-check:hover {
+  border-color: var(--color-border-strong);
+}
+
+.manual-check--done {
+  border-color: rgba(29, 180, 138, 0.45);
+  background: var(--color-primary-light);
+}
+
+.manual-check input {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.manual-check__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.manual-check__label {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.manual-check--done .manual-check__label {
+  color: var(--color-primary-text);
+}
+
+.manual-check__hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+/* =============================================
+   PRE-DEPLOY WARNING
+   ============================================= */
+.predeploy-warning__intro {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.predeploy-warning__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.predeploy-warning__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.predeploy-warning__step {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.predeploy-warning__note {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 
 /* =============================================

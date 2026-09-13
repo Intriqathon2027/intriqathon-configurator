@@ -671,13 +671,6 @@ export function SupabaseProjectSetup() {
                   </div>
                 </div>
               )}
-
-              {/* Below the button, where it reads as a consequence of pressing
-                  it rather than as a banner to scroll past. */}
-              <div className="info-box warning">
-                <AlertTriangle size={15} className="info-box-icon" />
-                <div className="info-box-text">{t('accountCreation.supabase.createWarning')}</div>
-              </div>
             </>
           )}
         </>

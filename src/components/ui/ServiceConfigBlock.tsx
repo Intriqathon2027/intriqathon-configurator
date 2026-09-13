@@ -22,6 +22,8 @@ interface ServiceConfigBlockProps {
   btnStartLabel: string
   /** Shown in place of `btnStartLabel` once a run has failed. */
   btnRetryLabel?: string
+  /** Shown once a run has succeeded — starting it again is a re-run, not a first go. */
+  btnRerunLabel?: string
   btnCancelLabel: string
   statusLabels: { done: string; running: string; error: string }
   /** Provider wording for a failure — shown under the generic error banner. */
@@ -43,6 +45,12 @@ interface ServiceConfigBlockProps {
   locked?: boolean
   lockedReason?: string
   /**
+   * Sits between the action button and the manual dropdown — for the inputs the
+   * automation itself consumes (the SSH key Scaleway installs on the instance,
+   * say), which belong to the run rather than to the manual fallback.
+   */
+  extra?: ReactNode
+  /**
    * Label of the collapsible that wraps `children`. Omit to render the
    * children plainly, without a dropdown.
    */
@@ -63,6 +71,7 @@ export function ServiceConfigBlock({
   onCancel,
   btnStartLabel,
   btnRetryLabel,
+  btnRerunLabel,
   btnCancelLabel,
   statusLabels,
   errorMessage,
@@ -70,6 +79,7 @@ export function ServiceConfigBlock({
   helpHint,
   locked = false,
   lockedReason,
+  extra,
   manualLabel,
   children,
 }: ServiceConfigBlockProps) {
@@ -142,8 +152,11 @@ export function ServiceConfigBlock({
           </div>
         )}
 
-        {/* Terminal Logs (visible while running, on error, or after completion if logs exist) */}
-        {logs.length > 0 && (status === 'running' || status === 'error' || status === 'done') && (
+        {/* Terminal logs — while the run is speaking, and after a failure, where
+            the last lines are the only account of what went wrong. A success
+            has nothing left to read: the banner says it, and the values it
+            brought back are in the fields. */}
+        {logs.length > 0 && (status === 'running' || status === 'error') && (
           <div className="service-config-block__terminal" ref={terminalRef}>
             {logs.map((line, i) => {
               const isErr = line.includes('[ERREUR') || line.toLowerCase().includes('erreur') || line.toLowerCase().includes('error') || line.includes('Échec')
@@ -201,6 +214,25 @@ export function ServiceConfigBlock({
               : btnStartLabel}
           </button>
         ))}
+
+        {/* A finished run can always be started again — the automations are
+            written to be re-runnable, and a second pass is how a configuration
+            changed elsewhere is brought back in line. */}
+        {status === 'done' && onStart && !locked && (
+          <button
+            className="btn btn-secondary service-config-block__btn-rerun"
+            onClick={onStart}
+            type="button"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <RotateCcw size={14} />
+            {btnRerunLabel ?? (btnStartLabel === 'Launch' ? 'Run again' : 'Relancer')}
+          </button>
+        )}
+
+        {/* Inputs the run itself consumes — above the manual fallback, below the
+            button they belong to. */}
+        {extra && <div className="service-config-block__extra">{extra}</div>}
 
         {/* Manual fallback: the dropdown leads with a pointer to the panel */}
         {children && (manualLabel ? (

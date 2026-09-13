@@ -143,7 +143,6 @@ export type TranslationKeys = {
   'accountCreation.supabase.dbPassword.rule.noShellBreakers': string
   'accountCreation.supabase.dbPassword.rule.variety': string
   'accountCreation.supabase.dbPassword.rule.recommendedLength': string
-  'accountCreation.supabase.createWarning': string
   'accountCreation.supabase.projectName': string
   'accountCreation.supabase.projectName.hint': string
   'accountCreation.supabase.organization': string
@@ -170,6 +169,8 @@ export type TranslationKeys = {
   'accountCreation.resend.apiKey': string
   'accountCreation.resend.apiKey.path': string
   'accountCreation.resend.apiKey.hint': string
+  'accountCreation.resend.mailSubdomain': string
+  'accountCreation.resend.mailSubdomain.hint': string
 
   // Spaceship
   'accountCreation.spaceship.title': string
@@ -203,6 +204,7 @@ export type TranslationKeys = {
   'apiConfig.btnStart': string
   'apiConfig.btnCancel': string
   'apiConfig.btnRetry': string
+  'apiConfig.btnRerun': string
   'apiConfig.locked.supabaseToken': string
   'apiConfig.locked.supabasePassword': string
   'apiConfig.locked.scalewayKeys': string
@@ -253,6 +255,7 @@ export type TranslationKeys = {
   'apiConfig.spaceship.desc': string
   'apiConfig.spaceship.helpHint': string
   'apiConfig.spaceship.dnsPath': string
+  'apiConfig.spaceship.hostNote': string
   'apiConfig.spaceship.ipv4': string
   'apiConfig.spaceship.ipv4.path': string
   'apiConfig.spaceship.ipv4.hint': string
@@ -341,6 +344,7 @@ export type TranslationKeys = {
   'step6.auto.browse': string
   'step6.auto.pathLabel': string
   'step6.auto.btnStart': string
+  'step6.auto.btnRestart': string
   'step6.auto.btnCancel': string
   'step6.auto.status.idle': string
   'step6.auto.status.running': string

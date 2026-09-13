@@ -202,6 +202,8 @@ export function AccountCreation() {
 
   // Completion checks — the rule itself lives in `serviceCompletion`, where the
   // automations of steps 2 and 8 read it to decide whether they may run at all.
+  const defaultMailSubdomain = `mail.${config.DOMAIN || 'votredomaine.fr'}`
+
   const isSupabaseComplete = isAccountComplete(config, 'supabase')
   const isResendComplete = isAccountComplete(config, 'resend')
   const isSpaceshipComplete = isAccountComplete(config, 'spaceship')
@@ -253,6 +255,16 @@ export function AccountCreation() {
               onChange={v => setField('RESEND_API_KEY', v)}
               placeholder="re_abc123..."
               type="password"
+            />
+            {/* Pre-filled with `mail.<domain>` as soon as the domain is known,
+                and editable from here: the DNS records, the Resend domain and
+                the sender address are all built from this value. */}
+            <FormField
+              id="mail-subdomain"
+              label={t('accountCreation.resend.mailSubdomain')}
+              value={config.MAIL_SUBDOMAIN}
+              onChange={v => setField('MAIL_SUBDOMAIN', v)}
+              placeholder={defaultMailSubdomain}
             />
           </div>
         </ServiceAccountCard>

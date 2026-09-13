@@ -16,6 +16,12 @@ export interface SshKeySelectorProps {
   onSelectKey?: (key: SshKeyInfo) => void
 }
 
+/**
+ * Picking the key, laid out like the field next to it: a label, a box carrying
+ * the current value, and a button standing apart from it — the same shape as
+ * "Chemin de déploiement" and its "Parcourir". The key is chosen in a modal
+ * rather than typed, but that is no reason for the row to read differently.
+ */
 export const SshKeySelector = forwardRef<SshKeySelectorHandle, SshKeySelectorProps>(function SshKeySelector(
   { label, className = '', style, onSelectKey },
   ref
@@ -36,86 +42,44 @@ export const SshKeySelector = forwardRef<SshKeySelectorHandle, SshKeySelectorPro
   }
 
   return (
-    <div className={`ssh-key-selector ${className}`} style={{ marginBottom: '12px', ...style }}>
-      {label && (
-        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', marginBottom: '6px' }}>
-          {label}
-        </div>
-      )}
+    <div className={`ssh-key-selector ${className}`} style={style}>
+      {label && <label className="form-label">{label}</label>}
 
-      {selectedSshKey ? (
+      <div className="form-input-row">
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            backgroundColor: 'var(--color-surface-sunken)',
-            border: '1px solid var(--color-border)',
-            fontSize: 'var(--font-size-xs)',
-          }}
+          className={`ssh-key-selector__value${selectedSshKey ? '' : ' ssh-key-selector__value--empty'}`}
         >
-          <span style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
-            <Key size={14} color="var(--color-primary)" style={{ flexShrink: 0 }} />
-            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              <span style={{ color: 'var(--color-text-secondary)' }}>
+          <Key size={14} color={selectedSshKey ? 'var(--color-primary)' : 'currentColor'} />
+          {selectedSshKey ? (
+            <span className="ssh-key-selector__name">
+              <span className="ssh-key-selector__caption">
                 {isEn ? 'Selected SSH key:' : 'Clé SSH sélectionnée :'}
               </span>{' '}
-              <strong style={{ color: 'var(--color-text-primary)' }}>{selectedSshKey.name}</strong>
-              {selectedSshKey.type && (
-                <span
-                  style={{
-                    marginLeft: '8px',
-                    padding: '1px 6px',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    backgroundColor: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                  }}
-                >
-                  {selectedSshKey.type.toUpperCase()}
-                </span>
+              <strong>{selectedSshKey.name}</strong>
+              {selectedSshKey.keyType && (
+                <span className="ssh-key-selector__type">{selectedSshKey.keyType.toUpperCase()}</span>
               )}
             </span>
-          </span>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            style={{ padding: '2px 8px', fontSize: '11px', flexShrink: 0 }}
-            onClick={() => setModalOpen(true)}
-          >
-            {isEn ? 'Change' : 'Changer'}
-          </button>
+          ) : (
+            <span className="ssh-key-selector__name">
+              {isEn ? 'No SSH key selected' : 'Aucune clé SSH sélectionnée'}
+            </span>
+          )}
         </div>
-      ) : (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            backgroundColor: 'var(--color-surface-sunken)',
-            border: '1px dashed var(--color-border)',
-            fontSize: 'var(--font-size-xs)',
-          }}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-secondary)' }}>
-            <Key size={14} />
-            <span>{isEn ? 'No SSH key selected' : 'Aucune clé SSH sélectionnée'}</span>
-          </span>
+
+        <div className="form-input-action">
           <button
             type="button"
             className="btn btn-secondary"
-            style={{ padding: '2px 10px', fontSize: '11px' }}
             onClick={() => setModalOpen(true)}
           >
-            {isEn ? 'Select key' : 'Sélectionner une clé'}
+            <Key size={14} />
+            {selectedSshKey
+              ? (isEn ? 'Change' : 'Changer')
+              : (isEn ? 'Select key' : 'Sélectionner')}
           </button>
         </div>
-      )}
+      </div>
 
       <SshKeyModal
         isOpen={modalOpen}

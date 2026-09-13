@@ -46,6 +46,13 @@ export interface Config {
 
   // Account Creation — Resend
   RESEND_API_KEY: string
+  /**
+   * The subdomain Resend sends from. Pre-filled with `mail.<domain>` — the
+   * convention the rest of the wizard assumes — but editable: a domain whose
+   * `mail.` subdomain is already taken by a mailbox provider needs another one,
+   * and every DNS record and sender address derives from this value.
+   */
+  MAIL_SUBDOMAIN: string
 
   // Account Creation — Scaleway
   SCW_SECRET_KEY: string
@@ -108,6 +115,7 @@ const defaultConfig: Config = {
   SUPABASE_PROJECT_NAME: 'intriqathon',
   SUPABASE_REGION: 'eu-west-3',
   RESEND_API_KEY: '',
+  MAIL_SUBDOMAIN: '',
   SCW_SECRET_KEY: '',
   SCW_DEFAULT_PROJECT_ID: '',
   DEPLOY_PATH: '',
@@ -172,6 +180,7 @@ type Action =
   | { type: 'SET_THEME'; theme: ThemePreference }
   | { type: 'SET_FONT_SCALE'; scale: number }
   | { type: 'MARK_STEP_DONE'; step: number }
+  | { type: 'UNMARK_STEP_DONE'; step: number }
   | { type: 'SET_VAULT_STATUS'; exists: boolean; unlocked: boolean }
   | { type: 'VAULT_UNLOCKED'; config?: Partial<Config> }
   | { type: 'VAULT_LOCKED' }
@@ -258,6 +267,11 @@ function reducer(state: AppState, action: Action): AppState {
     case 'MARK_STEP_DONE':
       if (state.actionSteps.includes(action.step)) return state
       return { ...state, actionSteps: [...state.actionSteps, action.step] }
+    // Untick the box that validated the step by hand: what the reader asserted,
+    // the reader can take back.
+    case 'UNMARK_STEP_DONE':
+      if (!state.actionSteps.includes(action.step)) return state
+      return { ...state, actionSteps: state.actionSteps.filter(step => step !== action.step) }
     case 'SET_VAULT_STATUS':
       return { ...state, vaultExists: action.exists, isVaultUnlocked: action.unlocked }
     case 'VAULT_UNLOCKED':
@@ -311,6 +325,8 @@ interface AppContextType {
   /** True when every requirement of the given step is satisfied. */
   isStepComplete: (step: number) => boolean
   markStepDone: (step: number) => void
+  /** Takes back a step validated by an action — the manual checkboxes untick. */
+  unmarkStepDone: (step: number) => void
   /** Vault encryption methods */
   isVaultUnlocked: boolean
   vaultExists: boolean | null
@@ -380,16 +396,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     checkVault()
   }, [])
 
-  // Auto-fill FROM_EMAIL when DOMAIN changes
+  /**
+   * The sending subdomain defaults to `mail.<domain>` — the value every DNS
+   * record and the sender address are built from. Only ever filled in when
+   * empty: once it has been edited, the domain changing must not overwrite the
+   * subdomain that was deliberately chosen.
+   */
   useEffect(() => {
-    if (state.config.DOMAIN && !state.config.FROM_EMAIL.includes('@')) {
+    if (state.config.DOMAIN && !state.config.MAIL_SUBDOMAIN) {
+      dispatch({
+        type: 'SET_FIELD',
+        key: 'MAIL_SUBDOMAIN',
+        value: `mail.${state.config.DOMAIN}`,
+      })
+    }
+  }, [state.config.DOMAIN, state.config.MAIL_SUBDOMAIN])
+
+  // Auto-fill FROM_EMAIL from the sending subdomain
+  useEffect(() => {
+    const subdomain = state.config.MAIL_SUBDOMAIN
+      || (state.config.DOMAIN ? `mail.${state.config.DOMAIN}` : '')
+    if (subdomain && !state.config.FROM_EMAIL.includes('@')) {
       dispatch({
         type: 'SET_FIELD',
         key: 'FROM_EMAIL',
-        value: `Hackathon Team <onboarding@mail.${state.config.DOMAIN}>`,
+        value: `Hackathon Team <onboarding@${subdomain}>`,
       })
     }
-  }, [state.config.DOMAIN])
+  }, [state.config.DOMAIN, state.config.MAIL_SUBDOMAIN])
 
   // Persist action-validated steps
   useEffect(() => {
@@ -549,6 +583,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'MARK_STEP_DONE', step })
   }
 
+  const unmarkStepDone = (step: number) => {
+    dispatch({ type: 'UNMARK_STEP_DONE', step })
+  }
+
   const isStepComplete = (step: number): boolean => {
     const fields = steps[step]?.requiredFields ?? []
     if (fields.length === 0) return state.actionSteps.includes(step)
@@ -578,6 +616,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       resolvedTheme,
       isStepComplete,
       markStepDone,
+      unmarkStepDone,
       isVaultUnlocked: state.isVaultUnlocked,
       vaultExists: state.vaultExists,
       unlockVault,
