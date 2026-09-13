@@ -112,12 +112,55 @@ export type TranslationKeys = {
   'accountCreation.supabase.pat': string
   'accountCreation.supabase.pat.path': string
   'accountCreation.supabase.pat.hint': string
-  'accountCreation.supabase.s3AccessKey': string
-  'accountCreation.supabase.s3AccessKey.path': string
-  'accountCreation.supabase.s3AccessKey.hint': string
-  'accountCreation.supabase.s3SecretKey': string
-  'accountCreation.supabase.s3SecretKey.path': string
-  'accountCreation.supabase.s3SecretKey.hint': string
+  'accountCreation.supabase.projectMode': string
+  'accountCreation.supabase.projectMode.existing': string
+  'accountCreation.supabase.projectMode.create': string
+  'accountCreation.supabase.existingProject': string
+  'accountCreation.supabase.existingProject.placeholder': string
+  'accountCreation.supabase.projects.error': string
+  'accountCreation.supabase.verify': string
+  'accountCreation.supabase.verify.ok': string
+  'accountCreation.supabase.verify.partial': string
+  'accountCreation.supabase.verify.error': string
+  'accountCreation.supabase.verify.failed': string
+  'accountCreation.supabase.verify.name': string
+  'accountCreation.supabase.verify.ref': string
+  'accountCreation.supabase.verify.region': string
+  'accountCreation.supabase.verify.status': string
+  'accountCreation.supabase.verify.services': string
+  'accountCreation.supabase.verify.running': string
+  'accountCreation.supabase.projects.loading': string
+  'accountCreation.supabase.orgs.loading': string
+  'accountCreation.supabase.createBtn.locked': string
+  'accountCreation.supabase.projects.none': string
+  'accountCreation.supabase.dbPassword.generate': string
+  'accountCreation.supabase.dbPassword.requirements': string
+  'accountCreation.supabase.dbPassword.rule.minLength': string
+  'accountCreation.supabase.dbPassword.rule.asciiOnly': string
+  'accountCreation.supabase.dbPassword.rule.noShellBreakers': string
+  'accountCreation.supabase.dbPassword.rule.variety': string
+  'accountCreation.supabase.dbPassword.rule.recommendedLength': string
+  'accountCreation.supabase.createWarning': string
+  'accountCreation.supabase.projectName': string
+  'accountCreation.supabase.projectName.hint': string
+  'accountCreation.supabase.organization': string
+  'accountCreation.supabase.organization.placeholder': string
+  'accountCreation.supabase.organization.refresh': string
+  'accountCreation.supabase.organization.needToken': string
+  'accountCreation.supabase.organization.hint': string
+  'accountCreation.supabase.orgs.error': string
+  'accountCreation.supabase.region': string
+  'accountCreation.supabase.region.hint': string
+  'accountCreation.supabase.alreadyCreated': string
+  'accountCreation.supabase.creating': string
+  'accountCreation.supabase.createBtn': string
+  'accountCreation.supabase.createBtn.retry': string
+  'accountCreation.supabase.createBtn.missing': string
+  'field.optional': string
+  'accountCreation.supabase.dbPassword': string
+  'accountCreation.supabase.dbPassword.placeholder': string
+  'accountCreation.supabase.dbPassword.path': string
+  'accountCreation.supabase.dbPassword.hint': string
 
   // Resend
   'accountCreation.resend.title': string
@@ -156,6 +199,13 @@ export type TranslationKeys = {
   'apiConfig.desc': string
   'apiConfig.btnStart': string
   'apiConfig.btnCancel': string
+  'apiConfig.btnRetry': string
+  'apiConfig.locked.supabaseToken': string
+  'apiConfig.locked.supabasePassword': string
+  'apiConfig.locked.scalewayKeys': string
+  'apiConfig.locked.needsIpv4': string
+  'apiConfig.locked.needsDomain': string
+  'apiConfig.locked.needsDns': string
   'apiConfig.status.done': string
   'apiConfig.status.running': string
   'apiConfig.status.error': string

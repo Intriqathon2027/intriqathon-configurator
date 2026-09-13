@@ -14,21 +14,11 @@ import { HelpService } from '../components/ui/HelpService'
 import { useScalewayInstance } from '../hooks/useScalewayInstance'
 import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshKeySelector'
 import type { SshKeyInfo } from '../types/electron'
+import { useServiceProvision } from '../hooks/useServiceProvision'
+import { STORAGE_BUCKETS } from '../shared/supabaseBuckets'
+import type { Config } from '../context/AppContext'
 
 type Status = 'idle' | 'running' | 'done' | 'error'
-
-/**
- * The five storage buckets the app reads and writes. Single source of truth for
- * both the help walkthrough and the manual-configuration card, so the names
- * shown in the two places can never drift apart.
- */
-const STORAGE_BUCKETS = [
-  { name: 'public_files', isPublic: true, fr: 'logo, logos partenaires, médias', en: 'logo, partner logos, media' },
-  { name: 'annonces', isPublic: false, fr: 'pièces jointes des annonces', en: 'announcement attachments' },
-  { name: 'users', isPublic: false, fr: 'photos de profil', en: 'profile pictures' },
-  { name: 'submissions', isPublic: false, fr: 'livrables des équipes', en: 'project submissions' },
-  { name: 'evaluations', isPublic: false, fr: "fichiers d'évaluation du jury", en: 'jury evaluation files' },
-]
 
 const BUCKETS_URL = 'https://supabase.com/dashboard/project/_/storage/buckets'
 
@@ -212,8 +202,22 @@ function HelpContent() {
 }
 
 export function ApiConfiguration() {
-  const { t, config, setField, state } = useApp()
+  const { t, config, setField, setFields, saveConfig, state } = useApp()
   const isEn = state.language === 'en'
+
+  // The automation pre-fills the very same fields the manual fallback edits, so
+  // a partial or wrong result can always be corrected by hand afterwards.
+  const applyPatch = (patch: Record<string, string>) => {
+    const typed = patch as Partial<Config>
+    setFields(typed)
+    // Values obtained from a provider are worth persisting immediately: they
+    // may not be retrievable a second time (a secret key is revealed once).
+    // The patch is passed explicitly — `saveConfig` alone would write the
+    // pre-dispatch config and drop everything that was just retrieved.
+    void saveConfig(typed)
+  }
+
+  const supabase = useServiceProvision('supabase', applyPatch)
 
   const domain = config.DOMAIN || '<DOMAIN>'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4_INSTANCE>'
@@ -254,8 +258,7 @@ export function ApiConfiguration() {
     btnLabel: t('apiConfig.supabase.pwFill.btn'),
   }
 
-  // For now, hardcode statuses to 'idle' since automation isn't implemented
-  const [supabaseStatus] = useState<Status>('idle')
+  // Not yet automated — these three still run on the manual fallback.
   const [spaceshipStatus] = useState<Status>('idle')
   const [resendStatus] = useState<Status>('idle')
 
@@ -318,6 +321,53 @@ export function ApiConfiguration() {
     }
   }
 
+  /**
+   * What each automation needs before it can run.
+   *
+   * Supabase depends only on step 1. The other three form a chain — Scaleway
+   * produces the IPv4 the DNS records point at, and Resend cannot verify its
+   * domain until those records exist — so their buttons stay locked until the
+   * value they consume is there. Locking the button never locks the manual
+   * fields below it: when the chain is stuck, filling them in by hand is the
+   * way forward.
+   */
+  const supabaseLock = !config.SUPABASE_ACCESS_TOKEN
+    ? t('apiConfig.locked.supabaseToken')
+    : !config.SUPABASE_DB_PASSWORD
+      ? t('apiConfig.locked.supabasePassword')
+      : null
+
+  const scalewayLock = !config.SCW_SECRET_KEY || !config.SCW_DEFAULT_PROJECT_ID
+    ? t('apiConfig.locked.scalewayKeys')
+    : null
+
+  const spaceshipLock = !config.IPV4_INSTANCE
+    ? t('apiConfig.locked.needsIpv4')
+    : !config.DOMAIN
+      ? t('apiConfig.locked.needsDomain')
+      : null
+
+  const resendLock = !config.DOMAIN
+    ? t('apiConfig.locked.needsDomain')
+    : !config.IPV4_INSTANCE
+      ? t('apiConfig.locked.needsDns')
+      : null
+
+  const handleStartSupabase = () => {
+    if (supabaseLock) return
+    void supabase.startSupabase({
+      accessToken: config.SUPABASE_ACCESS_TOKEN,
+      dbPassword: config.SUPABASE_DB_PASSWORD,
+      mode: config.SUPABASE_PROJECT_MODE === 'create' ? 'create' : 'existing',
+      // Present once a project has been resolved — reusing it is what stops a
+      // second click from creating a second project.
+      ref: config.SUPABASE_PROJECT_REF || undefined,
+      projectName: config.SUPABASE_PROJECT_NAME,
+      organizationSlug: config.SUPABASE_ORG_SLUG,
+      regionCode: config.SUPABASE_REGION,
+    })
+  }
+
   const handleStart = (service: string) => {
     console.log(`Starting ${service} config...`)
   }
@@ -340,11 +390,17 @@ export function ApiConfiguration() {
           serviceName="SUPABASE"
           serviceIcon={<Database size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.supabase.desc')}
-          status={supabaseStatus}
+          status={supabase.status}
           isComplete={isSupabaseComplete}
-          onStart={() => handleStart('Supabase')}
-          onCancel={() => handleCancel('Supabase')}
+          logs={supabase.logs}
+          progress={supabase.progress}
+          locked={!!supabaseLock}
+          lockedReason={supabaseLock ?? undefined}
+          errorMessage={supabase.error}
+          onStart={handleStartSupabase}
+          onCancel={supabase.cancel}
           btnStartLabel={t('apiConfig.btnStart')}
+          btnRetryLabel={t('apiConfig.btnRetry')}
           btnCancelLabel={t('apiConfig.btnCancel')}
           statusLabels={statusLabels}
           helpAnchor="svc-supabase"
@@ -397,6 +453,8 @@ export function ApiConfiguration() {
           description={t('apiConfig.scaleway.desc')}
           status={scalewayStatus}
           isComplete={isScalewayComplete}
+          locked={!!scalewayLock}
+          lockedReason={scalewayLock ?? undefined}
           onStart={() => handleStartScaleway()}
           onCancel={cancelScaleway}
           logs={scwLogs}
@@ -428,6 +486,8 @@ export function ApiConfiguration() {
           serviceIcon={<Globe size={18} color="var(--color-primary-text)" />}
           description={t('apiConfig.spaceship.desc')}
           status={spaceshipStatus}
+          locked={!!spaceshipLock}
+          lockedReason={spaceshipLock ?? undefined}
           onStart={() => handleStart('Spaceship')}
           onCancel={() => handleCancel('Spaceship')}
           btnStartLabel={t('apiConfig.btnStart')}
@@ -495,6 +555,8 @@ export function ApiConfiguration() {
           description={t('apiConfig.resend.desc')}
           status={resendStatus}
           isComplete={isResendComplete}
+          locked={!!resendLock}
+          lockedReason={resendLock ?? undefined}
           onStart={() => handleStart('Resend')}
           onCancel={() => handleCancel('Resend')}
           btnStartLabel={t('apiConfig.btnStart')}

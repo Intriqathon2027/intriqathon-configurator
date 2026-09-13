@@ -1,4 +1,17 @@
 // Electron API types exposed by preload
+import type {
+  ProvisionCancelledPayload,
+  ProvisionDonePayload,
+  ProvisionErrorPayload,
+  ProvisionLogPayload,
+  ProvisionProgressPayload,
+  ProvisionQueryResult,
+  SupabaseOrganizationSummary,
+  SupabaseProjectSummary,
+  SupabaseProjectVerification,
+  SupabaseProvisionRequest,
+} from './provision'
+
 export interface RecentConfig {
   name: string
   path: string
@@ -85,6 +98,18 @@ export interface ElectronAPI {
   onDeployStderr: (cb: (line: string) => void) => () => void
   onDeployExit: (cb: (code: number | null) => void) => () => void
   onDeployError: (cb: (error: string) => void) => () => void
+
+  // Provisioning (Configuration par API)
+  startSupabaseProvision: (req: SupabaseProvisionRequest) => Promise<void>
+  listSupabaseOrganizations: (accessToken: string) => Promise<ProvisionQueryResult<SupabaseOrganizationSummary[]>>
+  listSupabaseProjects: (accessToken: string) => Promise<ProvisionQueryResult<SupabaseProjectSummary[]>>
+  verifySupabaseProject: (accessToken: string, ref: string) => Promise<ProvisionQueryResult<SupabaseProjectVerification>>
+  cancelProvision: (service: string) => Promise<void>
+  onProvisionLog: (cb: (payload: ProvisionLogPayload) => void) => () => void
+  onProvisionProgress: (cb: (payload: ProvisionProgressPayload) => void) => () => void
+  onProvisionDone: (cb: (payload: ProvisionDonePayload) => void) => () => void
+  onProvisionError: (cb: (payload: ProvisionErrorPayload) => void) => () => void
+  onProvisionCancelled: (cb: (payload: ProvisionCancelledPayload) => void) => () => void
 }
 
 declare global {

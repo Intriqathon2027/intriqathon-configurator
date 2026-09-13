@@ -1,5 +1,5 @@
 import { useRef, useEffect, type ReactNode } from 'react'
-import { Check, Play, XCircle, Loader, AlertTriangle, RotateCcw } from 'lucide-react'
+import { Check, Play, XCircle, Loader, AlertTriangle, RotateCcw, Lock } from 'lucide-react'
 import { HelpAnchorBtn } from './HelpAnchorBtn'
 
 type ServiceConfigStatus = 'idle' | 'running' | 'done' | 'error' | 'none'
@@ -20,8 +20,12 @@ interface ServiceConfigBlockProps {
   onStart?: () => void
   onCancel?: () => void
   btnStartLabel: string
+  /** Shown in place of `btnStartLabel` once a run has failed. */
+  btnRetryLabel?: string
   btnCancelLabel: string
   statusLabels: { done: string; running: string; error: string }
+  /** Provider wording for a failure — shown under the generic error banner. */
+  errorMessage?: string | null
   /**
    * `HelpService` block documenting this service. Rendered at the top of the
    * manual-configuration dropdown as a one-line summary plus a button that
@@ -30,6 +34,14 @@ interface ServiceConfigBlockProps {
   helpAnchor?: string
   /** The one line shown next to that button. */
   helpHint?: string
+  /**
+   * Automation prerequisites are not met — the "Lancer" button is replaced by
+   * the reason. Deliberately does NOT disable `children`: when the chain is
+   * stuck, filling the fields by hand is the way out, not something to lock
+   * away.
+   */
+  locked?: boolean
+  lockedReason?: string
   /**
    * Label of the collapsible that wraps `children`. Omit to render the
    * children plainly, without a dropdown.
@@ -50,10 +62,14 @@ export function ServiceConfigBlock({
   onStart,
   onCancel,
   btnStartLabel,
+  btnRetryLabel,
   btnCancelLabel,
   statusLabels,
+  errorMessage,
   helpAnchor,
   helpHint,
+  locked = false,
+  lockedReason,
   manualLabel,
   children,
 }: ServiceConfigBlockProps) {
@@ -74,7 +90,7 @@ export function ServiceConfigBlock({
 
   return (
     <div
-      className={`service-config-block service-config-block--${status}${complete ? ' service-config-block--complete' : ''}`}
+      className={`service-config-block service-config-block--${status}${complete ? ' service-config-block--complete' : ''}${locked && !complete ? ' service-config-block--locked' : ''}`}
     >
       <div className="service-config-block__step-number">{stepNumber}</div>
 
@@ -97,16 +113,16 @@ export function ServiceConfigBlock({
           </div>
         )}
 
-        {/* Status: Error */}
+        {/* Status: Error — the provider's wording is what makes it actionable */}
         {status === 'error' && (
           <div className="service-config-block__info-box service-config-block__info-box--error" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertTriangle size={16} />
               <span style={{ fontWeight: 600 }}>{statusLabels.error}</span>
             </div>
-            {cleanErrorMessage && (
+            {(errorMessage ?? cleanErrorMessage) && (
               <div style={{ fontSize: 'var(--font-size-xs)', wordBreak: 'break-word', lineHeight: 1.5, opacity: 0.95 }}>
-                {cleanErrorMessage}
+                {errorMessage ?? cleanErrorMessage}
               </div>
             )}
           </div>
@@ -160,30 +176,25 @@ export function ServiceConfigBlock({
           </button>
         )}
 
-        {/* Start button when Idle */}
-        {status === 'idle' && (
-          <button
-            className="btn btn-primary service-config-block__btn-start"
-            onClick={onStart}
-            type="button"
-          >
-            <Play size={14} />
-            {btnStartLabel}
-          </button>
-        )}
-
-        {/* Retry button when Error */}
-        {status === 'error' && onStart && (
+        {/* Startable, waiting on an upstream step, or retryable after a failure */}
+        {(status === 'idle' || status === 'error') && (locked ? (
+          <div className="service-config-block__info-box service-config-block__info-box--locked">
+            <Lock size={16} />
+            <span>{lockedReason}</span>
+          </div>
+        ) : (
           <button
             className="btn btn-primary service-config-block__btn-start"
             onClick={onStart}
             type="button"
             style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            <RotateCcw size={14} />
-            {btnStartLabel === 'Launch' ? 'Retry' : 'Réessayer'}
+            {status === 'error' ? <RotateCcw size={14} /> : <Play size={14} />}
+            {status === 'error'
+              ? btnRetryLabel ?? (btnStartLabel === 'Launch' ? 'Retry' : 'Réessayer')
+              : btnStartLabel}
           </button>
-        )}
+        ))}
 
         {/* Manual fallback: the dropdown leads with a pointer to the panel */}
         {children && (manualLabel ? (

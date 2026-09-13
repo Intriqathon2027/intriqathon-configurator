@@ -909,6 +909,724 @@ function registerScalewayHandlers(getWin) {
 	});
 }
 //#endregion
+//#region src/shared/supabaseBuckets.ts
+var STORAGE_BUCKETS = [
+	{
+		name: "public_files",
+		isPublic: true,
+		fr: "logo, logos partenaires, médias",
+		en: "logo, partner logos, media"
+	},
+	{
+		name: "annonces",
+		isPublic: false,
+		fr: "pièces jointes des annonces",
+		en: "announcement attachments"
+	},
+	{
+		name: "users",
+		isPublic: false,
+		fr: "photos de profil",
+		en: "profile pictures"
+	},
+	{
+		name: "submissions",
+		isPublic: false,
+		fr: "livrables des équipes",
+		en: "project submissions"
+	},
+	{
+		name: "evaluations",
+		isPublic: false,
+		fr: "fichiers d'évaluation du jury",
+		en: "jury evaluation files"
+	}
+];
+//#endregion
+//#region src/electron/services/supabase/SupabaseApiClient.ts
+var MANAGEMENT_BASE = "https://api.supabase.com";
+var MAX_ATTEMPTS = 4;
+var BASE_BACKOFF_MS = 1e3;
+/** Rate limiting is per user (~60 req/min); `Retry-After` says how long to wait. */
+var RETRYABLE_STATUS = new Set([
+	429,
+	500,
+	502,
+	503,
+	504
+]);
+/**
+* Supabase's own wording for an auth failure is not actionable on its own:
+* a well-formed but unknown token and a missing header both come back as the
+* single word "Unauthorized". These map a status onto what the reader can
+* actually do about it, keeping the provider's text only when it adds
+* something (a plan limit, a name conflict).
+*/
+var GENERIC_DETAILS = new Set([
+	"unauthorized",
+	"forbidden",
+	"not found",
+	"bad request"
+]);
+function explainStatus(status) {
+	switch (status) {
+		case 401: return "Jeton d'accès Supabase refusé. Il est bien formé mais Supabase ne le reconnaît pas : vérifiez qu'il n'a pas été révoqué ou régénéré, et qu'il a été copié en entier depuis Account ➔ Access Tokens.";
+		case 403: return "Accès refusé par Supabase — le jeton n'a pas les droits nécessaires sur cette organisation, ou une limite de plan est atteinte.";
+		case 404: return "Ressource introuvable chez Supabase.";
+		case 429: return "Trop de requêtes envoyées à Supabase. Patientez une minute avant de relancer.";
+		default: return null;
+	}
+}
+var SupabaseApiError = class extends Error {
+	status;
+	url;
+	detail;
+	constructor(status, url, detail) {
+		const explanation = explainStatus(status);
+		const informative = detail && !GENERIC_DETAILS.has(detail.trim().toLowerCase());
+		super(explanation ? informative ? `${explanation} (${detail})` : explanation : detail ? `HTTP ${status} — ${detail}` : `HTTP ${status} sur ${url}`);
+		this.name = "SupabaseApiError";
+		this.status = status;
+		this.url = url;
+		this.detail = detail;
+	}
+};
+function sleep(ms, signal) {
+	return new Promise((resolve, reject) => {
+		if (signal?.aborted) return reject(new DOMException("Aborted", "AbortError"));
+		const timer = setTimeout(() => {
+			signal?.removeEventListener("abort", onAbort);
+			resolve();
+		}, ms);
+		const onAbort = () => {
+			clearTimeout(timer);
+			reject(new DOMException("Aborted", "AbortError"));
+		};
+		signal?.addEventListener("abort", onAbort, { once: true });
+	});
+}
+/**
+* Supabase reports failures as `{ message }` — sometimes `{ error }`, sometimes
+* plain text. Pull out whatever is readable so the card shows the provider's
+* own wording ("project limit reached") rather than a bare status code.
+*/
+function extractMessage(raw) {
+	if (!raw) return "";
+	try {
+		const parsed = JSON.parse(raw);
+		if (typeof parsed === "string") return parsed;
+		const msg = parsed?.message ?? parsed?.error ?? parsed?.msg;
+		if (typeof msg === "string") return msg;
+		if (Array.isArray(msg)) return msg.join(", ");
+	} catch {}
+	return raw.slice(0, 300);
+}
+var SupabaseApiClient = class {
+	accessToken;
+	signal;
+	fetchImpl;
+	sleepImpl;
+	constructor(opts) {
+		this.accessToken = opts.accessToken.trim();
+		this.signal = opts.signal;
+		this.fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+		this.sleepImpl = opts.sleepImpl ?? sleep;
+	}
+	buildUrl(path, opts) {
+		const url = new URL(path, opts.baseUrl ?? MANAGEMENT_BASE);
+		for (const [key, value] of Object.entries(opts.query ?? {})) if (value !== void 0) url.searchParams.set(key, String(value));
+		return url.toString();
+	}
+	async request(method, path, opts = {}) {
+		const url = this.buildUrl(path, opts);
+		const headers = {
+			Accept: "application/json",
+			Authorization: `Bearer ${this.accessToken}`,
+			...opts.headers
+		};
+		if (opts.body !== void 0) headers["Content-Type"] = "application/json";
+		let lastError = null;
+		for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+			const response = await this.fetchImpl(url, {
+				method,
+				headers,
+				body: opts.body === void 0 ? void 0 : JSON.stringify(opts.body),
+				signal: this.signal
+			});
+			if (response.ok) {
+				if (response.status === 204) return null;
+				const text = await response.text();
+				return text ? JSON.parse(text) : null;
+			}
+			if (opts.tolerate?.includes(response.status)) return null;
+			const detail = extractMessage(await response.text().catch(() => ""));
+			lastError = new SupabaseApiError(response.status, url, detail);
+			if (!RETRYABLE_STATUS.has(response.status) || attempt === MAX_ATTEMPTS) throw lastError;
+			const retryAfter = Number(response.headers.get("retry-after"));
+			const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : BASE_BACKOFF_MS * 2 ** (attempt - 1);
+			await this.sleepImpl(waitMs, this.signal);
+		}
+		throw lastError ?? new SupabaseApiError(0, url, "Échec inconnu");
+	}
+	async requireJson(method, path, opts = {}) {
+		const result = await this.request(method, path, opts);
+		if (result === null) throw new SupabaseApiError(0, path, "Réponse vide");
+		return result;
+	}
+	listOrganizations() {
+		return this.requireJson("GET", "/v1/organizations");
+	}
+	listProjects() {
+		return this.requireJson("GET", "/v1/projects");
+	}
+	getProject(ref) {
+		return this.requireJson("GET", `/v1/projects/${ref}`);
+	}
+	/** `region_selection` is optional — omitted, Supabase picks a default region. */
+	createProject(body) {
+		return this.requireJson("POST", "/v1/projects", { body });
+	}
+	getHealth(ref, services) {
+		return this.requireJson("GET", `/v1/projects/${ref}/health`, { query: {
+			services: services.join(","),
+			timeout_ms: 5e3
+		} });
+	}
+	/** Without `reveal`, every `api_key` comes back masked. */
+	listApiKeys(ref) {
+		return this.requireJson("GET", `/v1/projects/${ref}/api-keys`, { query: { reveal: "true" } });
+	}
+	createApiKey(ref, type, name) {
+		return this.requireJson("POST", `/v1/projects/${ref}/api-keys`, {
+			query: { reveal: "true" },
+			body: {
+				type,
+				name
+			}
+		});
+	}
+	/**
+	* Whether the JWT legacy keys are still enabled. The endpoint is itself
+	* scheduled for removal, so a 404 means "legacy is gone", not "failure".
+	*/
+	getLegacyKeysEnabled(ref) {
+		return this.request("GET", `/v1/projects/${ref}/api-keys/legacy`, { tolerate: [404] });
+	}
+	/** `enabled` is a query parameter here, not a body. */
+	setLegacyKeysEnabled(ref, enabled) {
+		return this.request("PUT", `/v1/projects/${ref}/api-keys/legacy`, {
+			query: { enabled: String(enabled) },
+			tolerate: [404]
+		});
+	}
+	getPoolerConfig(ref) {
+		return this.requireJson("GET", `/v1/projects/${ref}/config/database/pooler`);
+	}
+	listBuckets(ref) {
+		return this.requireJson("GET", `/v1/projects/${ref}/storage/buckets`);
+	}
+	/**
+	* There is no bucket-creation endpoint on the Management API — only a
+	* listing. Creation goes through the project's Storage API instead, which
+	* authenticates with the service_role/secret key rather than the PAT.
+	*
+	* Resolves `false` when the bucket already exists (409), so a re-run is a
+	* no-op rather than a failure.
+	*/
+	async createBucket(projectOrigin, serviceKey, bucket) {
+		return await this.request("POST", "/storage/v1/bucket", {
+			baseUrl: projectOrigin,
+			headers: {
+				Authorization: `Bearer ${serviceKey}`,
+				apikey: serviceKey
+			},
+			body: {
+				id: bucket.name,
+				name: bucket.name,
+				public: bucket.isPublic
+			},
+			tolerate: [409]
+		}) !== null;
+	}
+};
+//#endregion
+//#region src/electron/services/supabase/connectionStrings.ts
+/**
+* Building DATABASE_URL and DIRECT_URL.
+*
+* The Management API hands back the pooler's host/port/user but leaves the
+* password out — its `connection_string` still carries the literal
+* `[YOUR-PASSWORD]`, exactly like the string copied by hand from the dashboard.
+* So we build the URLs from the parts rather than patching that placeholder,
+* and we URL-encode the password ourselves: `@`, `:`, `/`, `#` and `?` in a
+* password all break a connection string that was pasted raw, which is the
+* single most common way to end up with a deployment that cannot reach its
+* database.
+*
+*   DATABASE_URL — transaction mode (port 6543), what Prisma uses at runtime
+*   DIRECT_URL   — session mode (port 5432), what Prisma migrations need
+*/
+var SESSION_PORT = 5432;
+function buildUrl(user, password, host, port, dbName) {
+	return `postgresql://${user}:${encodeURIComponent(password)}@${host}:${port}/${dbName}`;
+}
+/**
+* Read replicas carry their own pooler entry; only the primary is of interest.
+* Entries with no `database_type` are treated as primary — older responses
+* omitted the field.
+*/
+function primaryEntries(pooler) {
+	return pooler.filter((e) => !e.database_type || e.database_type === "PRIMARY");
+}
+function buildPostgresUrls({ ref, password, pooler, databaseHost }) {
+	const entries = primaryEntries(pooler);
+	const transaction = entries.find((e) => e.pool_mode === "transaction") ?? entries[0];
+	const session = entries.find((e) => e.pool_mode === "session");
+	if (!transaction?.db_host) {
+		const direct = buildUrl("postgres", password, databaseHost || `db.${ref}.supabase.co`, SESSION_PORT, "postgres");
+		return {
+			databaseUrl: direct,
+			directUrl: direct
+		};
+	}
+	const user = transaction.db_user || `postgres.${ref}`;
+	const dbName = transaction.db_name || "postgres";
+	return {
+		databaseUrl: buildUrl(user, password, transaction.db_host, transaction.db_port ?? 6543, dbName),
+		directUrl: session?.db_host ? buildUrl(session.db_user || user, password, session.db_host, session.db_port ?? SESSION_PORT, session.db_name || dbName) : buildUrl(user, password, transaction.db_host, SESSION_PORT, dbName)
+	};
+}
+/** The project's public REST/Storage origin. Derived — there is no endpoint for it. */
+function projectUrl(ref) {
+	return `https://${ref}.supabase.co`;
+}
+//#endregion
+//#region src/electron/services/supabase/keys.ts
+/**
+* Picking the anon/service_role pair out of a project's API keys.
+*
+* Supabase runs two key generations side by side on the same project:
+*
+*   - legacy JWT keys, named `anon` and `service_role` (format `eyJ…`)
+*   - the new keys, `publishable` (`sb_publishable_…`) and `secret`
+*     (`sb_secret_…`)
+*
+* Both are accepted by `createClient(url, key)`, and nothing in the deployed
+* stack decodes the token — so either generation can fill SUPABASE_ANON_KEY and
+* SUPABASE_SERVICE_ROLE_KEY. We prefer the new format when a usable value is
+* available, because the legacy endpoints are documented as going away, and
+* fall back to legacy otherwise. The two halves are decided independently: a
+* publishable anon key alongside a legacy service_role key is a valid outcome.
+*
+* A `secret` key may be stored hashed and only ever revealed at creation, in
+* which case `api_key` comes back null and the entry is unusable — hence the
+* `hasUsableValue` filter rather than a plain `find` on `type`.
+*/
+/** Name given to keys this app creates, so a re-run reuses them instead of piling up. */
+var MANAGED_KEY_NAME = "intriqathon_configurator";
+function hasUsableValue(key) {
+	return typeof key.api_key === "string" && key.api_key.length > 0;
+}
+/**
+* Among several candidates, prefer the one this app created (stable across
+* re-runs), then any other. Keeps repeated provisioning deterministic.
+*/
+function pickPreferred(candidates) {
+	return candidates.find((k) => k.name === "intriqathon_configurator") ?? candidates[0];
+}
+function resolveKeyPair(keys) {
+	const usable = keys.filter(hasUsableValue);
+	const publishable = pickPreferred(usable.filter((k) => k.type === "publishable"));
+	const secret = pickPreferred(usable.filter((k) => k.type === "secret"));
+	const legacyAnon = usable.find((k) => k.type === "legacy" && k.name === "anon");
+	const legacyService = usable.find((k) => k.type === "legacy" && k.name === "service_role");
+	const anonPick = publishable ?? legacyAnon;
+	const servicePick = secret ?? legacyService;
+	return {
+		anon: anonPick ? {
+			value: anonPick.api_key,
+			format: anonPick.type === "publishable" ? "publishable" : "legacy",
+			name: anonPick.name
+		} : null,
+		service: servicePick ? {
+			value: servicePick.api_key,
+			format: servicePick.type === "secret" ? "secret" : "legacy",
+			name: servicePick.name
+		} : null
+	};
+}
+/**
+* True when the project exposes no usable key for one of the two roles, and the
+* service therefore has to act — re-enable the legacy keys, or create new ones.
+*/
+function needsKeyProvisioning(pair) {
+	return pair.anon === null || pair.service === null;
+}
+/** Human label for the log line, so the reader knows which generation landed in the .env. */
+function describeKeyFormat(format) {
+	switch (format) {
+		case "legacy": return "JWT legacy";
+		case "publishable": return "publishable";
+		case "secret": return "secret";
+	}
+}
+//#endregion
+//#region src/electron/services/supabase/redact.ts
+/**
+* Log redaction.
+*
+* Every line the provisioning services emit travels to the renderer and is
+* printed in the card's terminal, where it can be screenshotted or copied. The
+* vault protects secrets at rest; this protects them on their way to the
+* screen. Anything that looks like a credential is masked before it leaves the
+* main process — patterns for the formats we know, plus the literal values we
+* were handed, which covers the ones we cannot recognise (a database password
+* can look like anything).
+*/
+/** Token shapes worth masking even when we never held the value ourselves. */
+var PATTERNS = [
+	/sbp_[A-Za-z0-9]{20,}/g,
+	/sb_(?:publishable|secret)_[A-Za-z0-9_-]{10,}/g,
+	/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g,
+	/postgres(?:ql)?:\/\/[^\s"']+/g
+];
+var MASK = "••••••";
+var Redactor = class {
+	literals = [];
+	/**
+	* Register a value to mask wherever it appears. Short strings are ignored:
+	* masking every occurrence of a three-character password would shred the
+	* surrounding text without protecting anything worth protecting.
+	*/
+	add(...secrets) {
+		for (const secret of secrets) if (secret && secret.length >= 6 && !this.literals.includes(secret)) this.literals.push(secret);
+		return this;
+	}
+	redact(line) {
+		let out = line;
+		for (const literal of [...this.literals].sort((a, b) => b.length - a.length)) out = out.split(literal).join(MASK);
+		for (const pattern of PATTERNS) out = out.replace(pattern, MASK);
+		return out;
+	}
+};
+//#endregion
+//#region src/electron/services/SupabaseProvisionService.ts
+var SERVICE = "supabase";
+/** A fresh project reports COMING_UP for a minute or two before it answers. */
+var READY_POLL_INTERVAL_MS = 5e3;
+var READY_TIMEOUT_MS = 6 * 6e4;
+var SupabaseProvisionService = class {
+	controller = null;
+	redactor = new Redactor();
+	isRunning() {
+		return this.controller !== null;
+	}
+	cancel() {
+		this.controller?.abort();
+		this.controller = null;
+	}
+	log(win, message, level = "info") {
+		win.webContents.send("provision:log", {
+			service: SERVICE,
+			message: this.redactor.redact(message),
+			level
+		});
+	}
+	progress(win, value) {
+		win.webContents.send("provision:progress", {
+			service: SERVICE,
+			value
+		});
+	}
+	wasCancelled() {
+		return this.controller?.signal.aborted ?? false;
+	}
+	async listOrganizations(accessToken) {
+		return new SupabaseApiClient({ accessToken }).listOrganizations();
+	}
+	async listProjects(accessToken) {
+		return new SupabaseApiClient({ accessToken }).listProjects();
+	}
+	/**
+	* Confirms the configurator is looking at the project the user meant, by
+	* fetching it by reference and asking it how it is doing. Listing projects
+	* only proves the token works; this proves that *this* ref resolves, belongs
+	* to the account, and has services that answer — which is what step 2 is
+	* about to depend on.
+	*/
+	async verifyProject(accessToken, ref) {
+		const client = new SupabaseApiClient({ accessToken });
+		const project = await client.getProject(ref);
+		let services = [];
+		try {
+			services = (await client.getHealth(ref, [
+				"db",
+				"rest",
+				"storage",
+				"auth"
+			])).map((h) => ({
+				name: h.name,
+				healthy: h.healthy
+			}));
+		} catch {}
+		return {
+			ref: project.ref,
+			name: project.name,
+			region: project.region,
+			status: project.status,
+			organizationSlug: project.organization_slug,
+			services,
+			ready: project.status === "ACTIVE_HEALTHY" && services.length > 0 && services.every((s) => s.healthy)
+		};
+	}
+	async start(win, req) {
+		this.cancel();
+		this.controller = new AbortController();
+		this.redactor = new Redactor().add(req.accessToken, req.dbPassword);
+		const client = new SupabaseApiClient({
+			accessToken: req.accessToken,
+			signal: this.controller.signal
+		});
+		try {
+			const ref = req.mode === "create" ? await this.createProject(win, client, req) : await this.adoptProject(win, client, req);
+			if (req.stopAfterProject) {
+				this.progress(win, 100);
+				this.log(win, "Projet prêt. Les clés et les buckets seront récupérés à l'étape 2.", "done");
+				win.webContents.send("provision:done", {
+					service: SERVICE,
+					patch: {
+						SUPABASE_PROJECT_REF: ref,
+						...req.mode === "create" ? { SUPABASE_CREATED_PROJECT_REF: ref } : {},
+						SUPABASE_URL: projectUrl(ref)
+					}
+				});
+				return;
+			}
+			const keys = await this.resolveKeys(win, client, ref);
+			const urls = await this.buildUrls(win, client, ref, req.dbPassword);
+			await this.ensureBuckets(win, client, ref, keys.service);
+			const patch = {
+				SUPABASE_PROJECT_REF: ref,
+				...req.mode === "create" ? { SUPABASE_CREATED_PROJECT_REF: ref } : {},
+				SUPABASE_URL: projectUrl(ref),
+				SUPABASE_ANON_KEY: keys.anon,
+				SUPABASE_SERVICE_ROLE_KEY: keys.service,
+				...urls
+			};
+			this.progress(win, 100);
+			this.log(win, "Configuration Supabase terminée.", "done");
+			win.webContents.send("provision:done", {
+				service: SERVICE,
+				patch
+			});
+		} catch (err) {
+			if (this.wasCancelled()) {
+				this.log(win, "Configuration annulée.", "info");
+				win.webContents.send("provision:cancelled", { service: SERVICE });
+			} else {
+				const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
+				this.log(win, message, "error");
+				win.webContents.send("provision:error", {
+					service: SERVICE,
+					message: this.redactor.redact(message)
+				});
+			}
+		} finally {
+			this.controller = null;
+		}
+	}
+	async adoptProject(win, client, req) {
+		this.progress(win, 5);
+		if (req.ref) {
+			this.log(win, `Projet ${req.ref} : vérification…`);
+			const project = await client.getProject(req.ref);
+			await this.waitUntilReady(win, client, project);
+			return project.ref;
+		}
+		this.log(win, "Recherche du projet Supabase…");
+		const usable = (await client.listProjects()).filter((p) => p.status !== "REMOVED" && p.status !== "INIT_FAILED");
+		if (usable.length === 0) throw new Error("Aucun projet Supabase sur ce compte. Créez-en un depuis l'étape 1, ou renseignez les champs manuellement.");
+		if (usable.length > 1) {
+			const names = usable.map((p) => `${p.name} (${p.ref})`).join(", ");
+			throw new Error(`Plusieurs projets Supabase trouvés — choisissez-en un à l'étape 1 : ${names}`);
+		}
+		this.log(win, `Projet trouvé : ${usable[0].name}`);
+		await this.waitUntilReady(win, client, usable[0]);
+		return usable[0].ref;
+	}
+	async createProject(win, client, req) {
+		this.progress(win, 5);
+		if (req.ref) {
+			this.log(win, `Projet ${req.ref} déjà créé — réutilisation.`);
+			const existing = await client.getProject(req.ref);
+			await this.waitUntilReady(win, client, existing);
+			return existing.ref;
+		}
+		if (!req.organizationSlug) throw new Error("Organisation Supabase non renseignée — impossible de créer le projet.");
+		if (!req.projectName) throw new Error("Nom de projet non renseigné.");
+		this.log(win, `Création du projet « ${req.projectName} »…`);
+		const project = await client.createProject({
+			name: req.projectName,
+			organization_slug: req.organizationSlug,
+			db_pass: req.dbPassword,
+			region_selection: req.regionCode ? {
+				type: "specific",
+				code: req.regionCode
+			} : void 0
+		});
+		this.log(win, `Projet créé : ${project.ref}`, "done");
+		await this.waitUntilReady(win, client, project);
+		return project.ref;
+	}
+	/** Provisioning is asynchronous — poll until the project answers. */
+	async waitUntilReady(win, client, project) {
+		if (project.status === "ACTIVE_HEALTHY") {
+			this.progress(win, 45);
+			return;
+		}
+		const deadline = Date.now() + READY_TIMEOUT_MS;
+		this.log(win, "Attente du démarrage du projet (1 à 2 minutes)…");
+		let current = project;
+		while (current.status !== "ACTIVE_HEALTHY") {
+			if (this.wasCancelled()) throw new DOMException("Aborted", "AbortError");
+			if (current.status === "INIT_FAILED") throw new Error(`Le projet ${current.ref} n'a pas pu démarrer (INIT_FAILED).`);
+			if (Date.now() > deadline) throw new Error(`Le projet ${current.ref} est toujours en ${current.status} après 6 minutes. Réessayez plus tard.`);
+			await new Promise((resolve) => setTimeout(resolve, READY_POLL_INTERVAL_MS));
+			current = await client.getProject(current.ref);
+			this.progress(win, 30);
+		}
+		this.log(win, "Projet actif.", "done");
+		this.progress(win, 45);
+	}
+	async resolveKeys(win, client, ref) {
+		this.log(win, "Récupération des clés API…");
+		let keys = await client.listApiKeys(ref);
+		let pair = resolveKeyPair(keys);
+		if (needsKeyProvisioning(pair)) {
+			const legacy = await client.getLegacyKeysEnabled(ref);
+			if (legacy && !legacy.enabled) {
+				this.log(win, "Clés JWT legacy désactivées — réactivation…");
+				await client.setLegacyKeysEnabled(ref, true);
+				keys = await client.listApiKeys(ref);
+				pair = resolveKeyPair(keys);
+			}
+		}
+		if (needsKeyProvisioning(pair)) {
+			const minted = [];
+			if (!pair.anon) {
+				this.log(win, "Création d'une clé publishable…");
+				minted.push(await client.createApiKey(ref, "publishable", MANAGED_KEY_NAME));
+			}
+			if (!pair.service) {
+				this.log(win, "Création d'une clé secret…");
+				minted.push(await client.createApiKey(ref, "secret", MANAGED_KEY_NAME));
+			}
+			pair = resolveKeyPair([...minted, ...keys]);
+		}
+		if (!pair.anon || !pair.service) throw new Error("Impossible de récupérer une paire de clés utilisable. Ouvrez « Configuration manuelle » et copiez-les depuis le dashboard.");
+		this.redactor.add(pair.anon.value, pair.service.value);
+		this.log(win, `Clés récupérées — anon : ${describeKeyFormat(pair.anon.format)}, service : ${describeKeyFormat(pair.service.format)}.`, "done");
+		this.progress(win, 60);
+		return {
+			anon: pair.anon.value,
+			service: pair.service.value
+		};
+	}
+	async buildUrls(win, client, ref, dbPassword) {
+		this.log(win, "Récupération des URLs Postgres…");
+		const { databaseUrl, directUrl } = buildPostgresUrls({
+			ref,
+			password: dbPassword,
+			pooler: await client.getPoolerConfig(ref),
+			databaseHost: (await client.getProject(ref)).database?.host
+		});
+		this.log(win, "URLs Postgres construites (mot de passe injecté et encodé).", "done");
+		this.progress(win, 75);
+		return {
+			DATABASE_URL: databaseUrl,
+			DIRECT_URL: directUrl
+		};
+	}
+	async ensureBuckets(win, client, ref, serviceKey) {
+		this.log(win, `Création des ${STORAGE_BUCKETS.length} buckets de stockage…`);
+		const origin = projectUrl(ref);
+		for (const bucket of STORAGE_BUCKETS) {
+			if (this.wasCancelled()) throw new DOMException("Aborted", "AbortError");
+			const created = await client.createBucket(origin, serviceKey, bucket);
+			this.log(win, created ? `  ${bucket.name} : créé` : `  ${bucket.name} : déjà présent`);
+		}
+		const existing = await client.listBuckets(ref);
+		const names = new Set(existing.map((b) => b.name));
+		const missing = STORAGE_BUCKETS.filter((b) => !names.has(b.name)).map((b) => b.name);
+		if (missing.length > 0) throw new Error(`Buckets manquants après création : ${missing.join(", ")}`);
+		this.log(win, "Buckets vérifiés.", "done");
+		this.progress(win, 90);
+	}
+};
+//#endregion
+//#region src/electron/ipc/provisionHandlers.ts
+/**
+* IPC surface for the "Configuration par API" automations.
+*
+* Same shape as the deploy handlers: the renderer starts and cancels, the main
+* process streams progress back over `provision:*` events. Every call is
+* wrapped so a provider error reaches the card as a message instead of an
+* unhandled rejection in the main process.
+*/
+function registerProvisionHandlers(getWin) {
+	const supabase = new SupabaseProvisionService();
+	const requireWin = () => {
+		const win = getWin();
+		if (!win) throw new Error("No active window");
+		return win;
+	};
+	ipcMain.handle("provision:supabase:start", (_event, req) => {
+		supabase.start(requireWin(), req);
+	});
+	ipcMain.handle("provision:supabase:organizations", async (_event, accessToken) => {
+		try {
+			return {
+				success: true,
+				data: await supabase.listOrganizations(accessToken)
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: err instanceof Error ? err.message : String(err)
+			};
+		}
+	});
+	ipcMain.handle("provision:supabase:projects", async (_event, accessToken) => {
+		try {
+			return {
+				success: true,
+				data: await supabase.listProjects(accessToken)
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: err instanceof Error ? err.message : String(err)
+			};
+		}
+	});
+	ipcMain.handle("provision:supabase:verify-project", async (_event, accessToken, ref) => {
+		try {
+			return {
+				success: true,
+				data: await supabase.verifyProject(accessToken, ref)
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: err instanceof Error ? err.message : String(err)
+			};
+		}
+	});
+	ipcMain.handle("provision:cancel", (_event, service) => {
+		if (service === "supabase") supabase.cancel();
+	});
+}
+//#endregion
 //#region electron/main.ts
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
@@ -1001,6 +1719,7 @@ registerDeployHandlers(() => win);
 registerVaultHandlers(() => win);
 registerSshHandlers();
 registerScalewayHandlers(() => win);
+registerProvisionHandlers(() => win);
 app.whenReady().then(createWindow);
 //#endregion
 export { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL };

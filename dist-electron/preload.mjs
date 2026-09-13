@@ -64,6 +64,46 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
 		return () => {
 			electron.ipcRenderer.removeListener("deploy:error", handler);
 		};
+	},
+	startSupabaseProvision: (req) => electron.ipcRenderer.invoke("provision:supabase:start", req),
+	listSupabaseOrganizations: (accessToken) => electron.ipcRenderer.invoke("provision:supabase:organizations", accessToken),
+	listSupabaseProjects: (accessToken) => electron.ipcRenderer.invoke("provision:supabase:projects", accessToken),
+	verifySupabaseProject: (accessToken, ref) => electron.ipcRenderer.invoke("provision:supabase:verify-project", accessToken, ref),
+	cancelProvision: (service) => electron.ipcRenderer.invoke("provision:cancel", service),
+	onProvisionLog: (cb) => {
+		const handler = (_event, payload) => cb(payload);
+		electron.ipcRenderer.on("provision:log", handler);
+		return () => {
+			electron.ipcRenderer.removeListener("provision:log", handler);
+		};
+	},
+	onProvisionProgress: (cb) => {
+		const handler = (_event, payload) => cb(payload);
+		electron.ipcRenderer.on("provision:progress", handler);
+		return () => {
+			electron.ipcRenderer.removeListener("provision:progress", handler);
+		};
+	},
+	onProvisionDone: (cb) => {
+		const handler = (_event, payload) => cb(payload);
+		electron.ipcRenderer.on("provision:done", handler);
+		return () => {
+			electron.ipcRenderer.removeListener("provision:done", handler);
+		};
+	},
+	onProvisionError: (cb) => {
+		const handler = (_event, payload) => cb(payload);
+		electron.ipcRenderer.on("provision:error", handler);
+		return () => {
+			electron.ipcRenderer.removeListener("provision:error", handler);
+		};
+	},
+	onProvisionCancelled: (cb) => {
+		const handler = (_event, payload) => cb(payload);
+		electron.ipcRenderer.on("provision:cancelled", handler);
+		return () => {
+			electron.ipcRenderer.removeListener("provision:cancelled", handler);
+		};
 	}
 });
 //#endregion

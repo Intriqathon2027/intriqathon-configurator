@@ -32,8 +32,10 @@ export const fieldHelpByStep: Record<number, FieldHelpGroup[]> = {
       title: 'SUPABASE',
       fields: [
         { id: 'supabase-pat', labelKey: 'accountCreation.supabase.pat', envKey: 'SUPABASE_ACCESS_TOKEN', pathKey: 'accountCreation.supabase.pat.path', hintKey: 'accountCreation.supabase.pat.hint' },
-        { id: 's3-access-key', labelKey: 'accountCreation.supabase.s3AccessKey', envKey: 'S3_ACCESS_KEY_ID', pathKey: 'accountCreation.supabase.s3AccessKey.path', hintKey: 'accountCreation.supabase.s3AccessKey.hint' },
-        { id: 's3-secret', labelKey: 'accountCreation.supabase.s3SecretKey', envKey: 'S3_SECRET_ACCESS_KEY', pathKey: 'accountCreation.supabase.s3SecretKey.path', hintKey: 'accountCreation.supabase.s3SecretKey.hint' },
+        { id: 'supabase-project-name', labelKey: 'accountCreation.supabase.projectName', hintKey: 'accountCreation.supabase.projectName.hint' },
+        { id: 'supabase-org', labelKey: 'accountCreation.supabase.organization', hintKey: 'accountCreation.supabase.organization.hint' },
+        { id: 'supabase-region', labelKey: 'accountCreation.supabase.region', hintKey: 'accountCreation.supabase.region.hint' },
+        { id: 'supabase-db-password', labelKey: 'accountCreation.supabase.dbPassword', pathKey: 'accountCreation.supabase.dbPassword.path', hintKey: 'accountCreation.supabase.dbPassword.hint' },
       ],
     },
     {

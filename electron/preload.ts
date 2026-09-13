@@ -72,4 +72,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('deploy:error', handler)
     return () => { ipcRenderer.removeListener('deploy:error', handler) }
   },
+
+  // Provisioning (Configuration par API)
+  startSupabaseProvision: (req: any) => ipcRenderer.invoke('provision:supabase:start', req),
+  listSupabaseOrganizations: (accessToken: string) => ipcRenderer.invoke('provision:supabase:organizations', accessToken),
+  listSupabaseProjects: (accessToken: string) => ipcRenderer.invoke('provision:supabase:projects', accessToken),
+  verifySupabaseProject: (accessToken: string, ref: string) => ipcRenderer.invoke('provision:supabase:verify-project', accessToken, ref),
+  cancelProvision: (service: string) => ipcRenderer.invoke('provision:cancel', service),
+  onProvisionLog: (cb: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => cb(payload)
+    ipcRenderer.on('provision:log', handler)
+    return () => { ipcRenderer.removeListener('provision:log', handler) }
+  },
+  onProvisionProgress: (cb: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => cb(payload)
+    ipcRenderer.on('provision:progress', handler)
+    return () => { ipcRenderer.removeListener('provision:progress', handler) }
+  },
+  onProvisionDone: (cb: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => cb(payload)
+    ipcRenderer.on('provision:done', handler)
+    return () => { ipcRenderer.removeListener('provision:done', handler) }
+  },
+  onProvisionError: (cb: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => cb(payload)
+    ipcRenderer.on('provision:error', handler)
+    return () => { ipcRenderer.removeListener('provision:error', handler) }
+  },
+  onProvisionCancelled: (cb: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => cb(payload)
+    ipcRenderer.on('provision:cancelled', handler)
+    return () => { ipcRenderer.removeListener('provision:cancelled', handler) }
+  },
 })

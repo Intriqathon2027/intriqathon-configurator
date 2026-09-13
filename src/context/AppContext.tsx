@@ -16,8 +16,27 @@ export interface Config {
 
   // Account Creation — Supabase
   SUPABASE_ACCESS_TOKEN: string
-  S3_ACCESS_KEY_ID: string
-  S3_SECRET_ACCESS_KEY: string
+  /**
+   * Database password. Not part of the .env, but the one value the Management
+   * API never hands back — it is what turns DATABASE_URL and DIRECT_URL from a
+   * copy-paste into something the automation can build on its own.
+   */
+  SUPABASE_DB_PASSWORD: string
+  /** The project the rest of the wizard works against, whichever mode produced it. */
+  SUPABASE_PROJECT_REF: string
+  /**
+   * Only ever written when the configurator itself created a project. Kept
+   * apart from SUPABASE_PROJECT_REF because picking an existing project must
+   * not look like a creation: the two modes ask different questions of the same
+   * account, and sharing one field made the answer to one show up in the other.
+   */
+  SUPABASE_CREATED_PROJECT_REF: string
+  /** 'existing' adopts a project made in the dashboard, 'create' provisions one from here. */
+  SUPABASE_PROJECT_MODE: string
+  /** Only used in 'create' mode — the org the project is billed to, and its name and region. */
+  SUPABASE_ORG_SLUG: string
+  SUPABASE_PROJECT_NAME: string
+  SUPABASE_REGION: string
 
   // Account Creation — Resend
   RESEND_API_KEY: string
@@ -59,8 +78,13 @@ const defaultConfig: Config = {
   SPACESHIP_API_KEY: '',
   SPACESHIP_API_SECRET: '',
   SUPABASE_ACCESS_TOKEN: '',
-  S3_ACCESS_KEY_ID: '',
-  S3_SECRET_ACCESS_KEY: '',
+  SUPABASE_DB_PASSWORD: '',
+  SUPABASE_PROJECT_REF: '',
+  SUPABASE_CREATED_PROJECT_REF: '',
+  SUPABASE_PROJECT_MODE: 'existing',
+  SUPABASE_ORG_SLUG: '',
+  SUPABASE_PROJECT_NAME: 'intriqathon',
+  SUPABASE_REGION: 'eu-west-3',
   RESEND_API_KEY: '',
   SCW_SECRET_KEY: '',
   SCW_DEFAULT_PROJECT_ID: '',
@@ -114,6 +138,7 @@ const TOTAL_STEPS = 5
 // ============================================================
 type Action =
   | { type: 'SET_FIELD'; key: keyof Config; value: string }
+  | { type: 'SET_FIELDS'; patch: Partial<Config> }
   | { type: 'SET_LANGUAGE'; lang: Language }
   | { type: 'SET_STEP'; step: number }
   | { type: 'LOAD_SAVED'; config: Partial<Config> }
@@ -177,6 +202,11 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         config: { ...state.config, [action.key]: action.value },
       }
+    case 'SET_FIELDS':
+      return {
+        ...state,
+        config: { ...state.config, ...action.patch },
+      }
     case 'SET_LANGUAGE':
       return { ...state, language: action.lang }
     case 'SET_STEP':
@@ -224,6 +254,18 @@ interface AppContextType {
   t: (key: string) => string
   config: Config
   setField: (key: keyof Config, value: string) => void
+  /**
+   * Applies several fields at once. Used by the API automations, which fill in
+   * five or six values together — one dispatch instead of one per field.
+   */
+  setFields: (patch: Partial<Config>) => void
+  /**
+   * Writes the config to the vault without moving to the next step. `override`
+   * is merged in first: a caller that has just dispatched SET_FIELDS still sees
+   * the pre-dispatch `state.config` in this closure, so the new values have to
+   * be handed over explicitly or they would not be persisted.
+   */
+  saveConfig: (override?: Partial<Config>) => Promise<void>
   goToStep: (step: number) => void
   saveAndNext: () => Promise<void>
   openUrl: (url: string) => void
@@ -356,19 +398,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_FIELD', key, value })
   }
 
+  const setFields = (patch: Partial<Config>) => {
+    dispatch({ type: 'SET_FIELDS', patch })
+  }
+
+  const persist = async (config: Config) => {
+    if (window.electronAPI && window.electronAPI.vaultSave) {
+      await window.electronAPI.vaultSave(config as unknown as Record<string, string>)
+    } else if (window.electronAPI) {
+      await window.electronAPI.saveLocalConfig(config as unknown as Record<string, string>)
+    } else {
+      localStorage.setItem('intriqathon-config', JSON.stringify(config))
+    }
+  }
+
+  const saveConfig = async (override?: Partial<Config>) => {
+    await persist(override ? { ...state.config, ...override } : state.config)
+  }
+
   const goToStep = (step: number) => {
     dispatch({ type: 'SET_STEP', step })
   }
 
   const saveAndNext = async () => {
-    // Save to encrypted vault if in Electron
-    if (window.electronAPI && window.electronAPI.vaultSave) {
-      await window.electronAPI.vaultSave(state.config as unknown as Record<string, string>)
-    } else if (window.electronAPI) {
-      await window.electronAPI.saveLocalConfig(state.config as unknown as Record<string, string>)
-    } else {
-      localStorage.setItem('intriqathon-config', JSON.stringify(state.config))
-    }
+    await persist(state.config)
 
     // Move to next step
     const nextStep = Math.min(state.currentStep + 1, TOTAL_STEPS - 1)
@@ -476,6 +529,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       t,
       config: state.config,
       setField,
+      setFields,
+      saveConfig,
       goToStep,
       saveAndNext,
       openUrl,
