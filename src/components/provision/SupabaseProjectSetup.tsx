@@ -65,19 +65,30 @@ export function SupabaseProjectSetup() {
   const [verifyError, setVerifyError] = useState<{ ref: string; message: string } | null>(null)
 
   const isCreateMode = config.SUPABASE_PROJECT_MODE === 'create'
-  const alreadyCreated = !!config.SUPABASE_CREATED_PROJECT_REF
+  const typedName = config.SUPABASE_PROJECT_NAME.trim()
 
   /**
-   * Each mode looks at its own reference: the one picked from the dropdown, or
-   * the one this app created. They are checked the same way, but a project
-   * chosen in one mode must never be reported as a result of the other.
+   * In create mode, "does this project already exist?" is answered by the
+   * account's own project list, not by a flag this app wrote earlier. The
+   * account is the authority: it covers a project created from the dashboard,
+   * one created here before this field existed, and a config restored from a
+   * vault — none of which a locally stored reference can account for.
+   */
+  const projectWithTypedName = projects?.find(p => p.name === typedName) ?? null
+  const alreadyCreated = isCreateMode && !!projectWithTypedName
+
+  /**
+   * Each mode looks at its own reference: the project matching the name being
+   * typed, or the one picked from the dropdown. They are checked the same way,
+   * but a project chosen in one mode must never be reported as a result of the
+   * other.
    *
    * Only what was obtained for the reference currently on screen is shown — a
    * result carrying another ref is stale by definition, so a success and a
    * failure can never appear side by side.
    */
   const selectedRef = isCreateMode
-    ? config.SUPABASE_CREATED_PROJECT_REF
+    ? (projectWithTypedName?.ref ?? '')
     : config.SUPABASE_PROJECT_REF
   const currentVerification = verification?.ref === selectedRef ? verification : null
   const currentVerifyError = verifyError?.ref === selectedRef ? verifyError.message : null
@@ -91,6 +102,13 @@ export function SupabaseProjectSetup() {
    */
   const passwordRules = validateDbPassword(config.SUPABASE_DB_PASSWORD)
   const passwordBlocks = isCreateMode && hasBlockingIssue(passwordRules)
+  /**
+   * The box exists to say what is wrong. A password that satisfies every rule
+   * has nothing to report, so it says nothing — and disappearing is itself the
+   * confirmation that the password is fine.
+   */
+  const showPasswordRules = config.SUPABASE_DB_PASSWORD.length > 0
+    && passwordRules.some(rule => !rule.ok)
 
   /**
    * Creates the project and stops there. Keys, URLs and buckets stay with step
@@ -101,32 +119,26 @@ export function SupabaseProjectSetup() {
     const typed = patch as Partial<Config>
     setFields(typed)
     void saveConfig(typed)
+    // The account has one project more than the last listing says. Dropping it
+    // forces a refetch, and keeps the button locked in the meantime.
+    setProjects(null)
   })
 
   /**
-   * Whether the settings on screen still describe the project that was already
-   * created. Compared against the name the API reports, not the one that was
-   * typed at the time — so renaming the field to something else re-arms the
-   * button, which is the only way to create a second, different project.
-   *
-   * While the confirmation has not come back, the answer is "yes": staying
-   * locked on an unknown is what stops a double-click from creating (and
-   * billing) a duplicate.
+   * Whether a project of this name is already on the account. While the listing
+   * has not come back, the answer is "yes": staying locked on an unknown is what
+   * stops a double-click — or a page reloaded straight after a creation — from
+   * creating, and billing, a duplicate.
    */
-  const matchesCreatedProject = alreadyCreated
-    // A reference that no longer resolves describes nothing: keeping the button
-    // locked on it would claim a project exists when Supabase says it does not.
-    && !currentVerifyError
-    && (
-      currentVerification === null ||
-      currentVerification.name === config.SUPABASE_PROJECT_NAME.trim()
-    )
+  const projectAlreadyExists = isCreateMode
+    && !!typedName
+    && (projects === null || !!projectWithTypedName)
 
   const canCreate = !!config.SUPABASE_ACCESS_TOKEN
     && !!config.SUPABASE_ORG_SLUG
-    && !!config.SUPABASE_PROJECT_NAME.trim()
+    && !!typedName
     && !passwordBlocks
-    && !matchesCreatedProject
+    && !projectAlreadyExists
 
   const selectProject = (ref: string) => {
     setField('SUPABASE_PROJECT_REF', ref)
@@ -140,9 +152,9 @@ export function SupabaseProjectSetup() {
       accessToken: config.SUPABASE_ACCESS_TOKEN,
       dbPassword: config.SUPABASE_DB_PASSWORD,
       mode: 'create',
-      // Only reused when the settings still describe it; a renamed project is
-      // a new one, and must not adopt the old reference.
-      ref: matchesCreatedProject ? config.SUPABASE_CREATED_PROJECT_REF : undefined,
+      // Never reused here: the button is only reachable when no project of this
+      // name exists, so this call always means "create a new one".
+      ref: undefined,
       projectName: config.SUPABASE_PROJECT_NAME,
       organizationSlug: config.SUPABASE_ORG_SLUG,
       regionCode: config.SUPABASE_REGION,
@@ -208,7 +220,9 @@ export function SupabaseProjectSetup() {
     applyVerificationRef.current = applyVerification
   })
 
-  const canListProjects = !isCreateMode && looksLikeAccessToken(token)
+  // Both modes need it now: one to populate the dropdown, the other to answer
+  // "is a project of this name already on the account?".
+  const canListProjects = looksLikeAccessToken(token)
 
   useEffect(() => {
     if (!canListProjects) return
@@ -462,7 +476,7 @@ export function SupabaseProjectSetup() {
           ) : undefined}
         />
 
-        {config.SUPABASE_DB_PASSWORD.length > 0 && (
+        {showPasswordRules && (
           <div className={`password-rules-box${passwordBlocks ? ' password-rules-box--invalid' : ''}`}>
             <div className="password-rules-box__title">
               {t('accountCreation.supabase.dbPassword.requirements')}
@@ -533,7 +547,7 @@ export function SupabaseProjectSetup() {
                   {t('accountCreation.supabase.createBtn.missing')}
                 </p>
               )}
-              {matchesCreatedProject && (
+              {projectAlreadyExists && !loadingProjects && (
                 <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', margin: 0 }}>
                   {t('accountCreation.supabase.createBtn.locked')}
                 </p>
