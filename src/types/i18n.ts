@@ -131,7 +131,8 @@ export type TranslationKeys = {
   'accountCreation.supabase.verify.running': string
   'accountCreation.supabase.projects.loading': string
   'accountCreation.supabase.orgs.loading': string
-  'accountCreation.supabase.createBtn.locked': string
+  'accountCreation.supabase.nameTaken': string
+  'accountCreation.supabase.nameTaken.switch': string
   'accountCreation.supabase.projects.none': string
   'accountCreation.supabase.dbPassword.generate': string
   'accountCreation.supabase.dbPassword.requirements': string

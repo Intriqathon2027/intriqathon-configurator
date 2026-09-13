@@ -3597,3 +3597,14 @@ ul.help-note li {
 .project-verification--failed .project-create-status {
   color: var(--color-danger);
 }
+
+/* Pointer to the other mode when the chosen name is already taken */
+.existing-project-hint {
+  align-items: flex-start;
+}
+
+.existing-project-hint .info-box-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}

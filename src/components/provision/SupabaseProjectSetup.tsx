@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, Check, Loader, Play, Wand2, X, XCircle } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, Info, Loader, Play, Wand2, X, XCircle } from 'lucide-react'
 import { FormField } from '../ui/FormField'
 import { useApp } from '../../context/AppContext'
 import { createProvisionBridge } from '../../services/provisionBridge'
@@ -75,7 +75,11 @@ export function SupabaseProjectSetup() {
    * vault — none of which a locally stored reference can account for.
    */
   const projectWithTypedName = projects?.find(p => p.name === typedName) ?? null
-  const alreadyCreated = isCreateMode && !!projectWithTypedName
+  /**
+   * Create mode does not verify anything: finding the name in the account's own
+   * listing is the whole answer, and it points the reader at the other mode
+   * rather than confirming a project they did not ask to inspect.
+   */
 
   /**
    * Each mode looks at its own reference: the project matching the name being
@@ -87,9 +91,7 @@ export function SupabaseProjectSetup() {
    * result carrying another ref is stale by definition, so a success and a
    * failure can never appear side by side.
    */
-  const selectedRef = isCreateMode
-    ? (projectWithTypedName?.ref ?? '')
-    : config.SUPABASE_PROJECT_REF
+  const selectedRef = isCreateMode ? '' : config.SUPABASE_PROJECT_REF
   const currentVerification = verification?.ref === selectedRef ? verification : null
   const currentVerifyError = verifyError?.ref === selectedRef ? verifyError.message : null
   const verifying = !!selectedRef && !currentVerification && !currentVerifyError
@@ -142,6 +144,11 @@ export function SupabaseProjectSetup() {
 
   const selectProject = (ref: string) => {
     setField('SUPABASE_PROJECT_REF', ref)
+  }
+
+  /** Switches to the other mode with the project already picked. */
+  const adoptExistingProject = (ref: string) => {
+    setFields({ SUPABASE_PROJECT_MODE: 'existing', SUPABASE_PROJECT_REF: ref })
   }
 
   /** An account with no project at all: the dropdown would be silently empty. */
@@ -464,7 +471,7 @@ export function SupabaseProjectSetup() {
           onChange={v => setField('SUPABASE_DB_PASSWORD', v)}
           placeholder={t('accountCreation.supabase.dbPassword.placeholder')}
           type="password"
-          rightElement={isCreateMode && !alreadyCreated ? (
+          rightElement={isCreateMode && !projectWithTypedName ? (
             <button
               className="btn btn-secondary"
               onClick={() => setField('SUPABASE_DB_PASSWORD', generateDbPassword())}
@@ -524,7 +531,6 @@ export function SupabaseProjectSetup() {
               {/* The project exists: the settings above stay editable, only the
                   button that would create a second one is locked — and the panel
                   says which project that lock refers to. */}
-              {alreadyCreated && verificationPanel}
               {provision.status === 'error' && provision.error && (
                 <div className="info-box warning">
                   <AlertTriangle size={15} className="info-box-icon" />
@@ -542,15 +548,28 @@ export function SupabaseProjectSetup() {
                   ? t('accountCreation.supabase.createBtn.retry')
                   : t('accountCreation.supabase.createBtn')}
               </button>
-              {!canCreate && !alreadyCreated && (
+              {!canCreate && !projectAlreadyExists && (
                 <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', margin: 0 }}>
                   {t('accountCreation.supabase.createBtn.missing')}
                 </p>
               )}
-              {projectAlreadyExists && !loadingProjects && (
-                <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', margin: 0 }}>
-                  {t('accountCreation.supabase.createBtn.locked')}
-                </p>
+              {projectWithTypedName && (
+                <div className="info-box existing-project-hint">
+                  <Info size={15} className="info-box-icon" />
+                  <div className="info-box-text">
+                    <p style={{ margin: '0 0 8px' }}>
+                      {t('accountCreation.supabase.nameTaken').replace('{name}', projectWithTypedName.name)}
+                    </p>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => adoptExistingProject(projectWithTypedName.ref)}
+                      type="button"
+                    >
+                      <ArrowRight size={14} />
+                      {t('accountCreation.supabase.nameTaken.switch')}
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* Below the button, where it reads as a consequence of pressing
