@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Copy, Play } from 'lucide-react'
+import { Check, Copy, Terminal } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 
 export function DockerBlock({ command }: { command: string }) {
@@ -14,7 +14,7 @@ export function DockerBlock({ command }: { command: string }) {
 
   return (
     <div className="command-block">
-      <Play size={14} style={{ color: 'var(--color-primary-text)', flexShrink: 0 }} />
+      <Terminal size={14} className="command-block__marker" />
       <span className="command-text">{command}</span>
       <button className={`btn btn-copy ${copied ? 'copied' : ''}`} onClick={handleCopy} style={{ flexShrink: 0 }}>
         {copied

@@ -84,7 +84,7 @@ export function ImportPasswordModal({
                 background: 'var(--color-bg)',
                 border: '1px solid var(--color-border)',
                 fontSize: '12px',
-                color: 'var(--color-text-muted)',
+                color: 'var(--color-text-secondary)',
                 wordBreak: 'break-all'
               }}>
                 <strong>{t('vault.import.fileLabel')}</strong> {fileName}

@@ -15,7 +15,6 @@ import { useServiceProvision } from '../hooks/useServiceProvision'
 import { GRANTS_SQL, REALTIME_TABLE } from '../shared/supabaseSiteSetup'
 import { isAccountComplete } from '../utils/serviceCompletion'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
-import { HelpService } from '../components/ui/HelpService'
 import { CopyRow } from '../components/ui/CopyBlock'
 import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshKeySelector'
 import { PreRestartWarning } from '../components/deploy/PreRestartWarning'
@@ -101,69 +100,6 @@ function supabaseFinalSteps(isEn: boolean): HelpFlowStep[] {
       linkLabel: 'Table Editor',
     },
   ]
-}
-
-function HelpContent() {
-  const { state, config } = useApp()
-  const isEn = state.language === 'en'
-  const domain = config.DOMAIN || '<DOMAIN>'
-
-  const site: HelpFlowStep[] = [
-    {
-      key: 'panel',
-      title: isEn ? 'Open the configuration panel' : 'Ouvrir le panneau de configuration',
-      desc: isEn
-        ? <>Go to <code>config.{domain}</code>. It asks for an <strong>Instance URL</strong> and an <strong>Instance Service Key</strong> — both are shown ready to copy in the Next steps block.</>
-        : <>Rendez-vous sur <code>config.{domain}</code>. Il demande une <strong>Instance URL</strong> et une <strong>Instance Service Key</strong> — les deux sont affichées, prêtes à copier, dans le bloc Prochaines étapes.</>,
-      extra: (
-        <p className="help-note">
-          {isEn
-            ? <>The service key must be the <strong>JWT-format legacy one</strong>: the panel runs in a browser, and Supabase refuses a <code>sb_secret_…</code> key there. The Next steps block already shows the value that works.</>
-            : <>La clé de service doit être celle au <strong>format JWT legacy</strong> : le panneau tourne dans un navigateur, et Supabase y refuse une clé <code>sb_secret_…</code>. Le bloc Prochaines étapes affiche déjà la valeur qui fonctionne.</>}
-        </p>
-      ),
-    },
-    {
-      key: 'admin',
-      title: 'Create Admin User',
-      desc: isEn
-        ? <>An email and a password (8 characters minimum). <strong>This is the only way an <code>ORGANIZER</code> account is created.</strong></>
-        : <>Un email et un mot de passe (8 caractères minimum). <strong>C'est la seule façon de créer un compte <code>ORGANIZER</code>.</strong></>,
-      extra: (
-        <p className="help-note">
-          {isEn
-            ? 'The remaining screens (Discord, Deploying) are informational — click Continue through them.'
-            : "Les écrans suivants (Discord, Deploying) sont purement informatifs : cliquez sur Continue."}
-        </p>
-      ),
-    },
-    {
-      key: 'texts',
-      title: isEn ? 'Name the hackathon' : 'Nommer le hackathon',
-      desc: isEn
-        ? <>Sign in on <code>{domain}</code> with that account, then <code>Settings</code> ➔ <code>Texts</code> and fill in the hackathon name (60 characters max).</>
-        : <>Connectez-vous sur <code>{domain}</code> avec ce compte, puis <code>Paramètres</code> ➔ <code>Textes</code> et renseignez le nom du hackathon (60 caractères max).</>,
-      extra: (
-        <p className="help-note">
-          {isEn
-            ? <>That name, spaces replaced by dashes, is the GitHub organization the team repositories go into. <strong>It must already exist on GitHub</strong> — the platform never creates it.</>
-            : <>Ce nom, espaces remplacés par des tirets, désigne l'organisation GitHub où atterrissent les dépôts des équipes. <strong>Elle doit déjà exister sur GitHub</strong> — la plateforme ne la crée jamais.</>}
-        </p>
-      ),
-    },
-  ]
-
-  return (
-    <>
-      <HelpService
-        id="svc-site"
-        icon={<Globe size={15} />}
-        title={isEn ? 'Site configuration' : 'Configuration du site'}
-      >
-        <HelpFlow steps={site} />
-      </HelpService>
-    </>
-  )
 }
 
 export function ConfigSite() {
@@ -360,7 +296,6 @@ export function ConfigSite() {
       title={t('step8.title')}
       stepBadge={`${t('nav.step')} 8 — ${t('step8.label')}`}
       description={t('step8.desc')}
-      helpContent={<HelpContent />}
     >
       <div className="api-config-list">
         {/* Supabase Actions & SQL */}
@@ -592,33 +527,45 @@ export function ConfigSite() {
               </ol>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className="info-box warning">
-                <Info size={15} className="info-box-icon" />
-                <div className="info-box-text">
-                  <div className="info-box-title">{isEn ? 'Email sending' : 'Envoi d\'emails'}</div>
-                  {t('step8.tip2')}
-                </div>
+            {/* Done on the site itself, once the wizard is closed — and the
+                one step whose value has to match something that already
+                exists elsewhere, which is why it gets its own screen here. */}
+            <div className="config-screens">
+              <div className="config-screens__title">
+                <Globe size={16} color="var(--color-primary-text)" />
+                {isEn ? `Then, on ${domain}` : `Ensuite, sur ${domain}`}
               </div>
-              <div className="info-box tip">
-                <CheckCircle size={15} className="info-box-icon" />
-                <div className="info-box-text">
-                  <div className="info-box-title">{isEn ? 'Hackathon name' : 'Nom du hackathon'}</div>
-                  {isEn
-                    ? 'Once signed in on the site, go to Settings > Texts to set the hackathon name. Spaces become dashes, and the result must match an existing GitHub organization — the platform never creates it.'
-                    : 'Une fois connecté au site, allez dans Paramètres > Textes pour définir le nom du hackathon. Les espaces deviennent des tirets, et le résultat doit correspondre à une organisation GitHub existante — la plateforme ne la crée jamais.'
-                  }
-                </div>
-              </div>
-              <div className="info-box tip">
-                <CheckCircle size={15} className="info-box-icon" />
-                <div className="info-box-text">
-                  <div className="info-box-title">{isEn ? 'Supabase security (RLS)' : 'Sécurité Supabase (RLS)'}</div>
-                  {isEn
-                    ? 'In Supabase Table Editor, enable Row Level Security (RLS) on each table for production-level security.'
-                    : 'Dans le Table Editor Supabase, activez la protection Row Level Security (RLS) sur chaque table pour une sécurité optimale.'
-                  }
-                </div>
+
+              <ol className="config-screens__list">
+                <li className="config-screen">
+                  <span className="config-screen__index">1</span>
+                  <div className="config-screen__body">
+                    <div className="config-screen__name">
+                      {isEn ? 'Name the hackathon' : 'Nommer le hackathon'}
+                    </div>
+                    <p className="config-screen__desc">
+                      {isEn
+                        ? <>Sign in with the account from screen 2, then <code>Settings</code> ➔ <code>Texts</code> and fill in the hackathon name (60 characters max).</>
+                        : <>Connectez-vous avec le compte de l'écran 2, puis <code>Paramètres</code> ➔ <code>Textes</code> et renseignez le nom du hackathon (60 caractères max).</>}
+                    </p>
+                    <div className="info-box warning">
+                      <AlertTriangle size={15} className="info-box-icon" />
+                      <div className="info-box-text">
+                        {isEn
+                          ? <>That name, spaces replaced by dashes, is the GitHub organization the team repositories go into. <strong>It must already exist on GitHub</strong> — the platform never creates it.</>
+                          : <>Ce nom, espaces remplacés par des tirets, désigne l'organisation GitHub où atterrissent les dépôts des équipes. <strong>Elle doit déjà exister sur GitHub</strong> — la plateforme ne la crée jamais.</>}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </ol>
+            </div>
+
+            <div className="info-box warning">
+              <Info size={15} className="info-box-icon" />
+              <div className="info-box-text">
+                <div className="info-box-title">{isEn ? 'Email sending' : "Envoi d'emails"}</div>
+                {t('step8.tip2')}
               </div>
             </div>
           </div>

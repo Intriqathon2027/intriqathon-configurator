@@ -140,16 +140,16 @@ export function ServiceConfigBlock({
 
         {/* Status: Error — the provider's wording is what makes it actionable */}
         {status === 'error' && (
-          <div className="service-config-block__info-box service-config-block__info-box--error" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={16} />
-              <span style={{ fontWeight: 600 }}>{statusLabels.error}</span>
+          <div className="service-config-block__info-box service-config-block__info-box--error">
+            <AlertTriangle size={16} />
+            <div className="service-config-block__info-box-body">
+              <span>{statusLabels.error}</span>
+              {(errorMessage ?? cleanErrorMessage) && (
+                <span className="service-config-block__error-detail">
+                  {errorMessage ?? cleanErrorMessage}
+                </span>
+              )}
             </div>
-            {(errorMessage ?? cleanErrorMessage) && (
-              <div style={{ fontSize: 'var(--font-size-xs)', wordBreak: 'break-word', lineHeight: 1.5, opacity: 0.95 }}>
-                {errorMessage ?? cleanErrorMessage}
-              </div>
-            )}
           </div>
         )}
 
@@ -172,8 +172,7 @@ export function ServiceConfigBlock({
               return (
                 <div
                   key={i}
-                  className="service-config-block__log-line"
-                  style={{ color: isErr ? '#f87171' : undefined }}
+                  className={`service-config-block__log-line${isErr ? ' service-config-block__log-line--error' : ''}`}
                 >
                   {line}
                 </div>
@@ -219,7 +218,6 @@ export function ServiceConfigBlock({
             className="btn btn-primary service-config-block__btn-start"
             onClick={onStart}
             type="button"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             {status === 'error' ? <RotateCcw size={14} /> : <Play size={14} />}
             {status === 'error'
@@ -236,7 +234,6 @@ export function ServiceConfigBlock({
             className="btn btn-secondary service-config-block__btn-rerun"
             onClick={onStart}
             type="button"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             <RotateCcw size={14} />
             {btnRerunLabel ?? (btnStartLabel === 'Launch' ? 'Run again' : 'Relancer')}

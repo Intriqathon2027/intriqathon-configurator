@@ -36,7 +36,7 @@ export function DeployManualTab() {
       return (
         <span key={i}>
           <span className="env-key">{key}</span>
-          <span style={{ color: '#718096' }}>=</span>
+          <span className="env-sep">=</span>
           <span className="env-value">{value}</span>{'\n'}
         </span>
       )
@@ -72,8 +72,8 @@ export function DeployManualTab() {
         <CommandBlock label={t('step6.cmd.cd')} command={`cd ${deployPath}`} />
 
         <div style={{ marginBottom: '8px', marginTop: '16px' }}>
-          <div className="command-label" style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary-text)', padding: '1px 8px', borderRadius: '4px', fontSize: 'var(--font-size-xs)' }}>{t('step6.label.mac')}</span>
+          <div className="command-label" style={{ marginBottom: '6px' }}>
+            <span className="os-chip">{t('step6.label.mac')}</span>
           </div>
           <CommandBlock
             command={`rsync -avz --progress ./ root@${ipv4}:~/hackathon-deploy`}
@@ -81,8 +81,8 @@ export function DeployManualTab() {
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <div className="command-label" style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '1px 8px', borderRadius: '4px', fontSize: 'var(--font-size-xs)' }}>{t('step6.label.windows')}</span>
+          <div className="command-label" style={{ marginBottom: '6px' }}>
+            <span className="os-chip">{t('step6.label.windows')}</span>
           </div>
           <CommandBlock
             command={`scp -r ./ root@${ipv4}:~/hackathon-deploy`}

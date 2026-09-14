@@ -146,7 +146,7 @@ export function SshKeyModal({
 
           {/* List of keys */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {isEn ? `Detected keys (${keys.length})` : `Clés détectées (~/.ssh) : ${keys.length}`}
             </span>
             <button
@@ -181,7 +181,7 @@ export function SshKeyModal({
               <p style={{ margin: '0 0 8px', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
                 {isEn ? 'No SSH key found in ~/.ssh' : 'Aucune clé SSH trouvée dans ~/.ssh'}
               </p>
-              <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)' }}>
+              <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
                 {isEn
                   ? 'Generate a new Ed25519 key below to continue.'
                   : 'Générez une nouvelle clé Ed25519 ci-dessous en un clic.'}
@@ -245,7 +245,7 @@ export function SshKeyModal({
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', wordBreak: 'break-all' }}>
+                      <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', wordBreak: 'break-all' }}>
                         {k.publicKeyPath}
                       </div>
                       <div style={{

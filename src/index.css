@@ -28,15 +28,41 @@
   --color-surface: #FFFFFF;
   --color-surface-hover: #F1F5F9;
 
+  /* Three text tones, and only three. Hierarchy is carried by size and
+     weight; colour marks a change of role, not a change of importance. A
+     fourth and fifth grey is what made whole pages read as washed out.
+       text      — anything the reader is meant to read
+       secondary — supporting copy, still full prose
+       muted     — labels and eyebrows, the lightest tone used for words
+     `placeholder` is not part of the ramp: it is for text that is NOT
+     content — input placeholders, disabled values, idle icon buttons. */
   --color-text: #0F172A;
-  --color-text-secondary: #37455A;
-  --color-text-muted: #566274;
-  --color-text-tertiary: #64748B;
-  --color-text-placeholder: #7C8899;
+  --color-text-secondary: #2E3A4D;
+  --color-text-muted: #46536A;
+  --color-text-placeholder: #6A7789;
 
   --color-border: #DEE5EC;
   --color-border-strong: #C4CFDB;
   --color-border-focus: #1DB48A;
+
+  /* Terminals — live output, dark in both themes (that convention is what
+     separates a running log from the static literals above). One surface,
+     used by every console in the app. */
+  --color-terminal-bg: #14181F;
+  --color-terminal-text: #C6D0DC;
+  --color-terminal-dim: #8494A6;
+  --color-terminal-ok: #6EE7B7;
+  --color-terminal-error: #FC8181;
+
+  /* Code surfaces — every block that shows a literal to copy (a command, a
+     SQL statement, a key) draws from these, so they read as one family
+     instead of the light panels and hardcoded black slabs they used to be. */
+  --color-code-bg: #FBFCFE;
+  --color-code-header-bg: #E9EEF4;
+  --color-code-border: #CDD8E3;
+  --color-code-text: #0B1220;
+  /* Inline `code` chips — the one accent left in running text */
+  --color-code-accent: #0B7A5B;
 
   /* Inputs */
   --color-input-bg: #FBFCFE;
@@ -114,14 +140,19 @@
   --color-surface-hover: #383A40;
 
   --color-text: #F2F3F5;
-  --color-text-secondary: #CBD1D8;
-  --color-text-muted: #A7AFBA;
-  --color-text-tertiary: #99A1AC;
+  --color-text-secondary: #DDE2E8;
+  --color-text-muted: #C3CAD4;
   --color-text-placeholder: #8A919C;
 
   --color-border: #383C43;
   --color-border-strong: #4B515A;
   --color-border-focus: #1DB48A;
+
+  --color-code-bg: #1B1D21;
+  --color-code-header-bg: #24262B;
+  --color-code-border: #3A3D44;
+  --color-code-text: #E8EDF3;
+  --color-code-accent: #7FE3C2;
 
   /* Inputs */
   --color-input-bg: #1B1D21;
@@ -140,26 +171,19 @@
   border-color: rgba(29, 180, 138, 0.28);
 }
 
-[data-theme="dark"] .service-config-block--complete .service-config-block__step-number {
-  border-right-color: rgba(29, 180, 138, 0.28);
-}
-
 [data-theme="dark"] .info-box.info {
   background: rgba(29, 180, 138, 0.1);
   border-color: rgba(29, 180, 138, 0.4);
-  color: #6EE7B7;
 }
 
 [data-theme="dark"] .info-box.warning {
   background: rgba(251, 191, 36, 0.1);
   border-color: rgba(251, 191, 36, 0.4);
-  color: #FCD34D;
 }
 
 [data-theme="dark"] .info-box.tip {
   background: rgba(96, 165, 250, 0.1);
   border-color: rgba(96, 165, 250, 0.4);
-  color: #93C5FD;
 }
 
 [data-theme="dark"] .deploy-console,
@@ -180,9 +204,8 @@
 
 [data-theme="dark"] .modal-body code,
 [data-theme="dark"] .help-panel-body code {
-  background: #1B1D21;
+  background: var(--color-code-bg);
   border: 1px solid var(--color-border-strong);
-  color: #7FE3C2;
 }
 
 [data-theme="dark"] .btn-external {
@@ -205,10 +228,6 @@
 [data-theme="dark"] .dns-table th {
   background: #1B1D21;
   color: var(--color-text-secondary);
-}
-
-[data-theme="dark"] .copy-block {
-  background: #1B1D21;
 }
 
 
@@ -380,7 +399,7 @@ body {
 .sidebar-logo-sub {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  font-weight: 400;
+  font-weight: 500;
   margin-top: 1px;
 }
 
@@ -466,7 +485,7 @@ body {
 }
 
 .step-label-number {
-  font-weight: 400;
+  font-weight: 700;
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
@@ -605,26 +624,36 @@ body {
   border-color: rgba(29, 180, 138, 0.4);
 }
 
-.service-config-block--complete .service-config-block__name,
-.service-config-block--complete .service-config-block__step-number {
+.service-config-block--complete .service-config-block__name {
   color: var(--color-primary-text);
 }
 
-.service-config-block--complete .service-config-block__step-number {
-  border-right-color: rgba(29, 180, 138, 0.4);
+/* The numbered badge. The block's step number used to be a bare grey
+   numeral behind a vertical rule — the only vertical rule in the app, and
+   a third way of numbering things next to the walkthrough cards and the
+   config screens. One badge now, sized per context.
+   A flex box centres the glyph box, not the glyph: neutralise the font's
+   line box and its numeric side-bearings so the digit lands dead centre. */
+.service-config-block__step-number,
+.config-screen__index,
+.help-flow__index {
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary-text);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  display: grid;
+  place-items: center;
 }
 
 .service-config-block__step-number {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-  width: 30px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  border-right: 1px solid var(--color-border);
-  padding-right: var(--space-4);
+  width: 26px;
+  height: 26px;
+  font-size: var(--font-size-base);
+  margin-right: var(--space-4);
 }
 
 .service-config-block__content {
@@ -666,31 +695,44 @@ body {
 
 .service-config-block__info-box {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3);
   border-radius: var(--radius-md);
+  border: 1px solid transparent;
   font-size: var(--font-size-sm);
-  font-weight: 500;
+  font-weight: 600;
   margin-bottom: var(--space-4);
 }
 
 .service-config-block__info-box--success {
   background: var(--color-primary-light);
+  color: var(--color-text);
+  border-color: rgba(29, 180, 138, 0.35);
+}
+
+.service-config-block__info-box--success svg {
   color: var(--color-primary-text);
-  border: 1px solid rgba(29, 180, 138, 0.2);
 }
 
 .service-config-block__info-box--error {
   background: var(--color-danger-light);
+  color: var(--color-text);
+  border-color: rgba(229, 62, 62, 0.35);
+}
+
+.service-config-block__info-box--error svg {
   color: var(--color-danger);
-  border: 1px solid rgba(229, 62, 62, 0.2);
 }
 
 .service-config-block__info-box--running {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg);
   color: var(--color-text);
-  border: 1px solid var(--color-border);
+  border-color: var(--color-border);
+}
+
+.service-config-block__info-box--running svg {
+  color: var(--color-primary-text);
 }
 
 .service-config-block__spinner {
@@ -707,13 +749,13 @@ body {
 }
 
 .service-config-block__terminal {
-  background: #12121f;
+  background: var(--color-terminal-bg);
   border-radius: var(--radius-md);
   padding: var(--space-3);
   margin-bottom: var(--space-3);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
-  color: #4ade80;
+  color: var(--color-terminal-text);
   line-height: 1.6;
   max-height: 200px;
   overflow-y: auto;
@@ -721,6 +763,24 @@ body {
 
 .service-config-block__log-line {
   margin-bottom: 4px;
+}
+
+.service-config-block__log-line--error {
+  color: var(--color-terminal-error);
+}
+
+/* An error box carries a label and the provider's own wording under it */
+.service-config-block__info-box-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.service-config-block__error-detail {
+  font-weight: 400;
+  line-height: 1.5;
+  word-break: break-word;
 }
 
 .service-config-block__progress-track {
@@ -786,7 +846,7 @@ body {
 
 .ssh-key-selector__value--empty {
   border-style: dashed;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .ssh-key-selector__name {
@@ -818,9 +878,6 @@ body {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-secondary);
   cursor: pointer;
   transition: border-color var(--transition-fast), background var(--transition-fast);
 }
@@ -894,7 +951,7 @@ body {
 .warning-dialog__note {
   margin: 0;
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
@@ -1082,7 +1139,8 @@ body {
 
 .progress-indicator {
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  font-weight: 600;
+  color: var(--color-text-secondary);
 }
 
 /* =============================================
@@ -1096,7 +1154,7 @@ body {
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
-  font-weight: 500;
+  font-weight: 600;
   font-family: var(--font-family);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -1254,8 +1312,8 @@ body {
 
 .form-section-title {
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-weight: 700;
+  color: var(--color-text);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: var(--space-3);
@@ -1338,8 +1396,8 @@ body {
 }
 
 .form-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
   line-height: 1.45;
 }
 
@@ -1367,9 +1425,9 @@ body {
 
 .manual-config-details > summary {
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 700;
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: var(--color-text);
   list-style: none;
   display: inline-flex;
   align-items: center;
@@ -1430,7 +1488,7 @@ body {
   margin: 0;
   font-size: var(--font-size-base);
   line-height: 1.55;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 /* Inside a part, the steps sit closer together than the parts do */
@@ -1565,8 +1623,8 @@ body {
 }
 
 .bucket-list__note {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
   line-height: 1.5;
   min-width: 0;
 }
@@ -1708,7 +1766,7 @@ body {
   border: 1px solid var(--color-border-strong);
   padding: 1px 5px;
   border-radius: var(--radius-sm);
-  color: var(--color-primary-hover);
+  color: var(--color-code-accent);
   white-space: nowrap;
 }
 
@@ -1717,12 +1775,6 @@ body {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   line-height: 1.55;
-}
-
-[data-theme="dark"] .field-bubble__path code {
-  background: #1B1D21;
-  border-color: var(--color-border-strong);
-  color: #7FE3C2;
 }
 
 /* =============================================
@@ -1760,8 +1812,8 @@ body {
    COPY BLOCK
    ============================================= */
 .copy-block {
-  background: var(--color-input-bg);
-  border: 1px solid var(--color-input-border);
+  background: var(--color-code-bg);
+  border: 1px solid var(--color-code-border);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
@@ -1770,14 +1822,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  background: var(--color-code-header-bg);
+  border-bottom: 1px solid var(--color-code-border);
 }
 
 .copy-block-label {
   font-size: var(--font-size-xs);
-  font-weight: 500;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1787,7 +1839,7 @@ body {
   padding: var(--space-3);
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   font-size: var(--font-size-mono);
-  color: var(--color-text);
+  color: var(--color-code-text);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
@@ -1808,15 +1860,15 @@ body {
   gap: var(--space-2);
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
   border-radius: var(--radius-md);
-  background: var(--color-input-bg);
-  border: 1px solid var(--color-input-border);
+  background: var(--color-code-bg);
+  border: 1px solid var(--color-code-border);
   min-height: 34px;
 }
 
 .copy-block-row-text {
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   font-size: var(--font-size-mono);
-  color: var(--color-text);
+  color: var(--color-code-text);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -1838,7 +1890,7 @@ body {
   text-align: left;
   padding: var(--space-2) var(--space-3);
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1866,30 +1918,44 @@ body {
 /* =============================================
    INFO BOX
    ============================================= */
+/* Colour identifies the kind of box — through its tint, its border and
+   its icon. The text itself stays the ordinary reading colour: coloured
+   prose was both harder to read and, three variants deep, the single
+   biggest source of colour on these pages. */
 .info-box {
   display: flex;
   gap: var(--space-2);
   padding: var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid;
+  color: var(--color-text);
 }
 
 .info-box.info {
   background: var(--color-primary-lighter);
   border-color: rgba(29, 180, 138, 0.3);
-  color: #065f46;
+}
+
+.info-box.info .info-box-icon {
+  color: var(--color-primary-text);
 }
 
 .info-box.warning {
   background: var(--color-warning-light);
   border-color: #FCD34D;
-  color: #92400e;
+}
+
+.info-box.warning .info-box-icon {
+  color: var(--color-warning);
 }
 
 .info-box.tip {
   background: var(--color-secondary-light);
   border-color: #93C5FD;
-  color: #1e3a8a;
+}
+
+.info-box.tip .info-box-icon {
+  color: var(--color-secondary);
 }
 
 .info-box-icon {
@@ -1903,7 +1969,7 @@ body {
 }
 
 .info-box-title {
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: var(--space-1);
 }
 
@@ -1923,14 +1989,24 @@ body {
   margin-top: var(--space-4);
 }
 
+/* The recessed row: an enumeration entry, a checkbox, a numbered screen,
+   a pointer to the walkthrough. They were four different surfaces — one
+   on --color-bg, one on --color-bg-secondary, two transparent — for what
+   is the same object, which is most of why these cards looked noisy. */
+.icon-row,
+.manual-check,
+.config-screen,
+.service-config-block__help {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
 .icon-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  padding: var(--space-3);
 }
 
 .icon-row__icon {
@@ -1949,7 +2025,9 @@ body {
 .icon-row__label {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  font-weight: 500;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .icon-row__text {
@@ -2220,7 +2298,7 @@ body {
   border: 1px solid var(--color-border-strong);
   padding: 1px 5px;
   border-radius: var(--radius-sm);
-  color: var(--color-primary-hover);
+  color: var(--color-code-accent);
   white-space: nowrap;
 }
 
@@ -2343,21 +2421,9 @@ ul.help-note li {
 }
 
 .help-flow__index {
-  flex-shrink: 0;
   width: 21px;
   height: 21px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-light);
-  color: var(--color-primary-text);
   font-size: var(--font-size-sm);
-  font-weight: 700;
-  /* A flex box centres the glyph box, not the glyph: neutralise the font's
-     line box and its numeric side-bearings so the digit lands dead centre. */
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  display: grid;
-  place-items: center;
 }
 
 .help-flow__title {
@@ -2380,7 +2446,7 @@ ul.help-note li {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-placeholder);
   padding: var(--space-1) 0;
 }
 
@@ -2454,7 +2520,7 @@ ul.help-note li {
   padding: 2px 6px;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
-  color: var(--color-primary-hover);
+  color: var(--color-code-accent);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
@@ -2508,13 +2574,11 @@ ul.help-note li {
   align-items: flex-start;
   gap: var(--space-2);
   padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
 .service-help-hint {
   font-size: var(--font-size-sm);
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
@@ -2533,7 +2597,9 @@ ul.help-note li {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-weight: 600;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text);
   margin-bottom: var(--space-3);
 }
 
@@ -2553,23 +2619,12 @@ ul.help-note li {
   gap: var(--space-3);
   min-width: 0;
   padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
 .config-screen__index {
-  flex-shrink: 0;
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-light);
-  color: var(--color-primary-text);
   font-size: var(--font-size-sm);
-  font-weight: 700;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  display: grid;
-  place-items: center;
 }
 
 .config-screen__body {
@@ -2595,8 +2650,8 @@ ul.help-note li {
 
 .config-screen__note {
   margin: 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
@@ -2659,7 +2714,7 @@ ul.help-note li {
 .settings-font__tick {
   flex-shrink: 0;
   font-weight: 700;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-placeholder);
   line-height: 1;
   user-select: none;
 }
@@ -2787,29 +2842,48 @@ ul.help-note li {
    FINAL STEP (Deploy)
    ============================================= */
 .env-preview {
-  background: #14181F;
-  color: #A8FF78;
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  background: var(--color-code-bg);
+  border: 1px solid var(--color-code-border);
+  color: var(--color-code-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
   line-height: 1.7;
   max-height: 255px;
-  overflow-y: auto;
+  overflow: auto;
   white-space: pre;
   user-select: text;
 }
 
-.env-preview .env-comment {
-  color: #718096;
+/* Two tones, not four: the key is what the eye scans for, the value is the
+   content, and the separator and comments step back. */
+.env-preview .env-comment,
+.env-preview .env-sep {
+  color: var(--color-text-placeholder);
 }
 
 .env-preview .env-key {
-  color: #68D391;
+  color: var(--color-primary-text);
+  font-weight: 600;
 }
 
 .env-preview .env-value {
-  color: #FBD38D;
+  color: var(--color-code-text);
+}
+
+/* The platform a command belongs to. One chip, whichever platform it is —
+   a green one next to a blue one implied a difference that is not there. */
+.os-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .download-section {
@@ -2846,8 +2920,8 @@ ul.help-note li {
 }
 
 .download-subtitle {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
 /* =============================================
@@ -2862,7 +2936,7 @@ ul.help-note li {
 
 .command-label {
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -2872,23 +2946,28 @@ ul.help-note li {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  background: #1A202C;
+  background: var(--color-code-bg);
   border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid #2D3748;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border: 1px solid var(--color-code-border);
+}
+
+.command-block__marker {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
 }
 
 .command-text {
   flex: 1;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
-  color: #68D391;
+  color: var(--color-code-text);
   user-select: text;
   word-break: break-all;
 }
 
 .command-prompt {
-  color: #4A5568;
+  color: var(--color-text-placeholder);
   margin-right: var(--space-1);
   flex-shrink: 0;
 }
@@ -2897,24 +2976,25 @@ ul.help-note li {
    SQL BLOCK
    ============================================= */
 .sql-block {
-  background: #1A202C;
+  background: var(--color-code-bg);
   border-radius: var(--radius-md);
   overflow: hidden;
-  border: 1px solid #2D3748;
+  border: 1px solid var(--color-code-border);
 }
 
 .sql-block-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-4);
-  background: #2D3748;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  background: var(--color-code-header-bg);
+  border-bottom: 1px solid var(--color-code-border);
 }
 
 .sql-lang-badge {
   font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: #68D391;
+  font-weight: 700;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -2923,10 +3003,11 @@ ul.help-note li {
   padding: var(--space-3);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
-  color: #E8EDF3;
+  color: var(--color-code-text);
   line-height: 1.6;
   user-select: text;
   white-space: pre;
+  overflow-x: auto;
 }
 
 /* =============================================
@@ -3008,8 +3089,11 @@ ul.help-note li {
   margin-bottom: var(--space-5);
 }
 
+/* Applied to running prose, so it lands on the readable tone, not the
+   label tone. Use a smaller size — never a lighter colour — to set a
+   paragraph back from the one above it. */
 .text-muted {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .text-sm {
@@ -3185,8 +3269,8 @@ ul.help-note li {
 .recent-configs-title {
   text-align: left;
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-weight: 700;
+  color: var(--color-text);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: var(--space-3);
@@ -3260,8 +3344,8 @@ ul.help-note li {
 }
 
 .recent-config-path {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3333,7 +3417,7 @@ ul.help-note li {
   justify-content: center;
   gap: var(--space-3);
   padding: var(--space-8) var(--space-6);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }
 
@@ -3359,24 +3443,24 @@ ul.help-note li {
   padding: var(--space-2) var(--space-3);
   border-radius: calc(var(--radius-lg) - 2px);
   font-size: var(--font-size-sm);
-  font-weight: 500;
+  font-weight: 600;
   font-family: var(--font-family);
   cursor: pointer;
   border: none;
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   transition: all var(--transition-fast);
 }
 
 .deploy-tab:hover:not(.active) {
-  color: var(--color-text-secondary);
+  color: var(--color-text);
   background: rgba(255, 255, 255, 0.5);
 }
 
 .deploy-tab.active {
   background: var(--color-surface);
   color: var(--color-primary-text);
-  font-weight: 600;
+  font-weight: 700;
   box-shadow: var(--shadow-sm);
 }
 
@@ -3388,9 +3472,10 @@ ul.help-note li {
    DEPLOY CONSOLE
    ============================================= */
 .deploy-console {
-  background: #14181F;
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  background: var(--color-terminal-bg);
+  color: var(--color-terminal-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   min-height: 130px;
   max-height: 240px;
   overflow-y: auto;
@@ -3401,8 +3486,7 @@ ul.help-note li {
 }
 
 .deploy-console-placeholder {
-  color: #4A5568;
-  font-style: italic;
+  color: var(--color-terminal-dim);
 }
 
 .deploy-log-line {
@@ -3413,24 +3497,19 @@ ul.help-note li {
   animation: fadeIn 0.15s ease;
 }
 
+/* The icon already says what a line is. Colouring the prose to match made
+   every console a four-colour block; only an error keeps its own tone,
+   because that is the line you scroll back to find. */
 .deploy-log-text {
-  color: #A0AEC0;
-}
-
-.deploy-log-line.done .deploy-log-text {
-  color: #68D391;
+  color: var(--color-terminal-text);
 }
 
 .deploy-log-line.error .deploy-log-text {
-  color: #FC8181;
+  color: var(--color-terminal-error);
 }
 
 .deploy-log-line.info .deploy-log-text {
-  color: #63B3ED;
-}
-
-.deploy-log-line.running .deploy-log-text {
-  color: #FBD38D;
+  color: var(--color-terminal-dim);
 }
 
 .deploy-log-icon {
@@ -3438,15 +3517,15 @@ ul.help-note li {
 }
 
 .deploy-log-icon.done {
-  color: #68D391;
+  color: var(--color-terminal-ok);
 }
 
 .deploy-log-icon.error {
-  color: #FC8181;
+  color: var(--color-terminal-error);
 }
 
 .deploy-log-icon.info {
-  color: #63B3ED;
+  color: var(--color-terminal-dim);
   font-weight: 700;
   font-size: var(--font-size-md);
   line-height: 1;
@@ -3461,8 +3540,8 @@ ul.help-note li {
 .deploy-log-spinner {
   width: 13px;
   height: 13px;
-  border: 2px solid #4A5568;
-  border-top-color: #FBD38D;
+  border: 2px solid var(--color-terminal-dim);
+  border-top-color: var(--color-terminal-text);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   flex-shrink: 0;
@@ -3545,8 +3624,9 @@ ul.help-note li {
 }
 
 .deploy-path-label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 .deploy-status.form-label {
@@ -3744,9 +3824,9 @@ ul.help-note li {
 }
 
 .service-config-block__info-box--locked {
-  background: var(--color-surface-alt, transparent);
-  border: 1px dashed var(--color-border);
-  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border-strong);
+  color: var(--color-text-secondary);
 }
 
 /* =============================================
@@ -3796,7 +3876,7 @@ ul.help-note li {
   align-items: center;
   gap: var(--space-2);
   font-size: var(--font-size-base);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .project-create-status--done {
@@ -3850,7 +3930,7 @@ ul.help-note li {
   gap: var(--space-2);
   font-size: var(--font-size-sm);
   line-height: 1.5;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .password-rules__item svg {
