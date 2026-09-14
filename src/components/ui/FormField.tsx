@@ -13,6 +13,8 @@ interface FormFieldProps {
   disabled?: boolean
   rightElement?: ReactNode
   multiline?: boolean
+  /** Visible lines of a multiline field. Two is enough for a key or a URL. */
+  rows?: number
   /** Entry the "?" bubble reads. Defaults to `id`; the button only shows if an entry exists. */
   helpId?: string
   /**
@@ -44,6 +46,7 @@ export function FormField({
   disabled = false,
   rightElement,
   multiline = false,
+  rows = 2,
   helpId,
   tokenFill,
 }: FormFieldProps) {
@@ -85,7 +88,7 @@ export function FormField({
               disabled={disabled}
               autoComplete="off"
               spellCheck={false}
-              rows={3}
+              rows={rows}
               style={isPassword && !showPassword ? maskedTextareaStyle : undefined}
             />
           ) : (

@@ -248,13 +248,20 @@ export function ServiceConfigBlock({
         {children && (manualLabel ? (
           <details className="manual-config-details">
             <summary>{manualLabel}</summary>
-            {helpAnchor && (
-              <div className="service-config-block__help">
-                <HelpAnchorBtn anchor={helpAnchor} />
-                {helpHint && <span className="service-help-hint">{helpHint}</span>}
-              </div>
-            )}
-            {children}
+            {/* One wrapper, one stack. Spacing the panel through `details`
+                itself does not work: the browser puts everything after the
+                summary in a box of its own, so a gap set on `details` lands
+                between the summary and that box and never between the things
+                inside it. */}
+            <div className="manual-config-details__panel">
+              {helpAnchor && (
+                <div className="service-config-block__help">
+                  <HelpAnchorBtn anchor={helpAnchor} />
+                  {helpHint && <span className="service-help-hint">{helpHint}</span>}
+                </div>
+              )}
+              {children}
+            </div>
           </details>
         ) : (
           <div className="service-config-block__children">{children}</div>

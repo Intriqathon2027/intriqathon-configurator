@@ -197,24 +197,23 @@ export function DeployAutoTab() {
           />
         </div>
 
-        {/* Status + Path info */}
-        <div className="deploy-status-row">
-          {isFinished && (
-            <span className={`deploy-status-badge ${status}`}>
-              {getGlobalStatusIcon(status)}
-              {statusText}
-            </span>
-          )}
-          {deployedThisSession && (
-            <span className="deploy-status-badge completed">
-              <CheckCircle2 size={16} />
-              {t('step6.auto.status.completed')}
-            </span>
-          )}
-          {!isFinished && !deployedThisSession && (
-            <span className="deploy-path-label">{t('step6.auto.pathLabel')} : {deployPath}</span>
-          )}
-        </div>
+        {/* The run's outcome. Rendered only once there is one — an empty row
+            still spaced the card as though something were there. */}
+        {(isFinished || deployedThisSession) && (
+          <div className="deploy-status-row">
+            {isFinished ? (
+              <span className={`deploy-status-badge ${status}`}>
+                {getGlobalStatusIcon(status)}
+                {statusText}
+              </span>
+            ) : (
+              <span className="deploy-status-badge completed">
+                <CheckCircle2 size={16} />
+                {t('step6.auto.status.completed')}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Action button */}
         <div className="deploy-action-bar">

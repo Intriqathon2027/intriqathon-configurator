@@ -276,7 +276,7 @@ export function ConfigSite() {
           ? 'Only this field is concerned: the deployed stack keeps using the key from its .env, which stays on the server. If the legacy keys are disabled on the project, step 1 switches them back on.'
           : "Seul ce champ est concerné : la stack déployée continue d'utiliser la clé de son .env, qui reste côté serveur. Si les clés legacy sont désactivées sur le projet, l'étape 1 les réactive."}
       </p>
-      <div className="link-buttons-row" style={{ marginTop: '8px' }}>
+      <div className="link-buttons-row">
         <ExternalLinkBtn url={API_KEYS_URL} label="Legacy API keys" />
       </div>
     </>
@@ -416,10 +416,8 @@ export function ConfigSite() {
           statusLabels={statusLabels}
         >
           <div className="form-section">
-            <p className="text-muted" style={{ margin: '0 0 12px', fontSize: 'var(--font-size-base)', lineHeight: 1.5 }}>
-              {t('step8.tip')}
-            </p>
-            <div className="link-buttons-row" style={{ marginBottom: '24px' }}>
+            <p className="step-lead">{t('step8.tip')}</p>
+            <div className="link-buttons-row">
               <ExternalLinkBtn
                 url={`https://config.${domain}/`}
                 label={`${t('step8.config.btn')} — config.${domain}`}
@@ -483,7 +481,7 @@ export function ConfigSite() {
                           : "C'est ce qui crée le compte ORGANIZER avec lequel vous vous connecterez ensuite au site — rien d'autre ne le fait."}
                       </div>
                     </div>
-                    <div className="link-buttons-row" style={{ marginTop: '8px' }}>
+                    <div className="link-buttons-row">
                       <ExternalLinkBtn url={ADMIN_LOGIN_URL} label={t('step8.adminLogin.btn')} />
                     </div>
                   </div>
@@ -573,13 +571,8 @@ export function ConfigSite() {
       </div>
 
       {/* Done badge */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: '10px',
-          background: 'var(--color-primary-light)', color: 'var(--color-primary-text)',
-          padding: '16px 28px', borderRadius: '12px', fontWeight: 700, fontSize: 'var(--font-size-lg)',
-          border: '1px solid rgba(29,180,138,0.3)'
-        }}>
+      <div className="done-badge-row">
+        <div className="done-badge">
           <CheckCircle size={22} />
           {isEn ? 'Your hackathon infrastructure is configured!' : 'Votre infrastructure hackathon est configurée !'}
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus, KeyRound } from 'lucide-react'
+import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus, KeyRound, Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { WizardLayout } from '../components/layout/WizardLayout'
 import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
@@ -541,10 +541,10 @@ export function ApiConfiguration() {
                 : 'Depuis le projet : le panneau Connect pour l\'URL et les URLs Postgres, Project Settings ➔ API Keys pour les clés.'}
             >
             <FormField id="supabase-url" label={t('apiConfig.supabase.url')} value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" />
-            <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." multiline />
-            <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." type="password" multiline />
-            <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." type="password" multiline tokenFill={pwFill} />
-            <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." type="password" multiline tokenFill={pwFill} />
+            <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." multiline rows={2} />
+            <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." type="password" multiline rows={2} />
+            <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." type="password" multiline rows={2} tokenFill={pwFill} />
+            <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." type="password" multiline rows={2} tokenFill={pwFill} />
             </ManualSection>
           </div>
         </ServiceConfigBlock>
@@ -611,9 +611,13 @@ export function ApiConfiguration() {
               title={t('step4.dns.title')}
               desc={t('apiConfig.spaceship.dnsPath')}
             >
-              <p className="manual-section__desc">
-                {t('apiConfig.spaceship.hostNote')}
-              </p>
+              {/* The caveat that makes the table usable: it belongs with the
+                  table, as a note, not as a second lead paragraph competing
+                  with the one the section already has. */}
+              <div className="info-box info">
+                <Info size={15} className="info-box-icon" />
+                <div className="info-box-text">{t('apiConfig.spaceship.hostNote')}</div>
+              </div>
               <div className="link-buttons-row">
                 <ExternalLinkBtn url={SPACESHIP_LAUNCHPAD_URL} label="Launchpad" />
                 <ExternalLinkBtn url={SPACESHIP_DNS_HELP_URL} label={isEn ? 'Spaceship DNS help' : 'Aide DNS Spaceship'} />
@@ -631,7 +635,7 @@ export function ApiConfiguration() {
                 <tbody>
                   {dnsRecords.map((rec, i) => (
                     <tr key={i}>
-                      <td><span style={{ fontWeight: 600, color: 'var(--color-primary-text)' }}>{rec.type}</span></td>
+                      <td><span className="dns-table__type">{rec.type}</span></td>
                       <td>{rec.host}</td>
                       <td>{rec.answer}</td>
                       <td>{rec.ttl}</td>
@@ -639,8 +643,10 @@ export function ApiConfiguration() {
                         <button
                           className="btn btn-copy"
                           onClick={() => navigator.clipboard.writeText(`${rec.type},${rec.host},${rec.answer},${rec.ttl}`)}
+                          title={isEn ? 'Copy the whole row' : 'Copier la ligne entière'}
                         >
-                          Copier
+                          <Copy size={11} />
+                          {t('btn.copy')}
                         </button>
                       </td>
                     </tr>

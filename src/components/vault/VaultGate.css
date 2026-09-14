@@ -1,3 +1,6 @@
+/* The gate replaces the whole app shell, titlebar included, so the window
+   has no draggable region of its own while it is up. The backdrop is that
+   region — as on the landing page — and everything interactive opts out. */
 .vault-container {
   display: flex;
   flex-direction: column;
@@ -7,6 +10,15 @@
   padding: 24px;
   background: radial-gradient(circle at 50% 20%, rgba(29, 180, 138, 0.08) 0%, transparent 60%), var(--color-bg);
   position: relative;
+  -webkit-app-region: drag;
+}
+
+.vault-card,
+.vault-top-right,
+.vault-container button,
+.vault-container input,
+.vault-container a {
+  -webkit-app-region: no-drag;
 }
 
 .vault-top-right {

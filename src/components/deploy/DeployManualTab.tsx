@@ -65,48 +65,37 @@ export function DeployManualTab() {
         </div>
       </div>
 
-      {/* Deployment commands */}
+      {/* Deployment commands — one stack, spaced by the list, so the blocks
+          no longer each carry a margin of their own. */}
       <div className="card">
         <div className="card-title"><Terminal size={16} color="var(--color-primary-text)" />{t('step6.commands.title')}</div>
 
-        <CommandBlock label={t('step6.cmd.cd')} command={`cd ${deployPath}`} />
+        <div className="command-stack">
+          <CommandBlock label={t('step6.cmd.cd')} command={`cd ${deployPath}`} />
 
-        <div style={{ marginBottom: '8px', marginTop: '16px' }}>
-          <div className="command-label" style={{ marginBottom: '6px' }}>
-            <span className="os-chip">{t('step6.label.mac')}</span>
-          </div>
           <CommandBlock
+            label={<span className="os-chip">{t('step6.label.mac')}</span>}
             command={`rsync -avz --progress ./ root@${ipv4}:~/hackathon-deploy`}
           />
-        </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <div className="command-label" style={{ marginBottom: '6px' }}>
-            <span className="os-chip">{t('step6.label.windows')}</span>
-          </div>
           <CommandBlock
+            label={<span className="os-chip">{t('step6.label.windows')}</span>}
             command={`scp -r ./ root@${ipv4}:~/hackathon-deploy`}
           />
-        </div>
 
-        <CommandBlock label={t('step6.cmd.ssh')} command={`ssh root@${ipv4}`} />
-        <div style={{ marginTop: '8px' }}>
+          <CommandBlock label={t('step6.cmd.ssh')} command={`ssh root@${ipv4}`} />
           <CommandBlock label={t('step6.cmd.cdRemote')} command="cd hackathon-deploy" />
-        </div>
-        <div style={{ marginTop: '8px' }}>
           <CommandBlock label={t('step6.cmd.chmod')} command="chmod +x install_hackathon.sh" />
-        </div>
-        <div style={{ marginTop: '8px' }}>
           <CommandBlock label={t('step6.cmd.install')} command="./install_hackathon.sh" />
-        </div>
 
-        {/* Nothing else records a deployment run from a terminal: the automatic
-            tab validates the step when it succeeds, and this is the manual
-            route's equivalent. */}
-        <ManualCheck
-          checkKey="deploy-manual"
-          label={isEn ? 'The deployment has been carried out' : 'Le déploiement a été effectué'}
-        />
+          {/* Nothing else records a deployment run from a terminal: the
+              automatic tab validates the step when it succeeds, and this is
+              the manual route's equivalent. */}
+          <ManualCheck
+            checkKey="deploy-manual"
+            label={isEn ? 'The deployment has been carried out' : 'Le déploiement a été effectué'}
+          />
+        </div>
       </div>
     </>
   )

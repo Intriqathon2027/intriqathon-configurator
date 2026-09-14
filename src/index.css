@@ -27,6 +27,10 @@
   --color-bg-transparent: rgba(255, 255, 255, 0.78);
   --color-surface: #FFFFFF;
   --color-surface-hover: #F1F5F9;
+  /* The ground under a recessed row sitting on a card. All but white: the
+     border is what draws the row, so the fill only has to break the flat
+     white a little. Any heavier and it darkened the text sitting on it. */
+  --color-surface-sunken: #FCFDFE;
 
   /* Three text tones, and only three. Hierarchy is carried by size and
      weight; colour marks a change of role, not a change of importance. A
@@ -64,6 +68,13 @@
   /* Inline `code` chips — the one accent left in running text */
   --color-code-accent: #0B7A5B;
 
+  /* Syntax — a snippet is read by scanning for its shape, so the parts get
+     their own hues. Three, and no more: what a thing is named, what its
+     value is, and what is only commentary. */
+  --color-syntax-name: #0B7A5B;
+  --color-syntax-value: #A9550C;
+  --color-syntax-comment: #626F81;
+
   /* Inputs */
   --color-input-bg: #FBFCFE;
   --color-input-border: #CDD8E3;
@@ -80,6 +91,17 @@
   --space-10: 34px;
   --space-12: 41px;
   --space-16: 54px;
+
+  /* Three gaps, and every stack in the app picks one of them. Spacing lives
+     on containers as a `gap`; a child that sets its own margin spaces
+     differently depending on where it lands, which is what kept these pages
+     uneven however often the individual values were adjusted.
+       item    — elements inside one section
+       section — sections inside a card
+       block   — cards inside a page */
+  --gap-item: var(--space-3);
+  --gap-section: var(--space-6);
+  --gap-block: var(--space-5);
 
   /* Border radius */
   --radius-sm: 6px;
@@ -138,6 +160,7 @@
   --color-bg-transparent: rgba(32, 34, 37, 0.78);
   --color-surface: #2B2D31;
   --color-surface-hover: #383A40;
+  --color-surface-sunken: #232528;
 
   --color-text: #F2F3F5;
   --color-text-secondary: #DDE2E8;
@@ -153,6 +176,10 @@
   --color-code-border: #3A3D44;
   --color-code-text: #E8EDF3;
   --color-code-accent: #7FE3C2;
+
+  --color-syntax-name: #7FE3C2;
+  --color-syntax-value: #F0BE79;
+  --color-syntax-comment: #8A919C;
 
   /* Inputs */
   --color-input-bg: #1B1D21;
@@ -603,7 +630,7 @@ body {
 .api-config-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-block);
 }
 
 .service-config-block {
@@ -663,14 +690,20 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--space-4);
   padding-left: var(--space-4);
+}
+
+/* Every direct child is spaced by the gap above — margins here stacked on
+   top of it and made each block space itself differently. */
+.service-config-block__content > * {
+  margin: 0;
 }
 
 .service-config-block__header {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-2);
 }
 
 .service-config-block__icon {
@@ -690,7 +723,6 @@ body {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   line-height: 1.5;
-  margin-bottom: var(--space-2);
 }
 
 .service-config-block__info-box {
@@ -702,7 +734,6 @@ body {
   border: 1px solid transparent;
   font-size: var(--font-size-sm);
   font-weight: 600;
-  margin-bottom: var(--space-4);
 }
 
 .service-config-block__info-box--success {
@@ -752,7 +783,6 @@ body {
   background: var(--color-terminal-bg);
   border-radius: var(--radius-md);
   padding: var(--space-3);
-  margin-bottom: var(--space-3);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
   color: var(--color-terminal-text);
@@ -787,7 +817,6 @@ body {
   height: 6px;
   background: var(--color-border);
   border-radius: var(--radius-full);
-  margin-bottom: var(--space-4);
   overflow: hidden;
 }
 
@@ -817,14 +846,12 @@ body {
 /* Inputs the run consumes, between its button and the manual dropdown */
 .service-config-block__extra {
   min-width: 0;
-  margin-top: var(--space-4);
 }
 
 /* =============================================
    SSH KEY SELECTOR
    ============================================= */
 .ssh-key-selector {
-  margin-bottom: var(--space-3);
   min-width: 0;
 }
 
@@ -1303,11 +1330,13 @@ body {
 /* =============================================
    FORM FIELDS
    ============================================= */
+/* One rhythm for a card's contents, inside the manual dropdown and out.
+   It used to be space-4 in one place and space-6 in the other, with a
+   trailing margin on top. */
 .form-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  gap: var(--gap-section);
 }
 
 .form-section-title {
@@ -1371,9 +1400,10 @@ body {
   border-color: var(--color-border-strong);
 }
 
+/* `rows` sets the height; the min-height used to override it and pin every
+   textarea to three lines whatever the field asked for. */
 .form-textarea {
   resize: vertical;
-  min-height: 70px;
   line-height: 1.5;
 }
 
@@ -1420,7 +1450,7 @@ body {
 }
 
 .manual-config-details {
-  margin-top: var(--space-5);
+  min-width: 0;
 }
 
 .manual-config-details > summary {
@@ -1447,22 +1477,21 @@ body {
   color: inherit;
 }
 
-.manual-config-details[open] > summary {
-  margin-bottom: var(--space-4);
+.manual-config-details__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-section);
+  margin-top: var(--gap-section);
+  min-width: 0;
 }
 
 /* The fallback is read, not skimmed: its parts stand further apart than the
    fields inside any one of them, so the eye can tell a new errand from the
    next line of the current one. */
-.manual-config-details[open] > .form-section {
-  margin-top: var(--space-5);
-  gap: var(--space-6);
-}
-
 .manual-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-item);
   min-width: 0;
 }
 
@@ -1495,17 +1524,13 @@ body {
 .manual-section__body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-item);
   min-width: 0;
 }
 
 /* A section is a heading plus its content — nothing inside it needs to push
    itself away from a neighbour the gap already separates. */
-.manual-section__body > .link-buttons-row,
-.manual-section__body > .info-box,
-.manual-section__body > .manual-check,
-.manual-section__body > .dns-table,
-.manual-section__body > .bucket-list {
+.manual-section__body > * {
   margin: 0;
 }
 
@@ -1605,10 +1630,11 @@ body {
 }
 
 /* Bucket names reproduced verbatim in the manual-configuration card */
+/* The five buckets are one thing to create, so they sit in one frame. */
 .bucket-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1618,8 +1644,12 @@ body {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-2) var(--space-3);
   min-width: 0;
+}
+
+.bucket-list .copy-chip {
+  flex-shrink: 0;
 }
 
 .bucket-list__note {
@@ -1778,6 +1808,197 @@ body {
 }
 
 /* =============================================
+   SSH KEY MODAL
+   ============================================= */
+.ssh-modal {
+  width: 560px;
+  max-width: 95vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.ssh-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow-y: auto;
+}
+
+.ssh-modal__desc {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.ssh-modal__list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ssh-modal__count {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ssh-modal__refresh {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
+}
+
+.ssh-modal__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-8) 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.ssh-modal__empty {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.ssh-modal__empty-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-warning);
+}
+
+.ssh-modal__empty-title {
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+.ssh-modal__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* One key: what it is called, what it is, and where it lives */
+.ssh-key-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.ssh-key-row:hover {
+  border-color: var(--color-border-strong);
+}
+
+.ssh-key-row--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.ssh-key-row input {
+  accent-color: var(--color-primary);
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ssh-key-row__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ssh-key-row__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ssh-key-row__name {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.ssh-key-row__type {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+/* Only shown when the private half is missing — the one fact that stops a
+   key from working, and so the only one worth marking. */
+.ssh-key-row__warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-warning);
+}
+
+.ssh-key-row__path {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: var(--font-size-mono);
+  color: var(--color-text-secondary);
+  word-break: break-all;
+}
+
+.ssh-modal__create {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.ssh-modal__create-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.ssh-modal__create-row .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ssh-modal__create-btn {
+  align-self: flex-start;
+}
+
+/* =============================================
    CARD / SECTION
    ============================================= */
 .card {
@@ -1880,10 +2101,18 @@ body {
 /* =============================================
    DNS TABLE
    ============================================= */
+/* A table is a block like any other here, so it gets the same rounded,
+   bordered shell. `separate` with a zero gap keeps the radius clipping the
+   corner cells, which `collapse` would square off. */
 .dns-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-sunken);
 }
 
 .dns-table th {
@@ -1894,25 +2123,39 @@ body {
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-secondary);
 }
 
 .dns-table td {
   padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
   color: var(--color-text);
+  vertical-align: middle;
+}
+
+.dns-table tbody tr:first-child td {
+  border-top: none;
+}
+
+.dns-table tbody tr:hover td {
+  background: var(--color-surface-hover);
+}
+
+/* The record type is the column you scan down */
+.dns-table__type {
+  font-weight: 700;
+  color: var(--color-syntax-name);
+  letter-spacing: 0.04em;
 }
 
 .dns-table td:last-child {
-  width: 80px;
+  width: 1%;
   text-align: right;
-}
-
-.dns-table tr:last-child td {
-  border-bottom: none;
+  white-space: nowrap;
 }
 
 /* =============================================
@@ -1981,12 +2224,14 @@ body {
 .icon-row-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-item);
   list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .icon-row-list--spaced {
-  margin-top: var(--space-4);
+  margin-top: var(--gap-item);
 }
 
 /* The recessed row: an enumeration entry, a checkbox, a numbered screen,
@@ -1996,8 +2241,9 @@ body {
 .icon-row,
 .manual-check,
 .config-screen,
+.bucket-list,
 .service-config-block__help {
-  background: var(--color-bg);
+  background: var(--color-surface-sunken);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
@@ -2586,11 +2832,38 @@ ul.help-note li {
    CONFIG-APP SCREENS (step 5, "Next steps")
    The config.<domain> wizard, one block per screen
    ============================================= */
+/* The line that opens a block, above the buttons or the list it introduces */
+.step-lead {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.done-badge-row {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-6);
+}
+
+.done-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-light);
+  border: 1px solid rgba(29, 180, 138, 0.3);
+  color: var(--color-primary-text);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  text-align: center;
+}
+
 .config-screens {
   /* min-width:0 keeps long values (a JWT) inside the card instead of
      stretching the surrounding flex/grid track */
   min-width: 0;
-  margin-bottom: var(--space-6);
 }
 
 .config-screens__title {
@@ -2600,7 +2873,7 @@ ul.help-note li {
   font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--gap-item);
 }
 
 .config-screens__list {
@@ -2609,7 +2882,7 @@ ul.help-note li {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-item);
   min-width: 0;
 }
 
@@ -2632,7 +2905,7 @@ ul.help-note li {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-item);
 }
 
 .config-screen__name {
@@ -2831,11 +3104,13 @@ ul.help-note li {
 /* =============================================
    EXTERNAL LINK BUTTONS ROW
    ============================================= */
+/* No outer margin: every caller sits in a flex column that already spaces
+   its children. A component that carries its own margin spaces differently
+   depending on where it lands, which is what made these pages uneven. */
 .link-buttons-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  margin-bottom: var(--space-5);
 }
 
 /* =============================================
@@ -2856,20 +3131,41 @@ ul.help-note li {
   user-select: text;
 }
 
-/* Two tones, not four: the key is what the eye scans for, the value is the
-   content, and the separator and comments step back. */
-.env-preview .env-comment,
+.env-preview .env-comment {
+  color: var(--color-syntax-comment);
+}
+
 .env-preview .env-sep {
   color: var(--color-text-placeholder);
 }
 
 .env-preview .env-key {
-  color: var(--color-primary-text);
+  color: var(--color-syntax-name);
   font-weight: 600;
 }
 
 .env-preview .env-value {
-  color: var(--color-code-text);
+  color: var(--color-syntax-value);
+}
+
+/* Shared snippet tokens — the .env preview, the SQL block and the command
+   blocks all colour the same three things the same way. */
+.tok-name {
+  color: var(--color-syntax-name);
+  font-weight: 600;
+}
+
+.tok-value {
+  color: var(--color-syntax-value);
+}
+
+.tok-comment {
+  color: var(--color-syntax-comment);
+  font-style: italic;
+}
+
+.tok-punct {
+  color: var(--color-text-placeholder);
 }
 
 /* The platform a command belongs to. One chip, whichever platform it is —
@@ -2931,7 +3227,14 @@ ul.help-note li {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin-bottom: var(--space-4);
+  min-width: 0;
+}
+
+/* Several commands run in order — the list spaces them, not the blocks */
+.command-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-item);
 }
 
 .command-label {
@@ -2966,12 +3269,6 @@ ul.help-note li {
   word-break: break-all;
 }
 
-.command-prompt {
-  color: var(--color-text-placeholder);
-  margin-right: var(--space-1);
-  flex-shrink: 0;
-}
-
 /* =============================================
    SQL BLOCK
    ============================================= */
@@ -2994,7 +3291,7 @@ ul.help-note li {
 .sql-lang-badge {
   font-size: var(--font-size-xs);
   font-weight: 700;
-  color: var(--color-text-muted);
+  color: var(--color-syntax-name);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -3621,12 +3918,6 @@ ul.help-note li {
    ============================================= */
 .deploy-status-row {
   margin-bottom: var(--space-4);
-}
-
-.deploy-path-label {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-text-secondary);
 }
 
 .deploy-status.form-label {
