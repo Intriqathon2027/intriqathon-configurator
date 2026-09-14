@@ -2,8 +2,8 @@
  * Per-field help registry.
  *
  * Single source of truth for what a field is and where to find its value.
- * Each entry becomes an anchored section in the help panel that the field's
- * "?" button jumps to. The service walkthroughs above these sections only
+ * Each entry fills the bubble the field's "?" button opens, right next to the
+ * input it describes. The help panel keeps the service walkthroughs, which
  * cover what no field owns (creating the account, the project, the app) —
  * anything field-specific lives here so it is described exactly once.
  */
@@ -118,11 +118,18 @@ export const fieldHelpByStep: Record<number, FieldHelpGroup[]> = {
   ],
 }
 
-const registeredIds = new Set(
-  Object.values(fieldHelpByStep).flatMap(groups => groups.flatMap(g => g.fields.map(f => f.id)))
+const byId = new Map(
+  Object.values(fieldHelpByStep)
+    .flatMap(groups => groups.flatMap(g => g.fields))
+    .map(field => [field.id, field] as const)
 )
 
-/** True when a field has a help section to jump to. */
+/** The entry a field's "?" bubble is filled from, if the field has one. */
+export function getFieldHelp(id: string): FieldHelpEntry | undefined {
+  return byId.get(id)
+}
+
+/** True when a field has help to show. */
 export function hasFieldHelp(id: string): boolean {
-  return registeredIds.has(id)
+  return byId.has(id)
 }

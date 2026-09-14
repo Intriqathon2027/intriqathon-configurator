@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Globe, CheckCircle, Info, Database, Check, Terminal, KeyRound, UserPlus, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { WizardLayout } from '../components/layout/WizardLayout'
@@ -18,6 +18,8 @@ import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
 import { CopyRow } from '../components/ui/CopyBlock'
 import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshKeySelector'
+import { PreRestartWarning } from '../components/deploy/PreRestartWarning'
+import type { SshKeyInfo } from '../types/electron'
 
 /**
  * The very statements the automation runs — imported rather than restated, so
@@ -54,8 +56,8 @@ function supabaseFinalSteps(isEn: boolean): HelpFlowStep[] {
       extra: (
         <p className="help-note">
           {isEn
-            ? 'On recent projects, tables are no longer exposed to the Data API automatically — check that the app tables are toggled on here.'
-            : "Sur les projets récents, les tables ne sont plus exposées automatiquement à la Data API — vérifiez ici que les tables de l'application sont bien activées."}
+            ? <>On recent projects, tables are <strong>no longer exposed automatically</strong> — check the app tables are toggled on here.</>
+            : <>Sur les projets récents, les tables ne sont <strong>plus exposées automatiquement</strong> — vérifiez ici que celles de l'application sont activées.</>}
         </p>
       ),
     },
@@ -63,14 +65,14 @@ function supabaseFinalSteps(isEn: boolean): HelpFlowStep[] {
       key: 'realtime',
       title: isEn ? 'Enable Realtime on Announcement' : 'Activer le Realtime sur Announcement',
       desc: isEn
-        ? <><code>Database</code> ➔ <code>Publications</code> ➔ <code>supabase_realtime</code>, then toggle the <code>Announcement</code> table on. The same switch sits in the Table Editor, top right of the table.</>
-        : <><code>Database</code> ➔ <code>Publications</code> ➔ <code>supabase_realtime</code>, puis activez la table <code>Announcement</code>. Le même interrupteur existe dans le Table Editor, en haut à droite de la table.</>,
+        ? <><code>Database</code> ➔ <code>Publications</code> ➔ <code>supabase_realtime</code>, then toggle the <code>Announcement</code> table on.</>
+        : <><code>Database</code> ➔ <code>Publications</code> ➔ <code>supabase_realtime</code>, puis activez la table <code>Announcement</code>.</>,
       url: 'https://supabase.com/dashboard/project/_/database/publications',
       extra: (
         <p className="help-note">
           {isEn
-            ? 'Without it, the Discord bot never receives new announcements.'
-            : "Sans cela, le bot Discord ne reçoit jamais les nouvelles annonces."}
+            ? <><strong>Without it, the Discord bot never receives new announcements.</strong></>
+            : <><strong>Sans cela, le bot Discord ne reçoit jamais les nouvelles annonces.</strong></>}
         </p>
       ),
     },
@@ -84,8 +86,8 @@ function supabaseFinalSteps(isEn: boolean): HelpFlowStep[] {
       extra: (
         <p className="help-note">
           {isEn
-            ? 'Otherwise the organizer account created just below can never sign in.'
-            : "Sans cela, le compte organisateur créé juste après ne pourra jamais se connecter."}
+            ? <><strong>Otherwise the organizer account created just below can never sign in.</strong></>
+            : <><strong>Sans cela, le compte organisateur créé juste après ne pourra jamais se connecter.</strong></>}
         </p>
       ),
     },
@@ -93,8 +95,8 @@ function supabaseFinalSteps(isEn: boolean): HelpFlowStep[] {
       key: 'rls',
       title: isEn ? 'Enable RLS on every table' : 'Activer la RLS sur chaque table',
       desc: isEn
-        ? <><code>Table Editor</code> ➔ select a table ➔ <code>Enable RLS</code> (top right). The backend uses the service_role key, so it keeps working; the browser stops being able to read the tables directly.</>
-        : <><code>Table Editor</code> ➔ sélectionnez une table ➔ <code>Enable RLS</code> (en haut à droite). Le backend utilise la clé service_role et continue de fonctionner ; le navigateur, lui, ne peut plus lire les tables directement.</>,
+        ? <><code>Table Editor</code> ➔ select a table ➔ <code>Enable RLS</code> (top right). The backend keeps working on its service_role key; the browser stops reading the tables directly.</>
+        : <><code>Table Editor</code> ➔ sélectionnez une table ➔ <code>Enable RLS</code> (en haut à droite). Le backend continue de fonctionner avec sa clé service_role ; le navigateur, lui, ne lit plus les tables directement.</>,
       url: 'https://supabase.com/dashboard/project/_/editor',
       linkLabel: 'Table Editor',
     },
@@ -111,13 +113,13 @@ function HelpContent() {
       key: 'panel',
       title: isEn ? 'Open the configuration panel' : 'Ouvrir le panneau de configuration',
       desc: isEn
-        ? <>Go to <code>config.{domain}</code>. It asks for an <strong>Instance URL</strong> and an <strong>Instance Service Key</strong> — both are already in your configuration and are shown, ready to copy, in the Next steps block.</>
-        : <>Rendez-vous sur <code>config.{domain}</code>. Il demande une <strong>Instance URL</strong> et une <strong>Instance Service Key</strong> — les deux sont déjà dans votre configuration et sont affichées, prêtes à copier, dans le bloc Prochaines étapes.</>,
+        ? <>Go to <code>config.{domain}</code>. It asks for an <strong>Instance URL</strong> and an <strong>Instance Service Key</strong> — both are shown ready to copy in the Next steps block.</>
+        : <>Rendez-vous sur <code>config.{domain}</code>. Il demande une <strong>Instance URL</strong> et une <strong>Instance Service Key</strong> — les deux sont affichées, prêtes à copier, dans le bloc Prochaines étapes.</>,
       extra: (
         <p className="help-note">
           {isEn
-            ? 'The service key has to be the JWT-format legacy one: the panel is a browser app, and Supabase refuses a sb_secret_… key on any request that carries an Origin. It is read back from the project as soon as the project is resolved — at step 1, when the project is created or adopted, and again by the card above — so the Next steps block shows the value that works.'
-            : "La clé de service doit être celle au format JWT legacy : le panneau est une application navigateur, et Supabase refuse une clé sb_secret_… sur toute requête portant une origine. Elle est récupérée depuis le projet dès qu'il est résolu — à l'étape 1, à la création ou à l'adoption du projet, puis de nouveau par la carte ci-dessus — de sorte que le bloc Prochaines étapes affiche la valeur qui fonctionne."}
+            ? <>The service key must be the <strong>JWT-format legacy one</strong>: the panel runs in a browser, and Supabase refuses a <code>sb_secret_…</code> key there. The Next steps block already shows the value that works.</>
+            : <>La clé de service doit être celle au <strong>format JWT legacy</strong> : le panneau tourne dans un navigateur, et Supabase y refuse une clé <code>sb_secret_…</code>. Le bloc Prochaines étapes affiche déjà la valeur qui fonctionne.</>}
         </p>
       ),
     },
@@ -125,8 +127,8 @@ function HelpContent() {
       key: 'admin',
       title: 'Create Admin User',
       desc: isEn
-        ? <>The next screen asks for an email and a password (8 characters minimum). It creates the account and gives it the <code>ORGANIZER</code> role — this is the only way an organizer is created.</>
-        : <>L'écran suivant demande un email et un mot de passe (8 caractères minimum). Il crée le compte et lui attribue le rôle <code>ORGANIZER</code> — c'est la seule façon de créer un organisateur.</>,
+        ? <>An email and a password (8 characters minimum). <strong>This is the only way an <code>ORGANIZER</code> account is created.</strong></>
+        : <>Un email et un mot de passe (8 caractères minimum). <strong>C'est la seule façon de créer un compte <code>ORGANIZER</code>.</strong></>,
       extra: (
         <p className="help-note">
           {isEn
@@ -144,8 +146,8 @@ function HelpContent() {
       extra: (
         <p className="help-note">
           {isEn
-            ? 'That name, with spaces replaced by dashes, is the GitHub organization the team repositories are created in. The organization must already exist on GitHub — the platform never creates it.'
-            : "Ce nom, espaces remplacés par des tirets, désigne l'organisation GitHub dans laquelle les dépôts des équipes sont créés. L'organisation doit déjà exister sur GitHub : la plateforme ne la crée jamais."}
+            ? <>That name, spaces replaced by dashes, is the GitHub organization the team repositories go into. <strong>It must already exist on GitHub</strong> — the platform never creates it.</>
+            : <>Ce nom, espaces remplacés par des tirets, désigne l'organisation GitHub où atterrissent les dépôts des équipes. <strong>Elle doit déjà exister sur GitHub</strong> — la plateforme ne la crée jamais.</>}
         </p>
       ),
     },
@@ -206,6 +208,23 @@ export function ConfigSite() {
   const serviceKeyIsSecret = serviceKey.startsWith(SECRET_KEY_PREFIX)
   const panelServiceKey = config.SUPABASE_PANEL_SERVICE_KEY || (serviceKeyIsSecret ? '' : serviceKey)
 
+  /**
+   * The restart acts on what the deployment installed. Raised once, before the
+   * SSH connection: afterwards the only thing on screen is Docker's own error
+   * on an unknown container name, which does not name the cause.
+   */
+  const deployDone = isRunDone('deploy') || isManualChecked('deploy-manual')
+  /**
+   * The key chosen for the run the warning is about, held while the dialog is
+   * up: a restart confirmed afterwards must use it, not whatever the selector
+   * happens to hold by then.
+   */
+  const [restartPending, setRestartPending] = useState<SshKeyInfo | null>(null)
+
+  const launchRestart = (keyToUse: SshKeyInfo) => {
+    start({ ipv4, sshKeyPath: keyToUse.privateKeyPath })
+  }
+
   const handleRestart = () => {
     if (!selectedSshKey) {
       sshSelectorRef.current?.openModal()
@@ -216,7 +235,13 @@ export function ConfigSite() {
       )
       return
     }
-    start({ ipv4, sshKeyPath: selectedSshKey.privateKeyPath })
+
+    if (!deployDone) {
+      setRestartPending(selectedSshKey)
+      return
+    }
+
+    launchRestart(selectedSshKey)
   }
 
   /**
@@ -612,6 +637,19 @@ export function ConfigSite() {
           {isEn ? 'Your hackathon infrastructure is configured!' : 'Votre infrastructure hackathon est configurée !'}
         </div>
       </div>
+
+      {/* Restart started before the deployment installed anything */}
+      {restartPending && (
+        <PreRestartWarning
+          isEn={isEn}
+          onCancel={() => setRestartPending(null)}
+          onProceed={() => {
+            const keyToUse = restartPending
+            setRestartPending(null)
+            launchRestart(keyToUse)
+          }}
+        />
+      )}
     </WizardLayout>
   )
 }

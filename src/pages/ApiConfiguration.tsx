@@ -7,7 +7,6 @@ import { FormField } from '../components/ui/FormField'
 import { CopyRow, CopyChip } from '../components/ui/CopyBlock'
 import { ExternalLinkBtn } from '../components/ui/ExternalLinkBtn'
 import { useApp } from '../context/AppContext'
-import { FieldHelpSections } from '../components/ui/HelpSection'
 import { IconRowList, type IconRowItem } from '../components/ui/IconRowList'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
@@ -40,6 +39,10 @@ function HelpContent() {
   const isEn = state.language === 'en'
   const domain = config.DOMAIN || 'votredomaine.fr'
   const mailSubdomain = config.MAIL_SUBDOMAIN || `mail.${domain}`
+  /** What Spaceship's `Host` field takes: the subdomain without the domain. */
+  const mailHost = mailSubdomain.endsWith(`.${domain}`)
+    ? mailSubdomain.slice(0, -(domain.length + 1))
+    : mailSubdomain
 
   const supabase: HelpFlowStep[] = [
     {
@@ -60,30 +63,37 @@ function HelpContent() {
       key: 'connect',
       title: 'Connect to your project',
       desc: isEn
-        ? <>The <strong>Connect</strong> button at the top of the project header opens the <em>Connect to your project</em> panel — the fastest way to collect the connection values. <code>App Frameworks</code> shows the Project URL and the publishable/anon key; <code>ORMs</code> shows the two Postgres URLs.</>
-        : <>Le bouton <strong>Connect</strong>, en haut de l'en-tête du projet, ouvre le panneau <em>Connect to your project</em> — c'est le chemin le plus court pour récupérer les valeurs de connexion. L'onglet <code>App Frameworks</code> affiche la Project URL et la clé publishable/anon ; l'onglet <code>ORMs</code> affiche les deux URLs Postgres.</>,
+        ? <>The <strong>Connect</strong> button in the project header is the shortest route to every connection value. <code>App Frameworks</code> holds the Project URL and the anon key; <code>ORMs</code> holds the two Postgres URLs.</>
+        : <>Le bouton <strong>Connect</strong> de l'en-tête du projet est le chemin le plus court vers toutes les valeurs de connexion. <code>App Frameworks</code> contient la Project URL et la clé anon ; <code>ORMs</code> contient les deux URLs Postgres.</>,
       url: 'https://supabase.com/dashboard/project/_?showConnect=true',
       linkLabel: isEn ? 'Open Connect' : 'Ouvrir Connect',
       extra: (
-        <p className="help-note">
-          {isEn
-            ? 'In the ORMs tab: Transaction mode (port 6543) is DATABASE_URL, Session mode (port 5432) is DIRECT_URL. Both come with a [YOUR-PASSWORD] placeholder to replace with the database password you chose in step 1.'
-            : "Dans l'onglet ORMs : Transaction mode (port 6543) correspond à DATABASE_URL, Session mode (port 5432) à DIRECT_URL. Les deux contiennent un [YOUR-PASSWORD] à remplacer par le mot de passe de base de données choisi à l'étape 1."}
-        </p>
+        <ul className="help-note">
+          <li>
+            {isEn
+              ? <><strong>Transaction mode</strong> (port 6543) is DATABASE_URL, <strong>Session mode</strong> (port 5432) is DIRECT_URL.</>
+              : <><strong>Transaction mode</strong> (port 6543) = DATABASE_URL, <strong>Session mode</strong> (port 5432) = DIRECT_URL.</>}
+          </li>
+          <li>
+            {isEn
+              ? <>Both arrive with a <code>[YOUR-PASSWORD]</code> placeholder — replace it with the database password chosen at step 1.</>
+              : <>Les deux arrivent avec un <code>[YOUR-PASSWORD]</code> — remplacez-le par le mot de passe de base choisi à l'étape 1.</>}
+          </li>
+        </ul>
       ),
     },
     {
       key: 'keys',
       title: isEn ? 'Copy the API keys' : 'Copier les clés API',
       desc: isEn
-        ? <><code>Project Settings</code> ➔ <code>API Keys</code>. The deployment expects the JWT-format legacy keys: open the <code>Legacy API keys</code> tab and copy <code>anon public</code> and <code>service_role</code>.</>
-        : <><code>Project Settings</code> ➔ <code>API Keys</code>. Le déploiement attend les clés legacy au format JWT : ouvrez l'onglet <code>Legacy API keys</code> et copiez <code>anon public</code> et <code>service_role</code>.</>,
+        ? <><code>Project Settings</code> ➔ <code>API Keys</code> ➔ <code>Legacy API keys</code>. The deployment expects the <strong>JWT-format legacy keys</strong>: copy <code>anon public</code> and <code>service_role</code>.</>
+        : <><code>Project Settings</code> ➔ <code>API Keys</code> ➔ <code>Legacy API keys</code>. Le déploiement attend les <strong>clés legacy au format JWT</strong> : copiez <code>anon public</code> et <code>service_role</code>.</>,
       url: 'https://supabase.com/dashboard/project/_/settings/api-keys',
       extra: (
         <p className="help-note">
           {isEn
-            ? 'The service_role key bypasses RLS — it stays on the server, never in the browser and never in a commit.'
-            : "La clé service_role contourne les règles RLS : elle reste côté serveur, jamais dans le navigateur ni dans un commit."}
+            ? <><strong>service_role bypasses RLS.</strong> It stays on the server — never in the browser, never in a commit.</>
+            : <><strong>service_role contourne la RLS.</strong> Elle reste côté serveur — jamais dans le navigateur, jamais dans un commit.</>}
         </p>
       ),
     },
@@ -102,8 +112,8 @@ function HelpContent() {
       key: 'settings',
       title: isEn ? 'Set the mandatory options' : 'Renseigner les options obligatoires',
       desc: isEn
-        ? 'The whole stack (backend, front, config app, bot, Postgres tooling, Grafana, Prometheus) runs on this single machine.'
-        : "Toute la stack (backend, front, app de config, bot, outils Postgres, Grafana, Prometheus) tourne sur cette seule machine.",
+        ? 'The whole stack runs on this single machine — size it accordingly.'
+        : "Toute la stack tourne sur cette seule machine — dimensionnez-la en conséquence.",
       extra: (
         <ul className="help-note">
           <li><strong>Image :</strong> Ubuntu 24.04 LTS</li>
@@ -130,8 +140,8 @@ function HelpContent() {
       key: 'launchpad',
       title: isEn ? 'Open Advanced DNS' : 'Ouvrir Advanced DNS',
       desc: isEn
-        ? <>DNS is its own app on Spaceship, reached from the <strong>Launchpad</strong>: the <code>Launchpad</code> button in the top navigation bar, or the search icon (<code>/</code> or <code>⌘ K</code>). Type <code>Advanced DNS</code> and open it — it is not a tab inside a domain's page.</>
-        : <>Le DNS est une application à part entière chez Spaceship, ouverte depuis le <strong>Launchpad</strong> : bouton <code>Launchpad</code> dans la barre de navigation, ou icône de recherche (<code>/</code> ou <code>⌘ K</code>). Tapez <code>Advanced DNS</code> et ouvrez-la — ce n'est pas un onglet dans la page d'un domaine.</>,
+        ? <>On Spaceship, DNS is <strong>an app of its own, not a tab inside a domain's page</strong>. Open the <code>Launchpad</code> (top bar, or <code>/</code> / <code>⌘ K</code>) and type <code>Advanced DNS</code>.</>
+        : <>Chez Spaceship, le DNS est <strong>une application à part, pas un onglet dans la page d'un domaine</strong>. Ouvrez le <code>Launchpad</code> (barre du haut, ou <code>/</code> / <code>⌘ K</code>) et tapez <code>Advanced DNS</code>.</>,
       url: SPACESHIP_LAUNCHPAD_URL,
       linkLabel: 'Launchpad',
     },
@@ -139,15 +149,15 @@ function HelpContent() {
       key: 'dns',
       title: isEn ? 'Pick the domain and open its records' : 'Choisir le domaine et ouvrir ses enregistrements',
       desc: isEn
-        ? <>In <code>Advanced DNS</code>, select <code>{domain}</code>, then <code>DNS records</code> ➔ <code>Custom records</code>. <code>Add record</code> opens the type list; each row is then filled in and saved with <code>Add</code>.</>
-        : <>Dans <code>Advanced DNS</code>, sélectionnez <code>{domain}</code>, puis <code>DNS records</code> ➔ <code>Custom records</code>. <code>Add record</code> ouvre la liste des types ; chaque ligne se remplit puis se valide avec <code>Add</code>.</>,
+        ? <>Select <code>{domain}</code>, then <code>DNS records</code> ➔ <code>Custom records</code> ➔ <code>Add record</code>. Each row is saved with <code>Add</code>.</>
+        : <>Sélectionnez <code>{domain}</code>, puis <code>DNS records</code> ➔ <code>Custom records</code> ➔ <code>Add record</code>. Chaque ligne se valide avec <code>Add</code>.</>,
       url: SPACESHIP_DNS_HELP_URL,
       linkLabel: isEn ? 'Spaceship DNS help' : 'Aide DNS Spaceship',
       extra: (
         <p className="help-note">
           {isEn
-            ? 'These records only take effect while the domain uses Spaceship\'s own nameservers. If you pointed it at custom nameservers (Cloudflare, for one), the records have to be created there instead.'
-            : "Ces enregistrements ne s'appliquent que si le domaine utilise les serveurs de noms de Spaceship. Si vous l'avez basculé sur des serveurs de noms personnalisés (Cloudflare, par exemple), c'est là qu'il faut créer les enregistrements."}
+            ? <><strong>Custom nameservers (Cloudflare and the like) override this.</strong> If the domain uses them, the records belong there, not here.</>
+            : <><strong>Des serveurs de noms personnalisés (Cloudflare et consorts) priment.</strong> Si le domaine en utilise, c'est là qu'il faut créer les enregistrements.</>}
         </p>
       ),
     },
@@ -155,18 +165,25 @@ function HelpContent() {
       key: 'records',
       title: isEn ? 'Add the DNS records' : 'Ajouter les enregistrements DNS',
       desc: isEn
-        ? <>Two A records pointing at the Scaleway IPv4 — the site and the admin panel — plus the MX and TXT records Resend hands you below. The <code>Host</code> field takes the name <strong>without the domain</strong>: <code>@</code> for the site itself, <code>config</code> for the admin panel.</>
-        : <>Deux enregistrements A vers l'IPv4 Scaleway — le site et le panneau admin — plus les enregistrements MX et TXT fournis par Resend ci-dessous. Le champ <code>Host</code> attend le nom <strong>sans le domaine</strong> : <code>@</code> pour le site lui-même, <code>config</code> pour le panneau d'administration.</>,
+        ? <>Two A records pointing at the Scaleway IPv4 — the site and the admin panel — plus Resend's MX and TXT records below. The <code>Host</code> field takes the name <strong>without the domain</strong>.</>
+        : <>Deux enregistrements A vers l'IPv4 Scaleway — le site et le panneau admin — plus les enregistrements MX et TXT de Resend, ci-dessous. Le champ <code>Host</code> attend le nom <strong>sans le domaine</strong>.</>,
       copyValues: [
         { value: '@', note: isEn ? 'A record — the site' : 'Enregistrement A — le site' },
         { value: 'config', note: isEn ? 'A record — the admin panel' : "Enregistrement A — le panneau d'administration" },
       ],
       extra: (
-        <p className="help-note">
-          {isEn
-            ? <>Typing <code>config.{domain}</code> in that field would create <code>config.{domain}.{domain}</code>. Propagation can take a few minutes; HTTPS certificates are only issued once the A records resolve.</>
-            : <>Saisir <code>config.{domain}</code> dans ce champ créerait <code>config.{domain}.{domain}</code>. La propagation peut prendre quelques minutes ; les certificats HTTPS ne sont émis qu'une fois les enregistrements A résolus.</>}
-        </p>
+        <ul className="help-note">
+          <li>
+            {isEn
+              ? <>Typing <code>config.{domain}</code> there would create <code>config.{domain}.{domain}</code>.</>
+              : <>Saisir <code>config.{domain}</code> ici créerait <code>config.{domain}.{domain}</code>.</>}
+          </li>
+          <li>
+            {isEn
+              ? <>Propagation takes a few minutes; <strong>HTTPS certificates are only issued once the A records resolve</strong>.</>
+              : <>La propagation prend quelques minutes ; <strong>les certificats HTTPS ne sont émis qu'une fois les enregistrements A résolus</strong>.</>}
+          </li>
+        </ul>
       ),
     },
   ]
@@ -185,15 +202,15 @@ function HelpContent() {
       key: 'records',
       title: isEn ? 'Copy the records into Spaceship' : 'Copier les enregistrements dans Spaceship',
       desc: isEn
-        ? <>Resend then displays a MX record and TXT records (DKIM, SPF). Copy their values character for character into <code>Advanced DNS</code> on Spaceship — dropping the domain from each host, as Spaceship's <code>Host</code> field expects (<code>{mailSubdomain}</code> becomes <code>{mailSubdomain.endsWith(`.${domain}`) ? mailSubdomain.slice(0, -(domain.length + 1)) : mailSubdomain}</code>).</>
-        : <>Resend affiche alors un enregistrement MX et des enregistrements TXT (DKIM, SPF). Recopiez leurs valeurs à l'identique dans <code>Advanced DNS</code> chez Spaceship — en retirant le domaine de chaque hôte, comme l'attend le champ <code>Host</code> de Spaceship (<code>{mailSubdomain}</code> devient <code>{mailSubdomain.endsWith(`.${domain}`) ? mailSubdomain.slice(0, -(domain.length + 1)) : mailSubdomain}</code>).</>,
+        ? <>Resend displays one MX and several TXT records (DKIM, SPF). Copy them <strong>character for character</strong> into <code>Advanced DNS</code>, dropping the domain from each host: <code>{mailSubdomain}</code> becomes <code>{mailHost}</code>.</>
+        : <>Resend affiche un enregistrement MX et des TXT (DKIM, SPF). Recopiez-les <strong>à l'identique</strong> dans <code>Advanced DNS</code>, en retirant le domaine de chaque hôte : <code>{mailSubdomain}</code> devient <code>{mailHost}</code>.</>,
     },
     {
       key: 'verify',
       title: isEn ? 'Verify the domain' : 'Vérifier le domaine',
       desc: isEn
-        ? <>Back on Resend, click <code>Verify DNS Records</code> and wait for the domain to turn <strong>Verified</strong>. Until then, every send fails.</>
-        : <>De retour sur Resend, cliquez sur <code>Verify DNS Records</code> et attendez que le domaine passe en <strong>Verified</strong>. Tant que ce n'est pas le cas, les envois échouent.</>,
+        ? <>Back on Resend, <code>Verify DNS Records</code>. <strong>Until the domain turns Verified, every send fails.</strong></>
+        : <>De retour sur Resend, <code>Verify DNS Records</code>. <strong>Tant que le domaine n'est pas Verified, les envois échouent.</strong></>,
       url: 'https://resend.com/domains',
     },
   ]
@@ -202,12 +219,10 @@ function HelpContent() {
     <>
       <HelpService id="svc-supabase" icon={<Database size={15} />} title="Supabase">
         <HelpFlow steps={supabase} />
-        <FieldHelpSections step={1} group="SUPABASE" />
       </HelpService>
 
       <HelpService id="svc-scaleway" icon={<Server size={15} />} title="Scaleway">
         <HelpFlow steps={scaleway} />
-        <FieldHelpSections step={1} group="SCALEWAY" />
       </HelpService>
 
       <HelpService id="svc-spaceship" icon={<Globe size={15} />} title="Spaceship">
@@ -216,7 +231,6 @@ function HelpContent() {
 
       <HelpService id="svc-resend" icon={<Mail size={15} />} title="Resend">
         <HelpFlow steps={resend} />
-        <FieldHelpSections step={1} group="RESEND" />
       </HelpService>
     </>
   )

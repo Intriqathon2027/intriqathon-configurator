@@ -178,7 +178,6 @@
   box-shadow: 0 0 0 3px rgba(29, 180, 138, 0.28);
 }
 
-[data-theme="dark"] .help-env-key,
 [data-theme="dark"] .modal-body code,
 [data-theme="dark"] .help-panel-body code {
   background: #1B1D21;
@@ -854,16 +853,16 @@ body {
 }
 
 /* =============================================
-   PRE-DEPLOY WARNING
+   WARNING DIALOG — an action started on unfinished prerequisites
    ============================================= */
-.predeploy-warning__intro {
+.warning-dialog__intro {
   margin: 0 0 var(--space-3);
   font-size: var(--font-size-base);
   line-height: 1.5;
   color: var(--color-text);
 }
 
-.predeploy-warning__list {
+.warning-dialog__list {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -874,7 +873,7 @@ body {
   overflow-y: auto;
 }
 
-.predeploy-warning__item {
+.warning-dialog__item {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
@@ -886,13 +885,13 @@ body {
   line-height: 1.45;
 }
 
-.predeploy-warning__step {
+.warning-dialog__chip {
   font-weight: 600;
   color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
-.predeploy-warning__note {
+.warning-dialog__note {
   margin: 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
@@ -1595,6 +1594,137 @@ body {
   background: var(--color-primary-light);
 }
 
+.form-help-btn--active {
+  color: var(--color-primary-text);
+  background: var(--color-primary-light);
+}
+
+/* =============================================
+   FIELD HELP BUBBLE — what a field is, next to the field
+   (portalled and positioned in viewport coordinates, so no
+   scroll container or card can clip it)
+   ============================================= */
+.field-bubble {
+  position: fixed;
+  z-index: 1200;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+/* The tip: a rotated square sharing the bubble's border, with the two edges
+   facing into the card painted over by the bubble's own background. */
+.field-bubble__arrow {
+  position: absolute;
+  top: -5px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border-strong);
+  border-top: 1px solid var(--color-border-strong);
+  transform: rotate(45deg);
+}
+
+.field-bubble--above .field-bubble__arrow {
+  top: auto;
+  bottom: -5px;
+  border-left: none;
+  border-top: none;
+  border-right: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.field-bubble__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding-right: var(--space-5);
+}
+
+.field-bubble__title {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.3;
+}
+
+.field-bubble__env {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: var(--font-size-mono);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.field-bubble__close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-placeholder);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.field-bubble__close:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+/* Where to click, as the same chain of chips the walkthroughs use */
+.field-bubble__path {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.field-bubble__path code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: var(--font-size-mono);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-strong);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary-hover);
+  white-space: nowrap;
+}
+
+.field-bubble__hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+[data-theme="dark"] .field-bubble__path code {
+  background: #1B1D21;
+  border-color: var(--color-border-strong);
+  color: #7FE3C2;
+}
+
 /* =============================================
    CARD / SECTION
    ============================================= */
@@ -2039,8 +2169,8 @@ body {
 }
 
 .help-panel-body h3 {
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  font-size: var(--font-size-md);
+  font-weight: 700;
   color: var(--color-text);
   margin-bottom: var(--space-2);
   margin-top: var(--space-5);
@@ -2070,12 +2200,15 @@ body {
   line-height: 1.6;
 }
 
+/* Markers carry as much weight as the text they introduce — a marker faded
+   into the background reads as decoration and the list loses its shape. */
+
 .help-panel-body li + li {
   margin-top: var(--space-2);
 }
 
 .help-panel-body li::marker {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 /* Every action name in the panel — walkthrough card, click path, note — gets
@@ -2112,35 +2245,8 @@ body {
   transition: background var(--transition-base), border-color var(--transition-base);
 }
 
-.help-section-title {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: var(--space-1);
-}
-
-.help-env-key {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: var(--font-size-xs);
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  padding: 1px 5px;
-  border-radius: var(--radius-sm);
-}
-
 .help-section p {
   margin-bottom: 0;
-}
-
-/* A section carries the click path first, then what the value actually is */
-.help-section .step-schema {
-  margin-top: 3px;
 }
 
 .help-section .help-note {
@@ -2148,7 +2254,7 @@ body {
   margin-left: 0;
 }
 
-/* Flash ring shown when a field's "?" button jumps here */
+/* Flash ring shown when a "Learn more" button jumps here */
 .help-section--flash {
   animation: helpFlash 2.6s ease both;
 }
@@ -2166,70 +2272,29 @@ body {
   }
 }
 
-/* Field sections sit under the walkthrough of the service they belong to */
-.help-fields {
-  margin-left: var(--space-4);
-  margin-bottom: var(--space-5);
-}
-
-.help-fields-group {
-  margin-bottom: var(--space-3);
-}
-
-.help-fields-group:last-child {
-  margin-bottom: 0;
-}
-
-.help-fields-group-title {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--color-primary-text);
-  margin-bottom: var(--space-2);
-}
-
-.help-block {
-  margin-left: var(--space-4);
-  margin-bottom: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.help-block p {
-  margin-bottom: 0;
-}
-
-.step-schema {
+/* Secondary information, ranked below the description by weight and not by
+   fading: a note set in the palest grey available stopped being read at all. */
+.help-note {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.help-note {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
-  margin-top: 2px;
-  margin-left: 4px;
+  margin-top: var(--space-1);
+  margin-left: 0;
   line-height: 1.5;
 }
 .help-note strong {
-  color: var(--color-text-secondary);
+  color: var(--color-text);
+  font-weight: 700;
 }
 
 ul.help-note {
   margin-left: 0;
-  margin-top: 4px;
-  padding-left: var(--space-4);
+  margin-top: var(--space-2);
+  padding-left: var(--space-5);
   list-style: disc outside;
 }
 ul.help-note li {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
 .help-panel-body ul.help-note li + li {
@@ -2279,12 +2344,12 @@ ul.help-note li {
 
 .help-flow__index {
   flex-shrink: 0;
-  width: 19px;
-  height: 19px;
+  width: 21px;
+  height: 21px;
   border-radius: var(--radius-full);
   background: var(--color-primary-light);
   color: var(--color-primary-text);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   font-weight: 700;
   /* A flex box centres the glyph box, not the glyph: neutralise the font's
      line box and its numeric side-bearings so the digit lands dead centre. */
@@ -2296,14 +2361,14 @@ ul.help-note li {
 }
 
 .help-flow__title {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--color-text);
   line-height: 1.3;
 }
 
 .help-flow__desc {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   line-height: 1.55;
   margin: 0;
@@ -2369,8 +2434,8 @@ ul.help-note li {
   align-items: flex-start;
   gap: 2px;
   min-width: 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 

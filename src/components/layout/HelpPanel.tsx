@@ -8,7 +8,7 @@ interface HelpPanelProps {
   setHelpOpen: (open: boolean) => void
   title: string
   helpContent?: ReactNode
-  /** Set by a field's "?" button: section to scroll to and flash. */
+  /** Set by a "Learn more" button: service block to scroll to and flash. */
   focus?: HelpFocus | null
 }
 
@@ -120,7 +120,7 @@ export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent, focus }: 
     }
   }, [isResizing, resize, stopResizing])
 
-  // Reveal the section a "?" button pointed at, once the panel has expanded
+  // Reveal the block a "Learn more" button pointed at, once the panel has expanded
   useEffect(() => {
     if (!focus) return
 

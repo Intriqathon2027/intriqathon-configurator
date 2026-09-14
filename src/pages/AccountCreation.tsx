@@ -5,7 +5,6 @@ import { WizardLayout } from '../components/layout/WizardLayout'
 import { FormField } from '../components/ui/FormField'
 import { ServiceAccountCard } from '../components/ui/ServiceAccountCard'
 import { useApp } from '../context/AppContext'
-import { FieldHelpSections } from '../components/ui/HelpSection'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
 import { SupabaseProjectSetup } from '../components/provision/SupabaseProjectSetup'
@@ -28,34 +27,15 @@ function HelpContent() {
       key: 'pat',
       title: isEn ? 'Generate an access token' : "Générer un jeton d'accès",
       desc: isEn
-        ? <>Profile icon (top right) ➔ <code>Account</code> ➔ <code>Access Tokens</code> ➔ <code>Generate new token</code>. Give it a name you will recognise (for example <code>intriqathon-configurator</code>), then <strong>copy the value straight away</strong>: it starts with <code>sbp_</code> and is displayed only once.</>
-        : <>Icône de profil (haut droite) ➔ <code>Account</code> ➔ <code>Access Tokens</code> ➔ <code>Generate new token</code>. Donnez-lui un nom reconnaissable (par exemple <code>intriqathon-configurator</code>), puis <strong>copiez la valeur immédiatement</strong> : elle commence par <code>sbp_</code> et n'est affichée qu'une seule fois.</>,
+        ? <>Profile icon (top right) ➔ <code>Account</code> ➔ <code>Access Tokens</code> ➔ <code>Generate new token</code>. <strong>Copy the value straight away</strong> — it is shown only once.</>
+        : <>Icône de profil (haut droite) ➔ <code>Account</code> ➔ <code>Access Tokens</code> ➔ <code>Generate new token</code>. <strong>Copiez la valeur immédiatement</strong> — elle n'est affichée qu'une seule fois.</>,
       url: 'https://supabase.com/dashboard/account/tokens',
       extra: (
-        <>
-          <ul className="help-note">
-            <li>
-              {isEn
-                ? <>The token carries <strong>full access to the account</strong> — every organization and every project. Keep it in this vault and nowhere else.</>
-                : <>Le jeton donne un <strong>accès complet au compte</strong> — toutes les organisations et tous les projets. Conservez-le dans ce coffre et nulle part ailleurs.</>}
-            </li>
-            <li>
-              {isEn
-                ? <>Regenerating a token <strong>revokes the previous one</strong>. An old value copied from a file or a note no longer works.</>
-                : <>Régénérer un jeton <strong>révoque le précédent</strong>. Une ancienne valeur recopiée depuis un fichier ou une note ne fonctionne plus.</>}
-            </li>
-            <li>
-              {isEn
-                ? <>Paste the whole value, with the <code>sbp_</code> prefix and nothing after it. Surrounding spaces are trimmed for you.</>
-                : <>Collez la valeur entière, préfixe <code>sbp_</code> compris et rien après. Les espaces autour sont supprimés automatiquement.</>}
-            </li>
-          </ul>
-          <p className="help-note">
-            {isEn
-              ? <><strong>If the configurator answers "token refused":</strong> the token is well-formed but Supabase does not recognise it — it has been revoked, regenerated, or belongs to another account. Generate a new one at the link above. A token that is truncated or missing its prefix gives a different message ("JWT could not be decoded").</>
-              : <><strong>Si le configurateur répond « jeton refusé » :</strong> le jeton est bien formé mais Supabase ne le reconnaît pas — il a été révoqué, régénéré, ou appartient à un autre compte. Générez-en un nouveau via le lien ci-dessus. Un jeton tronqué ou sans préfixe donne un message différent (« JWT could not be decoded »).</>}
-          </p>
-        </>
+        <p className="help-note">
+          {isEn
+            ? <>The token carries <strong>full access to the account</strong> — every organization, every project. Keep it in this vault and nowhere else.</>
+            : <>Le jeton donne un <strong>accès complet au compte</strong> — toutes les organisations, tous les projets. Conservez-le dans ce coffre et nulle part ailleurs.</>}
+        </p>
       ),
     },
   ]
@@ -100,8 +80,8 @@ function HelpContent() {
       key: 'launchpad',
       title: 'Launchpad',
       desc: isEn
-        ? <>The <strong>Launchpad</strong> is Spaceship's app launcher — everything else is reached through it. Open it with the <code>Launchpad</code> button in the top navigation bar, or with the <code>/</code> or <code>⌘ K</code> shortcut, then type the name of the app you want.</>
-        : <>Le <strong>Launchpad</strong> est le lanceur d'applications de Spaceship : tout le reste passe par lui. Ouvrez-le avec le bouton <code>Launchpad</code> de la barre de navigation, ou par le raccourci <code>/</code> ou <code>⌘ K</code>, puis tapez le nom de l'app voulue.</>,
+        ? <>Spaceship's app launcher — <strong>everything else is reached through it</strong>. The <code>Launchpad</code> button in the top bar, or <code>/</code> / <code>⌘ K</code>, then type the app's name.</>
+        : <>Le lanceur d'applications de Spaceship — <strong>tout le reste passe par lui</strong>. Bouton <code>Launchpad</code> dans la barre du haut, ou <code>/</code> / <code>⌘ K</code>, puis tapez le nom de l'app.</>,
       url: 'https://www.spaceship.com/application/launchpad/',
       linkLabel: 'Launchpad',
     },
@@ -115,8 +95,8 @@ function HelpContent() {
       extra: (
         <p className="help-note">
           {isEn
-            ? 'Enable at least the domains:read, dnsrecords:read and dnsrecords:write scopes so the DNS records can be created for you.'
-            : "Activez au minimum les scopes domains:read, dnsrecords:read et dnsrecords:write pour que les enregistrements DNS puissent être créés automatiquement."}
+            ? <>Enable at least the <strong>domains:read</strong>, <strong>dnsrecords:read</strong> and <strong>dnsrecords:write</strong> scopes — without them the DNS records cannot be created for you.</>
+            : <>Activez au minimum les scopes <strong>domains:read</strong>, <strong>dnsrecords:read</strong> et <strong>dnsrecords:write</strong> — sans eux, les enregistrements DNS ne peuvent pas être créés automatiquement.</>}
         </p>
       ),
     },
@@ -132,10 +112,9 @@ function HelpContent() {
       url: 'https://console.scaleway.com/register',
       extra: (
         <p className="help-note">
-          <strong>{isEn ? 'Important reminder: ' : 'Rappel important : '}</strong>
           {isEn
-            ? <>Add a payment method during onboarding (or via <code>Billing</code> ➔ <code>Payment and billing</code>). Without it, no instance can be created in step 2.</>
-            : <>Pensez à ajouter un moyen de paiement lors de l'onboarding (ou via <code>Billing</code> ➔ <code>Payment and billing</code>). Sans cela, aucune instance ne peut être créée à l'étape 2.</>}
+            ? <><strong>Add a payment method</strong> during onboarding, or via <code>Billing</code> ➔ <code>Payment and billing</code>. Without it, step 2 cannot create the instance.</>
+            : <><strong>Ajoutez un moyen de paiement</strong> pendant l'onboarding, ou via <code>Billing</code> ➔ <code>Payment and billing</code>. Sans lui, l'étape 2 ne peut pas créer l'instance.</>}
         </p>
       ),
     },
@@ -160,22 +139,18 @@ function HelpContent() {
   return <>
     <HelpService id="svc-supabase" icon={<Database size={15} />} title="Supabase">
       <HelpFlow steps={supabase} />
-      <FieldHelpSections step={0} group="SUPABASE" />
     </HelpService>
 
     <HelpService id="svc-resend" icon={<Mail size={15} />} title="Resend">
       <HelpFlow steps={resend} />
-      <FieldHelpSections step={0} group="RESEND" />
     </HelpService>
 
     <HelpService id="svc-spaceship" icon={<Globe size={15} />} title="Spaceship">
       <HelpFlow steps={spaceship} />
-      <FieldHelpSections step={0} group="SPACESHIP" />
     </HelpService>
 
     <HelpService id="svc-scaleway" icon={<Server size={15} />} title="Scaleway">
       <HelpFlow steps={scaleway} />
-      <FieldHelpSections step={0} group="SCALEWAY" />
     </HelpService>
   </>
 }

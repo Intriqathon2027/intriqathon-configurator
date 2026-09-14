@@ -24,6 +24,7 @@ export type TranslationKeys = {
   'nav.previous': string
   'nav.step': string
   'nav.of': string
+  'btn.close': string
   'btn.copy': string
   'btn.copied': string
   'btn.openLink': string

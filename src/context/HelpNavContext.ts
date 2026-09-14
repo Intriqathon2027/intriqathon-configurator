@@ -1,15 +1,15 @@
 import { createContext, useContext } from 'react'
 
 export interface HelpFocus {
-  /** Field id whose help section should be scrolled to and flashed. */
+  /** Anchor of the service block to scroll to and flash — without `help-`. */
   id: string
   /** Bumped on every request so repeat clicks re-trigger the flash. */
   nonce: number
 }
 
 export interface HelpNav {
-  /** Opens the help panel; with a field id, jumps to and flashes that section. */
-  openHelp: (fieldId?: string) => void
+  /** Opens the help panel; with an anchor, jumps to and flashes that block. */
+  openHelp: (anchor?: string) => void
 }
 
 export const HelpNavContext = createContext<HelpNav>({ openHelp: () => {} })

@@ -4,7 +4,6 @@ import { FormField } from '../components/ui/FormField'
 import { ServiceAccountCard } from '../components/ui/ServiceAccountCard'
 import { CopyRow } from '../components/ui/CopyBlock'
 import { useApp } from '../context/AppContext'
-import { FieldHelpSections } from '../components/ui/HelpSection'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
 
@@ -18,8 +17,8 @@ function HelpContent() {
       key: 'app',
       title: 'New Application',
       desc: isEn
-        ? <>On the Discord Developer Portal, click <code>New Application</code> and name it (e.g. "Hackathon"). The same application can carry both the OAuth2 login and the bot.</>
-        : <>Sur le Discord Developer Portal, cliquez sur <code>New Application</code> et donnez-lui un nom (ex : "Hackathon"). La même application peut porter la connexion OAuth2 et le bot.</>,
+        ? <><code>New Application</code> on the Discord Developer Portal, then a name. <strong>One application can carry both the OAuth2 login and the bot.</strong></>
+        : <><code>New Application</code> sur le Discord Developer Portal, puis un nom. <strong>Une seule application peut porter la connexion OAuth2 et le bot.</strong></>,
       url: 'https://discord.com/developers/applications',
     },
     {
@@ -34,8 +33,8 @@ function HelpContent() {
       key: 'creds',
       title: isEn ? 'Copy the ID and the secret' : "Copier l'ID et le secret",
       desc: isEn
-        ? <>The Client ID is the <code>Application ID</code> under <code>General Information</code>. The secret is under <code>OAuth2</code> ➔ <code>Reset Secret</code>, and is shown only once.</>
-        : <>Le Client ID est l'<code>Application ID</code> de <code>General Information</code>. Le secret s'obtient dans <code>OAuth2</code> ➔ <code>Reset Secret</code>, et n'est affiché qu'une seule fois.</>,
+        ? <>Client ID = the <code>Application ID</code> under <code>General Information</code>. The secret comes from <code>OAuth2</code> ➔ <code>Reset Secret</code> — <strong>shown only once</strong>.</>
+        : <>Client ID = l'<code>Application ID</code> de <code>General Information</code>. Le secret vient de <code>OAuth2</code> ➔ <code>Reset Secret</code> — <strong>affiché une seule fois</strong>.</>,
     },
   ]
 
@@ -72,14 +71,14 @@ function HelpContent() {
       key: 'org',
       title: isEn ? 'GitHub organization' : 'Organisation GitHub',
       desc: isEn
-        ? <>Team repositories are created inside a GitHub <strong>organization named after your hackathon</strong>. Create it beforehand on GitHub — the platform looks it up, it never creates it.</>
-        : <>Les dépôts des équipes sont créés dans une <strong>organisation GitHub portant le nom de votre hackathon</strong>. Créez-la au préalable sur GitHub : la plateforme la recherche, elle ne la crée jamais.</>,
+        ? <>Team repositories go into a GitHub <strong>organization named after your hackathon</strong>. Create it beforehand — the platform looks it up, never creates it.</>
+        : <>Les dépôts des équipes atterrissent dans une <strong>organisation GitHub portant le nom de votre hackathon</strong>. Créez-la au préalable — la plateforme la recherche, elle ne la crée jamais.</>,
       url: 'https://github.com/account/organizations/new',
       extra: (
         <p className="help-note">
           {isEn
-            ? 'When the organizer signs in with GitHub, they must grant the app access to that organization, otherwise repository creation fails.'
-            : "Lors de la connexion GitHub de l'organisateur, il faut accorder à l'app l'accès à cette organisation, sinon la création des dépôts échoue."}
+            ? <>At sign-in, the organizer must <strong>grant the app access to that organization</strong> — otherwise repository creation fails.</>
+            : <>À la connexion, l'organisateur doit <strong>accorder à l'app l'accès à cette organisation</strong> — sinon la création des dépôts échoue.</>}
         </p>
       ),
     },
@@ -112,8 +111,8 @@ function HelpContent() {
       key: 'invite',
       title: isEn ? 'Invite the bot to your server' : 'Inviter le bot sur votre serveur',
       desc: isEn
-        ? <><code>OAuth2</code> ➔ <code>URL Generator</code> ➔ scopes <code>bot</code> and <code>applications.commands</code>, pick the permissions, then open the generated URL and authorize the bot on your server.</>
-        : <><code>OAuth2</code> ➔ <code>URL Generator</code> ➔ scopes <code>bot</code> et <code>applications.commands</code>, choisissez les permissions, puis ouvrez l'URL générée et autorisez le bot sur votre serveur.</>,
+        ? <><code>OAuth2</code> ➔ <code>URL Generator</code> ➔ scopes <code>bot</code> and <code>applications.commands</code>. Pick the permissions, then open the generated URL.</>
+        : <><code>OAuth2</code> ➔ <code>URL Generator</code> ➔ scopes <code>bot</code> et <code>applications.commands</code>. Choisissez les permissions, puis ouvrez l'URL générée.</>,
     },
     {
       key: 'ids',
@@ -124,8 +123,8 @@ function HelpContent() {
       extra: (
         <p className="help-note">
           {isEn
-            ? 'GUILD_ID is the production server, DEV_SERVER_ID the test one. Put the same value in both if you only run one server.'
-            : "GUILD_ID est le serveur de production, DEV_SERVER_ID celui de test. Mettez la même valeur dans les deux si vous n'avez qu'un serveur."}
+            ? <><strong>GUILD_ID</strong> is the production server, <strong>DEV_SERVER_ID</strong> the test one. One server only? Put the same value in both.</>
+            : <><strong>GUILD_ID</strong> est le serveur de production, <strong>DEV_SERVER_ID</strong> celui de test. Un seul serveur ? Mettez la même valeur dans les deux.</>}
         </p>
       ),
     },
@@ -134,17 +133,14 @@ function HelpContent() {
   return <>
     <HelpService id="svc-discord" icon={<Shield size={15} />} title="Discord OAuth2">
       <HelpFlow steps={discord} />
-      <FieldHelpSections step={2} group="DISCORD OAUTH2" />
     </HelpService>
 
     <HelpService id="svc-github" icon={<Shield size={15} />} title="GitHub OAuth2">
       <HelpFlow steps={github} />
-      <FieldHelpSections step={2} group="GITHUB OAUTH2" />
     </HelpService>
 
     <HelpService id="svc-bot" icon={<Shield size={15} />} title={isEn ? 'Discord Bot' : 'Bot Discord'}>
       <HelpFlow steps={bot} />
-      <FieldHelpSections step={2} group="BOT DISCORD" />
     </HelpService>
   </>
 }
