@@ -73,7 +73,7 @@ export function ImportPasswordModal({
 
         <form onSubmit={handleSubmit} autoComplete="off">
           <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+            <p className="t-body" style={{ margin: 0 }}>
               {t('vault.import.pwdDesc')}
             </p>
 
@@ -83,8 +83,7 @@ export function ImportPasswordModal({
                 borderRadius: '8px',
                 background: 'var(--color-bg)',
                 border: '1px solid var(--color-border)',
-                fontSize: '12px',
-                color: 'var(--color-text-secondary)',
+                font: 'var(--type-caption)',
                 wordBreak: 'break-all'
               }}>
                 <strong>{t('vault.import.fileLabel')}</strong> {fileName}

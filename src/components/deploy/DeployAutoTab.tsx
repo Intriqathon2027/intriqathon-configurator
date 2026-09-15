@@ -245,7 +245,7 @@ export function DeployAutoTab() {
           <Info size={16} color="var(--color-primary-text)" />
           {t('step6.auto.info.title')}
         </div>
-        <p className="step-description" style={{ fontSize: 'var(--font-size-sm)' }}>
+        <p className="step-description">
           {t('step6.auto.info.desc')}
         </p>
         <IconRowList

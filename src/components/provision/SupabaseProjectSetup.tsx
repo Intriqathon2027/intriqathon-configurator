@@ -470,12 +470,12 @@ export function SupabaseProjectSetup() {
               ))}
             </select>
             {!config.SUPABASE_ACCESS_TOKEN && (
-              <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', margin: '4px 0 0' }}>
+              <p className="t-caption" style={{ margin: '4px 0 0' }}>
                 {t('accountCreation.supabase.organization.needToken')}
               </p>
             )}
             {hasNoProject && (
-              <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', margin: '4px 0 0' }}>
+              <p className="t-caption" style={{ margin: '4px 0 0' }}>
                 {t('accountCreation.supabase.projects.none')}
               </p>
             )}
@@ -519,7 +519,7 @@ export function SupabaseProjectSetup() {
             </select>
             {orgError && <p className="form-error">{orgError}</p>}
             {!config.SUPABASE_ACCESS_TOKEN && (
-              <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', margin: '4px 0 0' }}>
+              <p className="t-caption" style={{ margin: '4px 0 0' }}>
                 {t('accountCreation.supabase.organization.needToken')}
               </p>
             )}
@@ -630,7 +630,7 @@ export function SupabaseProjectSetup() {
                   : t('accountCreation.supabase.createBtn')}
               </button>
               {!canCreate && !projectAlreadyExists && (
-                <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', margin: 0 }}>
+                <p className="t-caption" style={{ margin: 0 }}>
                   {t('accountCreation.supabase.createBtn.missing')}
                 </p>
               )}

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* =============================================
    DESIGN TOKENS
@@ -32,18 +32,27 @@
      white a little. Any heavier and it darkened the text sitting on it. */
   --color-surface-sunken: #FCFDFE;
 
-  /* Three text tones, and only three. Hierarchy is carried by size and
-     weight; colour marks a change of role, not a change of importance. A
-     fourth and fifth grey is what made whole pages read as washed out.
-       text      — anything the reader is meant to read
-       secondary — supporting copy, still full prose
-       muted     — labels and eyebrows, the lightest tone used for words
-     `placeholder` is not part of the ramp: it is for text that is NOT
-     content — input placeholders, disabled values, idle icon buttons. */
+  /* ONE tone for content, and the hierarchy is built without it.
+     Level is carried by SIZE and WEIGHT — see the TYPOGRAPHY block below.
+     Colour is not a level: greying a paragraph does not rank it, it only
+     makes it harder to read, and a page where every second line is grey
+     reads as a draft nobody finished.
+
+       text        — every word of content, at every level of the ladder:
+                     titles, body, descriptions, hints, list items, cells.
+       muted       — the single exception, for information of genuinely low
+                     stakes that the reader loses nothing by skipping: a
+                     count, a file path, a timestamp, an "empty" line. If
+                     you hesitate between this and `text`, it is `text`.
+       placeholder — NOT content. Input placeholders, disabled values, idle
+                     icon buttons, decorative separators. Never prose. */
   --color-text: #0F172A;
-  --color-text-secondary: #2E3A4D;
-  --color-text-muted: #46536A;
-  --color-text-placeholder: #6A7789;
+  --color-text-muted: #55617A;
+  --color-text-placeholder: #8792A6;
+  /* Deprecated alias — resolves to the full content tone so that any rule
+     still referencing it is readable rather than grey. Do not add new uses:
+     write `var(--color-text)` and set the level with size and weight. */
+  --color-text-secondary: var(--color-text);
 
   --color-border: #DEE5EC;
   --color-border-strong: #C4CFDB;
@@ -116,18 +125,83 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
 
-  /* Typography — every size derives from --font-scale, which the text-size
-     slider in Settings drives (see AppContext) */
+  /* =====================================================================
+     TYPOGRAPHY
+
+     Read this ladder the way you read a Notion page: a handful of levels,
+     each one a step the eye can actually see, and nothing else doing the
+     ranking. Two rules hold it together:
+
+       1. Level comes from SIZE and WEIGHT. Never from colour — every level
+          below is set in --color-text.
+       2. Adjacent levels differ by a visible amount. A one-pixel step is
+          not a step; it is noise that costs a token and ranks nothing.
+
+     The levels, largest to smallest:
+
+       display  34 / 800   the single title of a landing screen
+       h1       26 / 700   the title of the screen you are on
+       h2       20 / 700   a major block within that screen
+       h3      16.5 / 700  a card, a section, a named thing
+       h4       15 / 700   a sub-section, the title of a row
+       lead    15.5 / 400  the sentence that introduces a screen
+       body     14 / 400   every paragraph, description and hint
+       ui      13.5 / 600  the label on a control: button, tab, field label
+       caption 12.5 / 400  a short aside attached to the thing above it
+       label   11.5 / 700  an uppercase eyebrow standing over a block
+       micro    11 / 700   a badge or a chip — never a sentence
+
+     Reach for `--type-*` below rather than setting size and weight by hand:
+     one declaration puts an element on a level, and moving that level moves
+     every element on it. Every size derives from --font-scale, which the
+     text-size slider in Settings drives (see AppContext).
+     ===================================================================== */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-scale: 1;
-  --font-size-xs: calc(10.5px * var(--font-scale));
+
+  /* The size ramp. Names are kept from the old scale so existing rules keep
+     resolving, but the values are re-spaced so the steps are visible. */
+  --font-size-micro: calc(11px * var(--font-scale));
+  --font-size-xs: calc(11.5px * var(--font-scale));
   --font-size-sm: calc(12.5px * var(--font-scale));
-  --font-size-base: calc(13.5px * var(--font-scale));
-  --font-size-md: calc(14.5px * var(--font-scale));
-  --font-size-lg: calc(17px * var(--font-scale));
-  --font-size-xl: calc(20.5px * var(--font-scale));
+  --font-size-ui: calc(13.5px * var(--font-scale));
+  --font-size-base: calc(14px * var(--font-scale));
+  --font-size-md: calc(15px * var(--font-scale));
+  --font-size-lead: calc(15.5px * var(--font-scale));
+  --font-size-lg: calc(16.5px * var(--font-scale));
+  --font-size-xl: calc(20px * var(--font-scale));
   --font-size-2xl: calc(26px * var(--font-scale));
-  --font-size-mono: calc(11.5px * var(--font-scale));
+  --font-size-3xl: calc(34px * var(--font-scale));
+  --font-size-mono: calc(12.5px * var(--font-scale));
+
+  /* The weight ramp. 400 is prose, 600 is a control, 700 is a heading.
+     500 exists only for monospace, which reads thin at the same weight. */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-black: 800;
+
+  /* Leading: tight for headings, snug for one-line UI, normal for prose. */
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.4;
+  --line-height-normal: 1.6;
+
+  /* The levels themselves, as `font` shorthands. `font: var(--type-h2);`
+     sets size, weight, leading and family in one go; set `color` beside it
+     only when the element is NOT --color-text (a link, a badge, an error). */
+  --type-display: var(--font-weight-black) var(--font-size-3xl)/1.12 var(--font-family);
+  --type-h1: var(--font-weight-bold) var(--font-size-2xl)/1.18 var(--font-family);
+  --type-h2: var(--font-weight-bold) var(--font-size-xl)/1.25 var(--font-family);
+  --type-h3: var(--font-weight-bold) var(--font-size-lg)/1.3 var(--font-family);
+  --type-h4: var(--font-weight-bold) var(--font-size-md)/1.35 var(--font-family);
+  --type-lead: var(--font-weight-regular) var(--font-size-lead)/1.55 var(--font-family);
+  --type-body: var(--font-weight-regular) var(--font-size-base)/var(--line-height-normal) var(--font-family);
+  --type-body-strong: var(--font-weight-semibold) var(--font-size-base)/var(--line-height-normal) var(--font-family);
+  --type-ui: var(--font-weight-semibold) var(--font-size-ui)/var(--line-height-tight) var(--font-family);
+  --type-caption: var(--font-weight-regular) var(--font-size-sm)/1.5 var(--font-family);
+  --type-label: var(--font-weight-bold) var(--font-size-xs)/var(--line-height-tight) var(--font-family);
+  --type-micro: var(--font-weight-bold) var(--font-size-micro)/1.1 var(--font-family);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -163,9 +237,9 @@
   --color-surface-sunken: #232528;
 
   --color-text: #F2F3F5;
-  --color-text-secondary: #DDE2E8;
-  --color-text-muted: #C3CAD4;
-  --color-text-placeholder: #8A919C;
+  --color-text-muted: #A8B3C2;
+  --color-text-placeholder: #7C8695;
+  --color-text-secondary: var(--color-text);
 
   --color-border: #383C43;
   --color-border-strong: #4B515A;
@@ -249,12 +323,12 @@
 [data-theme="dark"] .btn-copy {
   background: #1B1D21;
   border-color: var(--color-border-strong);
-  color: var(--color-text-secondary);
+  color: var(--color-text);
 }
 
 [data-theme="dark"] .dns-table th {
   background: #1B1D21;
-  color: var(--color-text-secondary);
+  color: var(--color-text);
 }
 
 
@@ -311,13 +385,86 @@ body,
 }
 
 body {
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
+  font: var(--type-body);
   color: var(--color-text);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   user-select: none;
+}
+
+/* =============================================
+   TYPOGRAPHY ROLES
+
+   The ladder declared in the tokens above, as classes. New markup should
+   pick a level here instead of inventing a size: `<h2 class="t-h2">`. A
+   component rule that cannot use a class sets `font: var(--type-h2)`
+   directly — same values, same single place to change them.
+
+   None of these set a colour: every level is --color-text, inherited from
+   `body`. Only `.t-muted` departs from that, and only for the low-stakes
+   aside it is named after.
+   ============================================= */
+.t-display {
+  font: var(--type-display);
+  letter-spacing: -0.03em;
+}
+
+.t-h1 {
+  font: var(--type-h1);
+  letter-spacing: -0.02em;
+}
+
+.t-h2 {
+  font: var(--type-h2);
+  letter-spacing: -0.015em;
+}
+
+.t-h3 {
+  font: var(--type-h3);
+  letter-spacing: -0.01em;
+}
+
+.t-h4 {
+  font: var(--type-h4);
+}
+
+.t-lead {
+  font: var(--type-lead);
+}
+
+.t-body {
+  font: var(--type-body);
+}
+
+.t-body-strong {
+  font: var(--type-body-strong);
+}
+
+.t-ui {
+  font: var(--type-ui);
+}
+
+.t-caption {
+  font: var(--type-caption);
+}
+
+/* An eyebrow: the word that says what the block under it is. Uppercase and
+   tracked out so it reads as a signpost rather than as a short sentence. */
+.t-label {
+  font: var(--type-label);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.t-micro {
+  font: var(--type-micro);
+}
+
+/* The one place a lighter tone is allowed: a count, a path, a timestamp —
+   something the reader can skip without losing the thread. */
+.t-muted {
+  color: var(--color-text-muted);
 }
 
 /* =============================================
@@ -417,16 +564,13 @@ body {
 }
 
 .sidebar-logo-text {
-  font-size: var(--font-size-md);
-  font-weight: 700;
+  font: var(--type-h4);
   color: var(--color-text);
-  line-height: 1.2;
 }
 
 .sidebar-logo-sub {
-  font-size: var(--font-size-xs);
+  font: var(--type-micro);
   color: var(--color-text-muted);
-  font-weight: 500;
   margin-top: 1px;
 }
 
@@ -507,24 +651,23 @@ body {
 }
 
 .step-label {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-ui);
   line-height: 1.3;
 }
 
 .step-label-number {
-  font-weight: 700;
+  font: var(--type-micro);
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
 }
 
 .step-label-title {
-  font-weight: 500;
+  font: var(--type-ui);
   color: var(--color-text);
 }
 
 .sidebar-step.active .step-label-title {
   color: var(--color-primary-text);
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
 }
 
 /* =============================================
@@ -608,10 +751,9 @@ body {
 }
 
 .service-account-card__name {
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h3);
   color: var(--color-text);
-  letter-spacing: 0.05em;
+  letter-spacing: -0.01em;
 }
 
 .service-account-card__body {
@@ -668,7 +810,7 @@ body {
   border-radius: var(--radius-full);
   background: var(--color-primary-light);
   color: var(--color-primary-text);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   line-height: 1;
   font-variant-numeric: tabular-nums;
   text-align: center;
@@ -679,7 +821,7 @@ body {
 .service-config-block__step-number {
   width: 26px;
   height: 26px;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   margin-right: var(--space-4);
 }
 
@@ -713,16 +855,14 @@ body {
 }
 
 .service-config-block__name {
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h3);
   color: var(--color-text);
-  letter-spacing: 0.05em;
+  letter-spacing: -0.01em;
 }
 
 .service-config-block__description {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 .service-config-block__info-box {
@@ -732,8 +872,7 @@ body {
   padding: var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid transparent;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font: var(--type-body-strong);
 }
 
 .service-config-block__info-box--success {
@@ -808,7 +947,7 @@ body {
 }
 
 .service-config-block__error-detail {
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   line-height: 1.5;
   word-break: break-word;
 }
@@ -867,13 +1006,13 @@ body {
   border-radius: var(--radius-md);
   background: var(--color-input-bg);
   color: var(--color-input-text);
-  font-size: var(--font-size-base);
+  font: var(--type-body);
   overflow: hidden;
 }
 
 .ssh-key-selector__value--empty {
   border-style: dashed;
-  color: var(--color-text-secondary);
+  color: var(--color-text-placeholder);
 }
 
 .ssh-key-selector__name {
@@ -884,15 +1023,15 @@ body {
 }
 
 .ssh-key-selector__caption {
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
+  font: var(--type-caption);
 }
 
 .ssh-key-selector__type {
   margin-left: var(--space-2);
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-micro);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
 }
@@ -925,10 +1064,8 @@ body {
 }
 
 .manual-check__label {
-  font-size: var(--font-size-base);
-  font-weight: 500;
+  font: var(--type-body);
   color: var(--color-text);
-  line-height: 1.4;
   min-width: 0;
 }
 
@@ -941,8 +1078,7 @@ body {
    ============================================= */
 .warning-dialog__intro {
   margin: 0 0 var(--space-3);
-  font-size: var(--font-size-base);
-  line-height: 1.5;
+  font: var(--type-body-strong);
   color: var(--color-text);
 }
 
@@ -965,21 +1101,19 @@ body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-secondary);
-  font-size: var(--font-size-sm);
-  line-height: 1.45;
+  font: var(--type-body);
 }
 
 .warning-dialog__chip {
-  font-weight: 600;
-  color: var(--color-text-secondary);
+  font: var(--type-micro);
+  color: var(--color-text);
   white-space: nowrap;
 }
 
 .warning-dialog__note {
   margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  font: var(--type-caption);
+  color: var(--color-text-muted);
 }
 
 /* =============================================
@@ -1113,27 +1247,23 @@ body {
   gap: var(--space-2);
   background: var(--color-primary-light);
   color: var(--color-primary-text);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-label);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
   margin-bottom: var(--space-3);
 }
 
 .step-title {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
+  font: var(--type-h1);
   color: var(--color-text);
-  line-height: 1.2;
   margin: 0;
 }
 
 .step-description {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  font: var(--type-lead);
+  color: var(--color-text);
   max-width: 640px;
 }
 
@@ -1165,9 +1295,8 @@ body {
 }
 
 .progress-indicator {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-secondary);
+  font: var(--type-ui);
+  color: var(--color-text);
 }
 
 /* =============================================
@@ -1180,15 +1309,12 @@ body {
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  font-family: var(--font-family);
+  font: var(--type-ui);
   cursor: pointer;
   transition: all var(--transition-fast);
   border: 1px solid transparent;
   text-decoration: none;
   white-space: nowrap;
-  line-height: 1.5;
 }
 
 .btn:disabled {
@@ -1201,8 +1327,6 @@ body {
   color: white;
   border-color: var(--color-primary);
   padding: var(--space-2) var(--space-5);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -1218,10 +1342,9 @@ body {
 
 .btn-secondary {
   background: var(--color-surface);
-  color: var(--color-text-secondary);
+  color: var(--color-text);
   border-color: var(--color-border-strong);
   padding: var(--space-2) var(--space-4);
-  font-size: var(--font-size-sm);
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -1232,7 +1355,7 @@ body {
 
 .btn-ghost {
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--color-text);
   border-color: transparent;
 }
 
@@ -1261,7 +1384,7 @@ body {
   background: var(--color-secondary-light);
   color: var(--color-secondary);
   border-color: #BFDBFE;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-ui);
 }
 
 .btn-external:hover:not(:disabled) {
@@ -1271,15 +1394,15 @@ body {
 
 .btn-sm {
   padding: var(--space-1) var(--space-3);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
 }
 
 .btn-copy {
   background: var(--color-bg-secondary);
-  color: var(--color-text-secondary);
+  color: var(--color-text);
   border: 1px solid var(--color-border);
   padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   border-radius: calc(var(--radius-md) - 3px);
   align-self: stretch;
   transition: all var(--transition-fast);
@@ -1311,20 +1434,19 @@ body {
 .lang-btn {
   padding: 4px 10px;
   border-radius: calc(var(--radius-md) - 2px);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-micro);
   cursor: pointer;
   border: none;
   background: transparent;
   color: var(--color-text-muted);
   transition: all var(--transition-fast);
-  font-family: var(--font-family);
 }
 
 .lang-btn.active {
   background: var(--color-surface);
   color: var(--color-text);
   box-shadow: var(--shadow-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 /* =============================================
@@ -1340,11 +1462,10 @@ body {
 }
 
 .form-section-title {
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+  font: var(--type-label);
   color: var(--color-text);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   margin-bottom: var(--space-3);
   display: flex;
   align-items: center;
@@ -1365,8 +1486,7 @@ body {
 }
 
 .form-label {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font: var(--type-ui);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -1388,8 +1508,7 @@ body {
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-input-border);
   border-radius: var(--radius-md);
-  font-size: var(--font-size-base);
-  font-family: var(--font-family);
+  font: var(--type-body);
   color: var(--color-input-text);
   background: var(--color-input-bg);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
@@ -1420,15 +1539,14 @@ body {
 .form-input:disabled {
   background: var(--color-bg-secondary);
   border-color: var(--color-border);
-  color: var(--color-text-muted);
+  color: var(--color-text-placeholder);
   cursor: not-allowed;
   opacity: 0.8;
 }
 
 .form-hint {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.45;
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 /* A value offered for copying, with an optional caption above it */
@@ -1455,8 +1573,7 @@ body {
 
 .manual-config-details > summary {
   cursor: pointer;
-  font-weight: 700;
-  font-size: var(--font-size-sm);
+  font: var(--type-ui);
   color: var(--color-text);
   list-style: none;
   display: inline-flex;
@@ -1500,10 +1617,8 @@ body {
   align-items: center;
   gap: var(--space-2);
   margin: 0;
-  font-size: var(--font-size-md);
-  font-weight: 600;
+  font: var(--type-h4);
   color: var(--color-text);
-  line-height: 1.35;
 }
 
 .manual-section__icon {
@@ -1515,9 +1630,8 @@ body {
 
 .manual-section__desc {
   margin: 0;
-  font-size: var(--font-size-base);
-  line-height: 1.55;
-  color: var(--color-text-secondary);
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 /* Inside a part, the steps sit closer together than the parts do */
@@ -1604,10 +1718,8 @@ body {
   align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-2);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-micro);
   color: var(--color-primary-text);
-  line-height: 1.4;
 }
 
 .token-fill__label svg {
@@ -1653,9 +1765,8 @@ body {
 }
 
 .bucket-list__note {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  font: var(--type-caption);
+  color: var(--color-text);
   min-width: 0;
 }
 
@@ -1737,17 +1848,15 @@ body {
 }
 
 .field-bubble__title {
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h4);
   color: var(--color-text);
-  line-height: 1.3;
 }
 
 .field-bubble__env {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
-  font-weight: 500;
-  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   padding: 1px 5px;
@@ -1785,8 +1894,8 @@ body {
   flex-wrap: wrap;
   gap: 4px;
   margin: 0 0 var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 .field-bubble__path code {
@@ -1802,9 +1911,8 @@ body {
 
 .field-bubble__hint {
   margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.55;
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 /* =============================================
@@ -1827,9 +1935,8 @@ body {
 
 .ssh-modal__desc {
   margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 .ssh-modal__list-head {
@@ -1840,16 +1947,15 @@ body {
 }
 
 .ssh-modal__count {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
+  font: var(--type-label);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .ssh-modal__refresh {
   padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
 }
 
 .ssh-modal__loading {
@@ -1858,8 +1964,8 @@ body {
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-8) 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  font: var(--type-body);
+  color: var(--color-text-muted);
 }
 
 .ssh-modal__empty {
@@ -1870,8 +1976,8 @@ body {
   border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-md);
   background: var(--color-surface-sunken);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 .ssh-modal__empty-icon {
@@ -1881,7 +1987,7 @@ body {
 }
 
 .ssh-modal__empty-title {
-  font-weight: 700;
+  font: var(--type-h4);
   color: var(--color-text);
   margin-bottom: var(--space-1);
 }
@@ -1939,16 +2045,14 @@ body {
 }
 
 .ssh-key-row__name {
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h4);
   color: var(--color-text);
 }
 
 .ssh-key-row__type {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
+  font: var(--type-micro);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.07em;
   color: var(--color-text-muted);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
@@ -1962,15 +2066,14 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-micro);
   color: var(--color-warning);
 }
 
 .ssh-key-row__path {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   word-break: break-all;
 }
 
@@ -2014,8 +2117,7 @@ body {
 }
 
 .card-title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  font: var(--type-h3);
   color: var(--color-text);
   margin-bottom: var(--space-3);
   display: flex;
@@ -2049,11 +2151,10 @@ body {
 }
 
 .copy-block-label {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  color: var(--color-text-muted);
+  font: var(--type-label);
+  color: var(--color-text);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .copy-block-content {
@@ -2118,11 +2219,10 @@ body {
 .dns-table th {
   text-align: left;
   padding: var(--space-2) var(--space-3);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  color: var(--color-text-muted);
+  font: var(--type-label);
+  color: var(--color-text);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
   white-space: nowrap;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-secondary);
@@ -2147,7 +2247,7 @@ body {
 
 /* The record type is the column you scan down */
 .dns-table__type {
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-syntax-name);
   letter-spacing: 0.04em;
 }
@@ -2172,6 +2272,7 @@ body {
   border-radius: var(--radius-md);
   border: 1px solid;
   color: var(--color-text);
+  font: var(--type-body);
 }
 
 .info-box.info {
@@ -2207,12 +2308,11 @@ body {
 }
 
 .info-box-text {
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
+  font: var(--type-body);
 }
 
 .info-box-title {
-  font-weight: 700;
+  font: var(--type-h4);
   margin-bottom: var(--space-1);
 }
 
@@ -2269,18 +2369,15 @@ body {
 }
 
 .icon-row__label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  font-weight: 700;
+  font: var(--type-label);
+  color: var(--color-text);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .icon-row__text {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
+  font: var(--type-body);
   color: var(--color-text);
-  line-height: 1.45;
 }
 
 /* =============================================
@@ -2349,8 +2446,7 @@ body {
 }
 
 .modal-title {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
+  font: var(--type-h2);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -2363,7 +2459,7 @@ body {
   border-radius: var(--radius-md);
   background: var(--color-bg-secondary);
   border: none;
-  color: var(--color-text-muted);
+  color: var(--color-text-placeholder);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2383,8 +2479,7 @@ body {
 }
 
 .modal-body h3 {
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  font: var(--type-h3);
   color: var(--color-text);
   margin-bottom: var(--space-2);
   margin-top: var(--space-5);
@@ -2398,9 +2493,8 @@ body {
 }
 
 .modal-body p {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.55;
+  font: var(--type-body);
+  color: var(--color-text);
   margin-bottom: var(--space-3);
 }
 
@@ -2413,9 +2507,8 @@ body {
 }
 
 .modal-body li {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 .modal-body code {
@@ -2429,7 +2522,7 @@ body {
 
 .modal-body strong {
   color: var(--color-text);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* =============================================
@@ -2475,8 +2568,7 @@ body {
 }
 
 .help-panel-title {
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h2);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -2493,8 +2585,7 @@ body {
 }
 
 .help-panel-body h3 {
-  font-size: var(--font-size-md);
-  font-weight: 700;
+  font: var(--type-h3);
   color: var(--color-text);
   margin-bottom: var(--space-2);
   margin-top: var(--space-5);
@@ -2519,9 +2610,8 @@ body {
 }
 
 .help-panel-body li {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 /* Markers carry as much weight as the text they introduce — a marker faded
@@ -2532,7 +2622,7 @@ body {
 }
 
 .help-panel-body li::marker {
-  color: var(--color-text-secondary);
+  color: var(--color-text);
 }
 
 /* Every action name in the panel — walkthrough card, click path, note — gets
@@ -2550,13 +2640,12 @@ body {
 
 .help-panel-body strong {
   color: var(--color-text);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .help-panel-body p {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.55;
+  font: var(--type-body);
+  color: var(--color-text);
   margin-bottom: var(--space-3);
 }
 
@@ -2596,18 +2685,17 @@ body {
   }
 }
 
-/* Secondary information, ranked below the description by weight and not by
+/* Secondary information, ranked below the description by SIZE and not by
    fading: a note set in the palest grey available stopped being read at all. */
 .help-note {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  font: var(--type-caption);
+  color: var(--color-text);
   margin-top: var(--space-1);
   margin-left: 0;
-  line-height: 1.5;
 }
 .help-note strong {
   color: var(--color-text);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 ul.help-note {
@@ -2617,8 +2705,8 @@ ul.help-note {
   list-style: disc outside;
 }
 ul.help-note li {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 .help-panel-body ul.help-note li + li {
@@ -2673,16 +2761,13 @@ ul.help-note li {
 }
 
 .help-flow__title {
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h4);
   color: var(--color-text);
-  line-height: 1.3;
 }
 
 .help-flow__desc {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.55;
+  font: var(--type-body);
+  color: var(--color-text);
   margin: 0;
 }
 
@@ -2706,8 +2791,8 @@ ul.help-note li {
   border-radius: var(--radius-sm);
   padding: 6px 11px;
   font-family: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-primary-text);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast);
@@ -2746,9 +2831,8 @@ ul.help-note li {
   align-items: flex-start;
   gap: 2px;
   min-width: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 .help-flow__copy-note {
@@ -2823,9 +2907,8 @@ ul.help-note li {
 }
 
 .service-help-hint {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 /* =============================================
@@ -2835,9 +2918,8 @@ ul.help-note li {
 /* The line that opens a block, above the buttons or the list it introduces */
 .step-lead {
   margin: 0;
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-  line-height: 1.55;
+  font: var(--type-lead);
+  color: var(--color-text);
 }
 
 .done-badge-row {
@@ -2856,7 +2938,7 @@ ul.help-note li {
   border: 1px solid rgba(29, 180, 138, 0.3);
   color: var(--color-primary-text);
   font-size: var(--font-size-lg);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   text-align: center;
 }
 
@@ -2870,8 +2952,7 @@ ul.help-note li {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h3);
   color: var(--color-text);
   margin-bottom: var(--gap-item);
 }
@@ -2909,23 +2990,20 @@ ul.help-note li {
 }
 
 .config-screen__name {
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h4);
   color: var(--color-text);
 }
 
 .config-screen__desc {
   margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.55;
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 .config-screen__note {
   margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 /* The copy rows carry a JWT — they must truncate, never widen the card */
@@ -2971,8 +3049,8 @@ ul.help-note li {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--color-primary-text);
 }
@@ -2986,7 +3064,7 @@ ul.help-note li {
 /* The A/A endpoints stay a fixed size — they are the scale's own legend */
 .settings-font__tick {
   flex-shrink: 0;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-placeholder);
   line-height: 1;
   user-select: none;
@@ -3058,8 +3136,7 @@ ul.help-note li {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font: var(--type-ui);
   color: var(--color-text);
 }
 
@@ -3082,9 +3159,7 @@ ul.help-note li {
   border: none;
   background: transparent;
   border-radius: var(--radius-sm);
-  font-family: inherit;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-micro);
   color: var(--color-text-muted);
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -3099,6 +3174,7 @@ ul.help-note li {
   background: var(--color-surface);
   color: var(--color-primary-text);
   box-shadow: var(--shadow-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 /* =============================================
@@ -3141,7 +3217,7 @@ ul.help-note li {
 
 .env-preview .env-key {
   color: var(--color-syntax-name);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .env-preview .env-value {
@@ -3152,7 +3228,7 @@ ul.help-note li {
    blocks all colour the same three things the same way. */
 .tok-name {
   color: var(--color-syntax-name);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .tok-value {
@@ -3176,9 +3252,8 @@ ul.help-note li {
   border-radius: var(--radius-sm);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
+  color: var(--color-text);
+  font: var(--type-micro);
   letter-spacing: 0.04em;
 }
 
@@ -3210,14 +3285,14 @@ ul.help-note li {
 }
 
 .download-title {
-  font-weight: 600;
+  font: var(--type-h4);
   color: var(--color-text);
   margin-bottom: 2px;
 }
 
 .download-subtitle {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 /* =============================================
@@ -3238,11 +3313,10 @@ ul.help-note li {
 }
 
 .command-label {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  color: var(--color-text-muted);
+  font: var(--type-label);
+  color: var(--color-text);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .command-block {
@@ -3257,7 +3331,7 @@ ul.help-note li {
 
 .command-block__marker {
   flex-shrink: 0;
-  color: var(--color-text-muted);
+  color: var(--color-text-placeholder);
 }
 
 .command-text {
@@ -3289,11 +3363,10 @@ ul.help-note li {
 }
 
 .sql-lang-badge {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
+  font: var(--type-micro);
   color: var(--color-syntax-name);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
 }
 
 .sql-block-content {
@@ -3316,8 +3389,7 @@ ul.help-note li {
   gap: var(--space-1);
   background: var(--color-primary-light);
   color: var(--color-primary-text);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-micro);
   padding: 2px var(--space-2);
   border-radius: var(--radius-full);
 }
@@ -3386,11 +3458,13 @@ ul.help-note li {
   margin-bottom: var(--space-5);
 }
 
-/* Applied to running prose, so it lands on the readable tone, not the
-   label tone. Use a smaller size — never a lighter colour — to set a
-   paragraph back from the one above it. */
+/* Legacy name, kept because markup still asks for it. It no longer mutes:
+   running prose belongs on the content tone whatever its rank. To set a
+   paragraph back from the one above it, drop it a level in the ladder
+   (`.t-caption`) — never fade it. For the rare low-stakes aside that really
+   does want a lighter tone, the class is `.t-muted`. */
 .text-muted {
-  color: var(--color-text-secondary);
+  color: var(--color-text);
 }
 
 .text-sm {
@@ -3461,19 +3535,17 @@ ul.help-note li {
 }
 
 .landing-title {
-  font-size: 2.65rem;
-  font-weight: 800;
+  font: var(--type-display);
   color: var(--color-text);
   margin-bottom: var(--space-3);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .landing-subtitle {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
+  font: var(--type-lead);
+  color: var(--color-text);
   max-width: 500px;
   margin-bottom: var(--space-5);
-  line-height: 1.5;
 }
 
 .landing-team-badge {
@@ -3484,13 +3556,12 @@ ul.help-note li {
   border: 1px solid rgba(255, 255, 255, 0.8);
   padding: var(--space-2) var(--space-5);
   border-radius: var(--radius-full);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+  font: var(--type-label);
   color: var(--color-primary-text);
   margin-bottom: var(--space-8);
   box-shadow: var(--shadow-sm);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .landing-actions {
@@ -3506,7 +3577,7 @@ ul.help-note li {
   padding: var(--space-3) var(--space-5);
   font-size: var(--font-size-md);
   border-radius: var(--radius-lg);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* =============================================
@@ -3527,7 +3598,7 @@ ul.help-note li {
   color: var(--color-surface);
   padding: 6px 10px;
   border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   white-space: nowrap;
   opacity: 0;
   transition: opacity var(--transition-fast), transform var(--transition-fast);
@@ -3565,11 +3636,10 @@ ul.help-note li {
 
 .recent-configs-title {
   text-align: left;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+  font: var(--type-label);
   color: var(--color-text);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
   margin-bottom: var(--space-3);
   padding-left: var(--space-2);
 }
@@ -3632,8 +3702,7 @@ ul.help-note li {
 }
 
 .recent-config-name {
-  font-weight: 600;
-  font-size: var(--font-size-base);
+  font: var(--type-h4);
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
@@ -3641,12 +3710,12 @@ ul.help-note li {
 }
 
 .recent-config-path {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  font: var(--type-caption);
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
 }
 
 .recent-config-actions {
@@ -3665,8 +3734,8 @@ ul.help-note li {
   color: white;
   border: none;
   border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition: all var(--transition-fast);
   white-space: nowrap;
@@ -3690,7 +3759,7 @@ ul.help-note li {
   width: 28px;
   height: 28px;
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text-placeholder);
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -3714,8 +3783,8 @@ ul.help-note li {
   justify-content: center;
   gap: var(--space-3);
   padding: var(--space-8) var(--space-6);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font: var(--type-body);
 }
 
 /* =============================================
@@ -3739,13 +3808,11 @@ ul.help-note li {
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-radius: calc(var(--radius-lg) - 2px);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  font-family: var(--font-family);
+  font: var(--type-ui);
   cursor: pointer;
   border: none;
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--color-text);
   transition: all var(--transition-fast);
 }
 
@@ -3757,7 +3824,7 @@ ul.help-note li {
 .deploy-tab.active {
   background: var(--color-surface);
   color: var(--color-primary-text);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   box-shadow: var(--shadow-sm);
 }
 
@@ -3823,7 +3890,7 @@ ul.help-note li {
 
 .deploy-log-icon.info {
   color: var(--color-terminal-dim);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   font-size: var(--font-size-md);
   line-height: 1;
   display: inline-flex;
@@ -3924,8 +3991,8 @@ ul.help-note li {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   margin-bottom: var(--space-2);
   flex-wrap: nowrap;
@@ -3936,8 +4003,7 @@ ul.help-note li {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font: var(--type-micro);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
   flex-shrink: 0;
@@ -3969,8 +4035,8 @@ ul.help-note li {
   color: white;
   border: 1px solid var(--color-primary);
   padding: var(--space-3) var(--space-6);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   border-radius: var(--radius-md);
   display: inline-flex;
   align-items: center;
@@ -3996,8 +4062,8 @@ ul.help-note li {
   color: var(--color-danger);
   border: 1.5px solid var(--color-danger);
   padding: var(--space-3) var(--space-6);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   border-radius: var(--radius-md);
   display: inline-flex;
   align-items: center;
@@ -4021,9 +4087,8 @@ ul.help-note li {
 }
 
 .deploy-dialog-message {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.7;
+  font: var(--type-body);
+  color: var(--color-text);
   margin-bottom: var(--space-5);
 }
 
@@ -4096,9 +4161,8 @@ ul.help-note li {
 }
 
 .deploy-choice-label {
-  font-size: var(--font-size-sm);
+  font: var(--type-body);
   color: var(--color-text);
-  font-weight: 500;
 }
 
 /* Automation waiting on an upstream step. Muted rather than disabled: the
@@ -4117,7 +4181,7 @@ ul.help-note li {
 .service-config-block__info-box--locked {
   background: var(--color-bg);
   border: 1px dashed var(--color-border-strong);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 /* =============================================
@@ -4146,7 +4210,7 @@ ul.help-note li {
   align-items: center;
   gap: var(--space-2);
   cursor: pointer;
-  font-size: var(--font-size-base);
+  font: var(--type-body);
   color: var(--color-text);
 }
 
@@ -4166,8 +4230,8 @@ ul.help-note li {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 .project-create-status--done {
@@ -4196,9 +4260,8 @@ ul.help-note li {
 .project-verification__facts {
   margin: 0;
   padding-left: var(--space-4);
-  font-size: var(--font-size-sm);
+  font: var(--type-caption);
   color: var(--color-text);
-  line-height: 1.7;
 }
 
 .project-verification__facts code {
@@ -4219,9 +4282,8 @@ ul.help-note li {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
-  color: var(--color-text-secondary);
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 .password-rules__item svg {
@@ -4252,8 +4314,7 @@ ul.help-note li {
 }
 
 .password-rules-box__title {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font: var(--type-ui);
   color: var(--color-text);
   margin-bottom: var(--space-2);
 }

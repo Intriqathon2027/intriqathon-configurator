@@ -91,7 +91,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: '0 0 4px 0' }}>
+            <p className="t-body" style={{ margin: '0 0 4px 0' }}>
               {t('vault.changePassword.desc')}
             </p>
 

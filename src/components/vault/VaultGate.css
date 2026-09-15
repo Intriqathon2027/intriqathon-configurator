@@ -70,16 +70,14 @@
 }
 
 .vault-title {
-  font-size: 22px;
-  font-weight: 700;
+  font: var(--type-h2);
   color: var(--color-text);
   margin-bottom: 8px;
 }
 
 .vault-subtitle {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  font: var(--type-body);
+  color: var(--color-text);
   margin-bottom: 24px;
 }
 
@@ -98,9 +96,8 @@
 }
 
 .vault-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
+  font: var(--type-ui);
+  color: var(--color-text);
 }
 
 .vault-input-group {
@@ -117,7 +114,7 @@
   border: 1px solid var(--color-border);
   background: var(--color-input-bg);
   color: var(--color-input-text);
-  font-size: 14px;
+  font: var(--type-body);
   transition: all 0.2s ease;
 }
 
@@ -152,7 +149,7 @@
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.25);
   color: #ef4444;
-  font-size: 13px;
+  font: var(--type-caption);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -167,8 +164,8 @@
   background: var(--color-primary);
   color: white;
   border: none;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -199,8 +196,8 @@
 .vault-reset-link {
   background: none;
   border: none;
-  color: var(--color-text-secondary);
-  font-size: 13px;
+  color: var(--color-text);
+  font: var(--type-caption);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -245,15 +242,14 @@
   align-items: center;
   gap: 10px;
   color: #ef4444;
-  font-weight: 600;
-  font-size: 17px;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-lg);
   margin-bottom: 12px;
 }
 
 .vault-modal-desc {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  font: var(--type-body);
+  color: var(--color-text);
   margin-bottom: 20px;
 }
 
@@ -269,9 +265,10 @@
   background: transparent;
   border: 1px solid var(--color-border);
   color: var(--color-text);
-  font-size: 14px;
+  font-size: var(--font-size-ui);
   cursor: pointer;
   transition: background 0.15s;
+  font-weight: var(--font-weight-semibold);
 }
 
 .vault-btn-cancel:hover {
@@ -284,8 +281,8 @@
   background: #ef4444;
   border: none;
   color: white;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition: background 0.15s;
 }
