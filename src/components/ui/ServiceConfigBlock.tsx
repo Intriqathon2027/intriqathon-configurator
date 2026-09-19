@@ -95,17 +95,12 @@ export function ServiceConfigBlock({
   /**
    * Three ways to be finished, and a run that succeeded is the plainest of
    * them: whatever `isComplete` is derived from, the service was just
-   * configured, so the block says so.
-   *
-   * A locked block is not green on filled-in values alone: some of them are
-   * auto-derived — FROM_EMAIL from the domain, for one — and as long as the
-   * step it depends on is unfinished, that would state something untrue of the
-   * service. A ticked checkbox is different: it is the reader saying they did
-   * the work, which no derivation can contradict.
+   * configured, so the block says so. One style for all three — a block that
+   * is fully filled in is green, locked or not.
    */
   const complete = status === 'done'
     || manuallyConfirmed
-    || ((isComplete ?? false) && !locked)
+    || (isComplete ?? false)
   const terminalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

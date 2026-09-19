@@ -1,42 +1,55 @@
-import { useEffect, useRef, useState } from 'react'
-import { Globe, CheckCircle, Info, Database, Check, Terminal, KeyRound, UserPlus, AlertTriangle } from 'lucide-react'
-import toast from 'react-hot-toast'
-import { WizardLayout } from '../components/layout/WizardLayout'
-import { ExternalLinkBtn } from '../components/ui/ExternalLinkBtn'
-import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
-import { SqlBlock } from '../components/ui/SqlBlock'
-import { DockerBlock } from '../components/ui/DockerBlock'
-import { useApp, type Config } from '../context/AppContext'
-import { useSession } from '../context/SessionContext'
-import { ManualCheck } from '../components/ui/ManualCheck'
-import { ManualSection } from '../components/ui/ManualSection'
-import { useDockerRestart } from '../hooks/useDockerRestart'
-import { useServiceProvision } from '../hooks/useServiceProvision'
-import { GRANTS_SQL, REALTIME_TABLE } from '../shared/supabaseSiteSetup'
-import { isAccountComplete } from '../utils/serviceCompletion'
-import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
-import { CopyRow } from '../components/ui/CopyBlock'
-import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshKeySelector'
-import { PreRestartWarning } from '../components/deploy/PreRestartWarning'
-import type { SshKeyInfo } from '../types/electron'
+import { useEffect, useRef, useState } from "react";
+import {
+  Globe,
+  CheckCircle,
+  Info,
+  Database,
+  Terminal,
+  KeyRound,
+  UserPlus,
+  AlertTriangle,
+} from "lucide-react";
+import toast from "react-hot-toast";
+import { WizardLayout } from "../components/layout/WizardLayout";
+import { ExternalLinkBtn } from "../components/ui/ExternalLinkBtn";
+import { ServiceConfigBlock } from "../components/ui/ServiceConfigBlock";
+import { SqlBlock } from "../components/ui/SqlBlock";
+import { DockerBlock } from "../components/ui/DockerBlock";
+import { useApp, type Config } from "../context/AppContext";
+import { useSession } from "../context/SessionContext";
+import { ManualCheck } from "../components/ui/ManualCheck";
+import { ManualSection } from "../components/ui/ManualSection";
+import { useDockerRestart } from "../hooks/useDockerRestart";
+import { useServiceProvision } from "../hooks/useServiceProvision";
+import { GRANTS_SQL, REALTIME_TABLE } from "../shared/supabaseSiteSetup";
+import { isAccountComplete } from "../utils/serviceCompletion";
+import { HelpFlow, type HelpFlowStep } from "../components/ui/HelpFlow";
+import { CopyRow } from "../components/ui/CopyBlock";
+import {
+  SshKeySelector,
+  type SshKeySelectorHandle,
+} from "../components/ui/SshKeySelector";
+import { PreRestartWarning } from "../components/deploy/PreRestartWarning";
+import type { SshKeyInfo } from "../types/electron";
 
 /**
  * The very statements the automation runs — imported rather than restated, so
  * the manual fallback can never fall behind what the "Lancer" button does.
  */
-const SQL_COMMANDS = GRANTS_SQL
+const SQL_COMMANDS = GRANTS_SQL;
 
 /** Deep link to the SQL editor, next to the block the reader has to paste. */
-const SQL_EDITOR_URL = 'https://supabase.com/dashboard/project/_/sql/new'
+const SQL_EDITOR_URL = "https://supabase.com/dashboard/project/_/sql/new";
 
 /** Where the config panel's admin account is created. */
-const ADMIN_LOGIN_URL = 'https://unheard.cfd/admin-login'
+const ADMIN_LOGIN_URL = "https://unheard.cfd/admin-login";
 
 /** The project's API keys — the `Legacy API keys` tab is the one that matters here. */
-const API_KEYS_URL = 'https://supabase.com/dashboard/project/_/settings/api-keys'
+const API_KEYS_URL =
+  "https://supabase.com/dashboard/project/_/settings/api-keys";
 
 /** Prefix of the new-generation secret keys, the ones a browser may not use. */
-const SECRET_KEY_PREFIX = 'sb_secret_'
+const SECRET_KEY_PREFIX = "sb_secret_";
 
 /**
  * The Supabase settings that have to be flipped by hand once the stack is up.
@@ -46,67 +59,146 @@ const SECRET_KEY_PREFIX = 'sb_secret_'
 function supabaseFinalSteps(isEn: boolean): HelpFlowStep[] {
   return [
     {
-      key: 'dataapi',
-      title: isEn ? 'Expose the public schema' : 'Exposer le schéma public',
-      desc: isEn
-        ? <><code>Project Settings</code> ➔ <code>Data API</code> ➔ <code>Exposed schemas</code>. Make sure the Data API is enabled and that <code>public</code> is in the list.</>
-        : <><code>Project Settings</code> ➔ <code>Data API</code> ➔ <code>Exposed schemas</code>. Vérifiez que la Data API est activée et que <code>public</code> figure dans la liste.</>,
-      url: 'https://supabase.com/dashboard/project/_/integrations/data_api/settings',
+      key: "dataapi",
+      title: isEn ? "Expose the public schema" : "Exposer le schéma public",
+      desc: isEn ? (
+        <>
+          <code>Project Settings</code> ➔ <code>Data API</code> ➔{" "}
+          <code>Exposed schemas</code>. Make sure the Data API is enabled and
+          that <code>public</code> is in the list.
+        </>
+      ) : (
+        <>
+          <code>Project Settings</code> ➔ <code>Data API</code> ➔{" "}
+          <code>Exposed schemas</code>. Vérifiez que la Data API est activée et
+          que <code>public</code> figure dans la liste.
+        </>
+      ),
+      url: "https://supabase.com/dashboard/project/_/integrations/data_api/settings",
       extra: (
         <p className="help-note">
-          {isEn
-            ? <>On recent projects, tables are <strong>no longer exposed automatically</strong> — check the app tables are toggled on here.</>
-            : <>Sur les projets récents, les tables ne sont <strong>plus exposées automatiquement</strong> — vérifiez ici que celles de l'application sont activées.</>}
+          {isEn ? (
+            <>
+              On recent projects, tables are{" "}
+              <strong>no longer exposed automatically</strong> — check the app
+              tables are toggled on here.
+            </>
+          ) : (
+            <>
+              Sur les projets récents, les tables ne sont{" "}
+              <strong>plus exposées automatiquement</strong> — vérifiez ici que
+              celles de l'application sont activées.
+            </>
+          )}
         </p>
       ),
     },
     {
-      key: 'realtime',
-      title: isEn ? 'Enable Realtime on Announcement' : 'Activer le Realtime sur Announcement',
-      desc: isEn
-        ? <><code>Database</code> ➔ <code>Publications</code> ➔ <code>supabase_realtime</code>, then toggle the <code>Announcement</code> table on.</>
-        : <><code>Database</code> ➔ <code>Publications</code> ➔ <code>supabase_realtime</code>, puis activez la table <code>Announcement</code>.</>,
-      url: 'https://supabase.com/dashboard/project/_/database/publications',
+      key: "realtime",
+      title: isEn
+        ? "Enable Realtime on Announcement"
+        : "Activer le Realtime sur Announcement",
+      desc: isEn ? (
+        <>
+          <code>Database</code> ➔ <code>Publications</code> ➔{" "}
+          <code>supabase_realtime</code>, then toggle the{" "}
+          <code>Announcement</code> table on.
+        </>
+      ) : (
+        <>
+          <code>Database</code> ➔ <code>Publications</code> ➔{" "}
+          <code>supabase_realtime</code>, puis activez la table{" "}
+          <code>Announcement</code>.
+        </>
+      ),
+      url: "https://supabase.com/dashboard/project/_/database/publications",
       extra: (
         <p className="help-note">
-          {isEn
-            ? <><strong>Without it, the Discord bot never receives new announcements.</strong></>
-            : <><strong>Sans cela, le bot Discord ne reçoit jamais les nouvelles annonces.</strong></>}
+          {isEn ? (
+            <>
+              <strong>
+                Without it, the Discord bot never receives new announcements.
+              </strong>
+            </>
+          ) : (
+            <>
+              <strong>
+                Sans cela, le bot Discord ne reçoit jamais les nouvelles
+                annonces.
+              </strong>
+            </>
+          )}
         </p>
       ),
     },
     {
-      key: 'auth',
-      title: isEn ? 'Disable email confirmation' : "Désactiver la confirmation d'email",
-      desc: isEn
-        ? <><code>Authentication</code> ➔ <code>Sign In / Providers</code> ➔ <code>Email</code> ➔ turn <code>Confirm email</code> off.</>
-        : <><code>Authentication</code> ➔ <code>Sign In / Providers</code> ➔ <code>Email</code> ➔ désactivez <code>Confirm email</code>.</>,
-      url: 'https://supabase.com/dashboard/project/_/auth/providers',
+      key: "auth",
+      title: isEn
+        ? "Disable email confirmation"
+        : "Désactiver la confirmation d'email",
+      desc: isEn ? (
+        <>
+          <code>Authentication</code> ➔ <code>Sign In / Providers</code> ➔{" "}
+          <code>Email</code> ➔ turn <code>Confirm email</code> off.
+        </>
+      ) : (
+        <>
+          <code>Authentication</code> ➔ <code>Sign In / Providers</code> ➔{" "}
+          <code>Email</code> ➔ désactivez <code>Confirm email</code>.
+        </>
+      ),
+      url: "https://supabase.com/dashboard/project/_/auth/providers",
       extra: (
         <p className="help-note">
-          {isEn
-            ? <><strong>Otherwise the organizer account created just below can never sign in.</strong></>
-            : <><strong>Sans cela, le compte organisateur créé juste après ne pourra jamais se connecter.</strong></>}
+          {isEn ? (
+            <>
+              <strong>
+                Otherwise the organizer account created just below can never
+                sign in.
+              </strong>
+            </>
+          ) : (
+            <>
+              <strong>
+                Sans cela, le compte organisateur créé juste après ne pourra
+                jamais se connecter.
+              </strong>
+            </>
+          )}
         </p>
       ),
     },
     {
-      key: 'rls',
-      title: isEn ? 'Enable RLS on every table' : 'Activer la RLS sur chaque table',
-      desc: isEn
-        ? <><code>Table Editor</code> ➔ select a table ➔ <code>Enable RLS</code> (top right). The backend keeps working on its service_role key; the browser stops reading the tables directly.</>
-        : <><code>Table Editor</code> ➔ sélectionnez une table ➔ <code>Enable RLS</code> (en haut à droite). Le backend continue de fonctionner avec sa clé service_role ; le navigateur, lui, ne lit plus les tables directement.</>,
-      url: 'https://supabase.com/dashboard/project/_/editor',
-      linkLabel: 'Table Editor',
+      key: "rls",
+      title: isEn
+        ? "Enable RLS on every table"
+        : "Activer la RLS sur chaque table",
+      desc: isEn ? (
+        <>
+          <code>Table Editor</code> ➔ select a table ➔ <code>Enable RLS</code>{" "}
+          (top right). The backend keeps working on its service_role key; the
+          browser stops reading the tables directly.
+        </>
+      ) : (
+        <>
+          <code>Table Editor</code> ➔ sélectionnez une table ➔{" "}
+          <code>Enable RLS</code> (en haut à droite). Le backend continue de
+          fonctionner avec sa clé service_role ; le navigateur, lui, ne lit plus
+          les tables directement.
+        </>
+      ),
+      url: "https://supabase.com/dashboard/project/_/editor",
+      linkLabel: "Table Editor",
     },
-  ]
+  ];
 }
 
 export function ConfigSite() {
-  const { t, config, state, selectedSshKey, setFields, saveConfig } = useApp()
-  const { isRunDone, markRunDone, isManualChecked, confirmManual } = useSession()
-  const { status, logs, progress, start, cancel } = useDockerRestart()
-  const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
+  const { t, config, state, selectedSshKey, setFields, saveConfig } = useApp();
+  const { isRunDone, markRunDone, isManualChecked, confirmManual } =
+    useSession();
+  const { status, logs, progress, start, cancel } = useDockerRestart();
+  const sshSelectorRef = useRef<SshKeySelectorHandle>(null);
 
   /**
    * The run reports when it finished; recording it is what keeps the card green
@@ -114,19 +206,19 @@ export function ConfigSite() {
    * an automation brings back.
    */
   const applyPatch = (patch: Record<string, string>) => {
-    const typed = patch as Partial<Config>
-    setFields(typed)
-    void saveConfig(typed)
-  }
+    const typed = patch as Partial<Config>;
+    setFields(typed);
+    void saveConfig(typed);
+  };
 
-  const siteSetup = useServiceProvision('supabase-site', applyPatch)
+  const siteSetup = useServiceProvision("supabase-site", applyPatch);
 
-  const domain = config.DOMAIN || '<DOMAIN>'
-  const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
-  const isEn = state.language === 'en'
+  const domain = config.DOMAIN || "<DOMAIN>";
+  const ipv4 = config.IPV4_INSTANCE || "<IPV4>";
+  const isEn = state.language === "en";
   // The two values config.<domain> asks for on its first screen
-  const supabaseUrl = config.SUPABASE_URL
-  const serviceKey = config.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseUrl = config.SUPABASE_URL;
+  const serviceKey = config.SUPABASE_SERVICE_ROLE_KEY;
 
   /**
    * Supabase answers 401 "Forbidden use of secret API key in browser" to any
@@ -141,44 +233,45 @@ export function ConfigSite() {
    * otherwise — which is correct on every project whose service key is legacy
    * to begin with, and on those the card has never run against.
    */
-  const serviceKeyIsSecret = serviceKey.startsWith(SECRET_KEY_PREFIX)
-  const panelServiceKey = config.SUPABASE_PANEL_SERVICE_KEY || (serviceKeyIsSecret ? '' : serviceKey)
+  const serviceKeyIsSecret = serviceKey.startsWith(SECRET_KEY_PREFIX);
+  const panelServiceKey =
+    config.SUPABASE_PANEL_SERVICE_KEY || (serviceKeyIsSecret ? "" : serviceKey);
 
   /**
    * The restart acts on what the deployment installed. Raised once, before the
    * SSH connection: afterwards the only thing on screen is Docker's own error
    * on an unknown container name, which does not name the cause.
    */
-  const deployDone = isRunDone('deploy') || isManualChecked('deploy-manual')
+  const deployDone = isRunDone("deploy") || isManualChecked("deploy-manual");
   /**
    * The key chosen for the run the warning is about, held while the dialog is
    * up: a restart confirmed afterwards must use it, not whatever the selector
    * happens to hold by then.
    */
-  const [restartPending, setRestartPending] = useState<SshKeyInfo | null>(null)
+  const [restartPending, setRestartPending] = useState<SshKeyInfo | null>(null);
 
   const launchRestart = (keyToUse: SshKeyInfo) => {
-    start({ ipv4, sshKeyPath: keyToUse.privateKeyPath })
-  }
+    start({ ipv4, sshKeyPath: keyToUse.privateKeyPath });
+  };
 
   const handleRestart = () => {
     if (!selectedSshKey) {
-      sshSelectorRef.current?.openModal()
+      sshSelectorRef.current?.openModal();
       toast(
         isEn
-          ? 'Please select an SSH key to connect to the server.'
-          : 'Veuillez sélectionner une clé SSH pour vous connecter au serveur.'
-      )
-      return
+          ? "Please select an SSH key to connect to the server."
+          : "Veuillez sélectionner une clé SSH pour vous connecter au serveur.",
+      );
+      return;
     }
 
     if (!deployDone) {
-      setRestartPending(selectedSshKey)
-      return
+      setRestartPending(selectedSshKey);
+      return;
     }
 
-    launchRestart(selectedSshKey)
-  }
+    launchRestart(selectedSshKey);
+  };
 
   /**
    * Same gate as the step 2 automations: nothing runs while the Supabase card
@@ -186,41 +279,42 @@ export function ConfigSite() {
    * either way — when the chain is stuck, the dashboard is the way out.
    */
   const supabaseLock = !config.SUPABASE_ACCESS_TOKEN
-    ? t('apiConfig.locked.supabaseToken')
-    : !isAccountComplete(config, 'supabase')
-      ? t('apiConfig.locked.accountSupabase')
-      : null
+    ? t("apiConfig.locked.supabaseToken")
+    : !isAccountComplete(config, "supabase")
+      ? t("apiConfig.locked.accountSupabase")
+      : null;
 
   const handleSupabaseSetup = () => {
-    if (supabaseLock) return
+    if (supabaseLock) return;
     void siteSetup.startSiteSetup({
       accessToken: config.SUPABASE_ACCESS_TOKEN,
       ref: config.SUPABASE_PROJECT_REF,
-    })
-  }
+    });
+  };
 
   // Validate the site-config step once the Docker restart succeeds, and record
   // the run so the block stays green across a remount of this page.
   useEffect(() => {
-    if (status !== 'completed') return
-    markRunDone('site-docker')
-    confirmManual('docker-manual')
-  }, [status])
+    if (status !== "completed") return;
+    markRunDone("site-docker");
+    confirmManual("docker-manual");
+  }, [status]);
 
   useEffect(() => {
-    if (siteSetup.status !== 'done') return
-    markRunDone('site-supabase')
+    if (siteSetup.status !== "done") return;
+    markRunDone("site-supabase");
     // The run applies the grants and the four settings — both halves of what
     // the manual fallback asks the reader to do by hand.
-    confirmManual('site-supabase-sql', 'site-supabase-actions')
-  }, [siteSetup.status])
+    confirmManual("site-supabase-sql", "site-supabase-actions");
+  }, [siteSetup.status]);
 
   // map hook status to ServiceConfigBlock status
-  let serviceStatus: 'idle' | 'running' | 'done' | 'error' = 'idle'
-  if (status === 'running') serviceStatus = 'running'
-  else if (status === 'completed') serviceStatus = 'done'
-  else if (status === 'error') serviceStatus = 'error'
-  if (serviceStatus === 'idle' && isRunDone('site-docker')) serviceStatus = 'done'
+  let serviceStatus: "idle" | "running" | "done" | "error" = "idle";
+  if (status === "running") serviceStatus = "running";
+  else if (status === "completed") serviceStatus = "done";
+  else if (status === "error") serviceStatus = "error";
+  if (serviceStatus === "idle" && isRunDone("site-docker"))
+    serviceStatus = "done";
 
   /**
    * Session state only. `SUPABASE_SITE_SETUP_AT` records that a run happened
@@ -229,9 +323,10 @@ export function ConfigSite() {
    * on another machine, used to show the step already done before anything had
    * been looked at.
    */
-  const siteSetupStatus = siteSetup.status === 'idle' && isRunDone('site-supabase')
-    ? 'done'
-    : siteSetup.status
+  const siteSetupStatus =
+    siteSetup.status === "idle" && isRunDone("site-supabase")
+      ? "done"
+      : siteSetup.status;
 
   /**
    * What the reader ticked in the manual fallback. The API run does both halves
@@ -239,16 +334,16 @@ export function ConfigSite() {
    * settings pages — so they are acknowledged separately and the block is only
    * confirmed when both are.
    */
-  const sqlDone = isManualChecked('site-supabase-sql')
-  const settingsDone = isManualChecked('site-supabase-actions')
-  const siteSetupManualDone = sqlDone && settingsDone
-  const dockerManualDone = isManualChecked('docker-manual')
+  const sqlDone = isManualChecked("site-supabase-sql");
+  const settingsDone = isManualChecked("site-supabase-actions");
+  const siteSetupManualDone = sqlDone && settingsDone;
+  const dockerManualDone = isManualChecked("docker-manual");
 
   const statusLabels = {
-    done: isEn ? 'Done' : 'Fait',
-    running: isEn ? 'Running' : 'En cours',
-    error: isEn ? 'Error' : 'Erreur',
-  }
+    done: isEn ? "Done" : "Fait",
+    running: isEn ? "Running" : "En cours",
+    error: isEn ? "Error" : "Erreur",
+  };
 
   /**
    * The Instance Service Key row, in its three states: a value ready to paste,
@@ -264,16 +359,34 @@ export function ConfigSite() {
         <AlertTriangle size={15} className="info-box-icon" />
         <div className="info-box-text">
           <div className="info-box-title">
-            {isEn ? 'This field needs the legacy key' : 'Ce champ attend la clé legacy'}
+            {isEn
+              ? "This field needs the legacy key"
+              : "Ce champ attend la clé legacy"}
           </div>
-          {isEn
-            ? <>Your configuration holds a new-generation secret key (<code>{SECRET_KEY_PREFIX}…</code>), which Supabase refuses as soon as the request comes from a browser — the panel then reports an invalid value. Run step 1 above and it reads the legacy <code>service_role</code> key back for you; failing that, copy it from <code>Legacy API keys</code> (<code>eyJ…</code> format).</>
-            : <>Votre configuration contient une clé secret de nouvelle génération (<code>{SECRET_KEY_PREFIX}…</code>), que Supabase refuse dès que la requête vient d'un navigateur — le panneau signale alors une valeur invalide. Lancez l'étape 1 ci-dessus : elle récupère pour vous la clé <code>service_role</code> legacy. À défaut, copiez-la depuis <code>Legacy API keys</code> (format <code>eyJ…</code>).</>}
+          {isEn ? (
+            <>
+              Your configuration holds a new-generation secret key (
+              <code>{SECRET_KEY_PREFIX}…</code>), which Supabase refuses as soon
+              as the request comes from a browser — the panel then reports an
+              invalid value. Run step 1 above and it reads the legacy{" "}
+              <code>service_role</code> key back for you; failing that, copy it
+              from <code>Legacy API keys</code> (<code>eyJ…</code> format).
+            </>
+          ) : (
+            <>
+              Votre configuration contient une clé secret de nouvelle génération
+              (<code>{SECRET_KEY_PREFIX}…</code>), que Supabase refuse dès que
+              la requête vient d'un navigateur — le panneau signale alors une
+              valeur invalide. Lancez l'étape 1 ci-dessus : elle récupère pour
+              vous la clé <code>service_role</code> legacy. À défaut, copiez-la
+              depuis <code>Legacy API keys</code> (format <code>eyJ…</code>).
+            </>
+          )}
         </div>
       </div>
       <p className="config-screen__note">
         {isEn
-          ? 'Only this field is concerned: the deployed stack keeps using the key from its .env, which stays on the server. If the legacy keys are disabled on the project, step 1 switches them back on.'
+          ? "Only this field is concerned: the deployed stack keeps using the key from its .env, which stays on the server. If the legacy keys are disabled on the project, step 1 switches them back on."
           : "Seul ce champ est concerné : la stack déployée continue d'utiliser la clé de son .env, qui reste côté serveur. Si les clés legacy sont désactivées sur le projet, l'étape 1 les réactive."}
       </p>
       <div className="link-buttons-row">
@@ -285,17 +398,17 @@ export function ConfigSite() {
       <AlertTriangle size={15} className="info-box-icon" />
       <div className="info-box-text">
         {isEn
-          ? 'SUPABASE_SERVICE_ROLE_KEY is still empty — fill it in at step 2 (API configuration).'
+          ? "SUPABASE_SERVICE_ROLE_KEY is still empty — fill it in at step 2 (API configuration)."
           : "SUPABASE_SERVICE_ROLE_KEY est encore vide — renseignez-la à l'étape 2 (Configuration par API)."}
       </div>
     </div>
-  )
+  );
 
   return (
     <WizardLayout
-      title={t('step8.title')}
-      stepBadge={`${t('nav.step')} 8 — ${t('step8.label')}`}
-      description={t('step8.desc')}
+      title={t("step8.title")}
+      stepBadge={`${t("nav.step")} 8 — ${t("step8.label")}`}
+      description={t("step8.desc")}
     >
       <div className="api-config-list">
         {/* Supabase Actions & SQL */}
@@ -303,11 +416,13 @@ export function ConfigSite() {
           stepNumber={1}
           serviceName="SUPABASE"
           serviceIcon={<Database size={18} color="var(--color-primary-text)" />}
-          description={isEn
-            ? `Privileges, exposed schema, Realtime on ${REALTIME_TABLE}, email confirmation off and RLS on every table — applied through the Supabase API.`
-            : `Privilèges, schéma exposé, Realtime sur ${REALTIME_TABLE}, confirmation d'email désactivée et RLS sur chaque table — appliqués via l'API Supabase.`}
+          description={
+            isEn
+              ? `Privileges, exposed schema, Realtime on ${REALTIME_TABLE}, email confirmation off and RLS on every table — applied through the Supabase API.`
+              : `Privilèges, schéma exposé, Realtime sur ${REALTIME_TABLE}, confirmation d'email désactivée et RLS sur chaque table — appliqués via l'API Supabase.`
+          }
           status={siteSetupStatus}
-          isComplete={siteSetupStatus === 'done'}
+          isComplete={siteSetupStatus === "done"}
           manuallyConfirmed={siteSetupManualDone}
           logs={siteSetup.logs}
           progress={siteSetup.progress}
@@ -316,20 +431,25 @@ export function ConfigSite() {
           errorMessage={siteSetup.error}
           onStart={handleSupabaseSetup}
           onCancel={siteSetup.cancel}
-          btnStartLabel={isEn ? 'Launch' : 'Lancer'}
-          btnRetryLabel={isEn ? 'Retry' : 'Réessayer'}
-          btnRerunLabel={isEn ? 'Run again' : 'Relancer'}
-          btnCancelLabel={isEn ? 'Cancel' : 'Annuler'}
+          btnStartLabel={isEn ? "Launch" : "Lancer"}
+          btnRetryLabel={isEn ? "Retry" : "Réessayer"}
+          btnRerunLabel={isEn ? "Run again" : "Relancer"}
+          btnCancelLabel={isEn ? "Cancel" : "Annuler"}
           statusLabels={statusLabels}
-          manualLabel={isEn ? 'Manual Configuration' : 'Configuration manuelle'}
+          manualLabel={isEn ? "Manual Configuration" : "Configuration manuelle"}
         >
           <div className="form-section">
             <ManualSection
-              icon={<Database size={16} />}
-              title={isEn ? '1. Run the SQL in the SQL Editor' : '1. Exécuter le SQL dans le SQL Editor'}
-              desc={isEn
-                ? 'SQL Editor ➔ paste and Run. This grants the default privileges the app needs on the public schema.'
-                : "SQL Editor ➔ coller puis Run. Octroie les permissions par défaut dont l'application a besoin sur le schéma public."}
+              title={
+                isEn
+                  ? "1. Run the SQL in the SQL Editor"
+                  : "1. Exécuter le SQL dans le SQL Editor"
+              }
+              desc={
+                isEn
+                  ? "SQL Editor ➔ paste and Run. This grants the default privileges the app needs on the public schema."
+                  : "SQL Editor ➔ coller puis Run. Octroie les permissions par défaut dont l'application a besoin sur le schéma public."
+              }
             >
               <SqlBlock sql={SQL_COMMANDS} />
               <div className="link-buttons-row">
@@ -337,22 +457,29 @@ export function ConfigSite() {
               </div>
               <ManualCheck
                 checkKey="site-supabase-sql"
-                label={isEn
-                  ? 'This SQL has been run in the SQL Editor'
-                  : 'Ce SQL a été exécuté dans le SQL Editor'}
+                label={
+                  isEn
+                    ? "This SQL has been run in the SQL Editor"
+                    : "Ce SQL a été exécuté dans le SQL Editor"
+                }
               />
             </ManualSection>
 
             <ManualSection
-              icon={<Check size={16} />}
-              title={isEn ? '2. Other Supabase actions' : '2. Autres actions Supabase'}
+              title={
+                isEn
+                  ? "2. Other Supabase actions"
+                  : "2. Autres actions Supabase"
+              }
             >
               <HelpFlow steps={supabaseFinalSteps(isEn)} />
               <ManualCheck
                 checkKey="site-supabase-actions"
-                label={isEn
-                  ? 'These four settings are applied'
-                  : 'Ces quatre réglages sont appliqués'}
+                label={
+                  isEn
+                    ? "These four settings are applied"
+                    : "Ces quatre réglages sont appliqués"
+                }
               />
             </ManualSection>
           </div>
@@ -363,43 +490,51 @@ export function ConfigSite() {
           stepNumber={2}
           serviceName="DOCKER RESTART"
           serviceIcon={<Terminal size={18} color="var(--color-primary-text)" />}
-          description={t('step7.docker.desc')}
+          description={t("step7.docker.desc")}
           status={serviceStatus}
           manuallyConfirmed={dockerManualDone}
           onStart={handleRestart}
           onCancel={cancel}
-          logs={logs.map(l => l.message)}
+          logs={logs.map((l) => l.message)}
           progress={progress}
-          btnStartLabel={isEn ? 'Restart Docker' : 'Redémarrer Docker'}
-          btnRerunLabel={isEn ? 'Restart again' : 'Relancer'}
-          btnCancelLabel={isEn ? 'Cancel' : 'Annuler'}
+          btnStartLabel={isEn ? "Restart Docker" : "Redémarrer Docker"}
+          btnRerunLabel={isEn ? "Restart again" : "Relancer"}
+          btnCancelLabel={isEn ? "Cancel" : "Annuler"}
           statusLabels={statusLabels}
           extra={
             <SshKeySelector
               ref={sshSelectorRef}
-              label={isEn ? 'Authentication SSH key' : "Clé SSH d'authentification"}
+              label={
+                isEn ? "Authentication SSH key" : "Clé SSH d'authentification"
+              }
             />
           }
-          manualLabel={isEn ? 'Manual Configuration' : 'Configuration manuelle'}
+          manualLabel={isEn ? "Manual Configuration" : "Configuration manuelle"}
         >
           <div className="form-section">
             <ManualSection
-              icon={<Terminal size={16} />}
-              title={isEn ? 'Connect over SSH' : 'Se connecter en SSH'}
+              title={isEn ? "Connect over SSH" : "Se connecter en SSH"}
             >
-              <DockerBlock command={selectedSshKey?.privateKeyPath ? `ssh -i "${selectedSshKey.privateKeyPath}" root@${ipv4}` : `ssh root@${ipv4}`} />
+              <DockerBlock
+                command={
+                  selectedSshKey?.privateKeyPath
+                    ? `ssh -i "${selectedSshKey.privateKeyPath}" root@${ipv4}`
+                    : `ssh root@${ipv4}`
+                }
+              />
             </ManualSection>
 
             <ManualSection
-              icon={<Terminal size={16} />}
-              title={isEn ? 'Restart the bot' : 'Redémarrer le bot'}
+              title={isEn ? "Restart the bot" : "Redémarrer le bot"}
             >
               <DockerBlock command="docker restart discord_bot" />
               {/* The restart leaves no trace in the config either — run by hand,
                   this box is what validates the step. */}
               <ManualCheck
                 checkKey="docker-manual"
-                label={isEn ? 'The bot has been restarted' : 'Le bot a été redémarré'}
+                label={
+                  isEn ? "The bot has been restarted" : "Le bot a été redémarré"
+                }
               />
             </ManualSection>
           </div>
@@ -408,7 +543,7 @@ export function ConfigSite() {
         {/* Links & Next Steps */}
         <ServiceConfigBlock
           stepNumber={3}
-          serviceName={isEn ? 'NEXT STEPS' : 'PROCHAINES ÉTAPES'}
+          serviceName={isEn ? "NEXT STEPS" : "PROCHAINES ÉTAPES"}
           serviceIcon={<Globe size={18} color="var(--color-primary-text)" />}
           status="none"
           btnStartLabel=""
@@ -416,50 +551,56 @@ export function ConfigSite() {
           statusLabels={statusLabels}
         >
           <div className="form-section">
-            <p className="step-lead">{t('step8.tip')}</p>
+            <p className="step-lead">{t("step8.tip")}</p>
             <div className="link-buttons-row">
               <ExternalLinkBtn
                 url={`https://config.${domain}/`}
-                label={`${t('step8.config.btn')} — config.${domain}`}
+                label={`${t("step8.config.btn")} — config.${domain}`}
                 variant="primary"
               />
               <ExternalLinkBtn
                 url={`https://${domain}/`}
-                label={`${t('step8.site.btn')} — ${domain}`}
+                label={`${t("step8.site.btn")} — ${domain}`}
               />
               <ExternalLinkBtn
                 url={ADMIN_LOGIN_URL}
-                label={t('step8.adminLogin.btn')}
+                label={t("step8.adminLogin.btn")}
               />
             </div>
 
             {/* The config.<domain> wizard, screen by screen */}
             <div className="config-screens">
               <div className="config-screens__title">
-                <KeyRound size={16} color="var(--color-primary-text)" />
-                {isEn ? `What config.${domain} asks for` : `Ce que demande config.${domain}`}
+                {/* <KeyRound size={16} color="var(--color-primary-text)" /> */}
+                {isEn
+                  ? `What config.${domain} asks for`
+                  : `Ce que demande config.${domain}`}
               </div>
 
               <ol className="config-screens__list">
                 <li className="config-screen">
                   <span className="config-screen__index">1</span>
                   <div className="config-screen__body">
-                    <div className="config-screen__name">Connect to Supabase</div>
+                    <div className="config-screen__name">
+                      Connect to Supabase
+                    </div>
                     <p className="config-screen__desc">
                       {isEn
-                        ? 'Two fields. Both values are already in your configuration:'
-                        : 'Deux champs. Les deux valeurs sont déjà dans votre configuration :'}
+                        ? "Two fields. Both values are already in your configuration:"
+                        : "Deux champs. Les deux valeurs sont déjà dans votre configuration :"}
                     </p>
-                    {supabaseUrl
-                      ? <CopyRow label="Instance URL" content={supabaseUrl} />
-                      : <div className="info-box warning">
-                          <AlertTriangle size={15} className="info-box-icon" />
-                          <div className="info-box-text">
-                            {isEn
-                              ? 'SUPABASE_URL is still empty — fill it in at step 2 (API configuration).'
-                              : "SUPABASE_URL est encore vide — renseignez-la à l'étape 2 (Configuration par API)."}
-                          </div>
-                        </div>}
+                    {supabaseUrl ? (
+                      <CopyRow label="Instance URL" content={supabaseUrl} />
+                    ) : (
+                      <div className="info-box warning">
+                        <AlertTriangle size={15} className="info-box-icon" />
+                        <div className="info-box-text">
+                          {isEn
+                            ? "SUPABASE_URL is still empty — fill it in at step 2 (API configuration)."
+                            : "SUPABASE_URL est encore vide — renseignez-la à l'étape 2 (Configuration par API)."}
+                        </div>
+                      </div>
+                    )}
                     {serviceKeyField}
                   </div>
                 </li>
@@ -470,19 +611,22 @@ export function ConfigSite() {
                     <div className="config-screen__name">Create Admin User</div>
                     <p className="config-screen__desc">
                       {isEn
-                        ? 'Email address, password and confirmation — your choice, 8 characters minimum.'
-                        : 'Adresse email, mot de passe et confirmation — à votre convenance, 8 caractères minimum.'}
+                        ? "Email address, password and confirmation — your choice, 8 characters minimum."
+                        : "Adresse email, mot de passe et confirmation — à votre convenance, 8 caractères minimum."}
                     </p>
                     <div className="info-box info">
                       <UserPlus size={15} className="info-box-icon" />
                       <div className="info-box-text">
                         {isEn
-                          ? 'This is what creates the ORGANIZER account you then sign in with on the site — nothing else does.'
+                          ? "This is what creates the ORGANIZER account you then sign in with on the site — nothing else does."
                           : "C'est ce qui crée le compte ORGANIZER avec lequel vous vous connecterez ensuite au site — rien d'autre ne le fait."}
                       </div>
                     </div>
                     <div className="link-buttons-row">
-                      <ExternalLinkBtn url={ADMIN_LOGIN_URL} label={t('step8.adminLogin.btn')} />
+                      <ExternalLinkBtn
+                        url={ADMIN_LOGIN_URL}
+                        label={t("step8.adminLogin.btn")}
+                      />
                     </div>
                   </div>
                 </li>
@@ -493,7 +637,7 @@ export function ConfigSite() {
                     <div className="config-screen__name">Discord Setup</div>
                     <p className="config-screen__desc">
                       {isEn
-                        ? 'Informational only — the bot was already configured at step 3. Click Continue.'
+                        ? "Informational only — the bot was already configured at step 3. Click Continue."
                         : "Purement informatif — le bot a déjà été configuré à l'étape 3. Cliquez sur Continue."}
                     </p>
                   </div>
@@ -505,7 +649,7 @@ export function ConfigSite() {
                     <div className="config-screen__name">Deploying</div>
                     <p className="config-screen__desc">
                       {isEn
-                        ? 'Informational only — the deployment already ran at step 4. Click Continue.'
+                        ? "Informational only — the deployment already ran at step 4. Click Continue."
                         : "Purement informatif — le déploiement a déjà été fait à l'étape 4. Cliquez sur Continue."}
                     </p>
                   </div>
@@ -517,7 +661,7 @@ export function ConfigSite() {
                     <div className="config-screen__name">Setup Complete</div>
                     <p className="config-screen__desc">
                       {isEn
-                        ? 'Recap of the four steps. Close Configuration ends the wizard — you can then sign in on the site with the account from screen 2.'
+                        ? "Recap of the four steps. Close Configuration ends the wizard — you can then sign in on the site with the account from screen 2."
                         : "Récapitulatif des quatre étapes. Close Configuration termine l'assistant — vous pouvez alors vous connecter au site avec le compte de l'écran 2."}
                     </p>
                   </div>
@@ -530,7 +674,6 @@ export function ConfigSite() {
                 exists elsewhere, which is why it gets its own screen here. */}
             <div className="config-screens">
               <div className="config-screens__title">
-                <Globe size={16} color="var(--color-primary-text)" />
                 {isEn ? `Then, on ${domain}` : `Ensuite, sur ${domain}`}
               </div>
 
@@ -539,19 +682,42 @@ export function ConfigSite() {
                   <span className="config-screen__index">1</span>
                   <div className="config-screen__body">
                     <div className="config-screen__name">
-                      {isEn ? 'Name the hackathon' : 'Nommer le hackathon'}
+                      {isEn ? "Name the hackathon" : "Nommer le hackathon"}
                     </div>
                     <p className="config-screen__desc">
-                      {isEn
-                        ? <>Sign in with the account from screen 2, then <code>Settings</code> ➔ <code>Texts</code> and fill in the hackathon name (60 characters max).</>
-                        : <>Connectez-vous avec le compte de l'écran 2, puis <code>Paramètres</code> ➔ <code>Textes</code> et renseignez le nom du hackathon (60 caractères max).</>}
+                      {isEn ? (
+                        <>
+                          Sign in with the account from screen 2, then{" "}
+                          <code>Settings</code> ➔ <code>Texts</code> and fill in
+                          the hackathon name (60 characters max).
+                        </>
+                      ) : (
+                        <>
+                          Connectez-vous avec le compte de l'écran 2, puis{" "}
+                          <code>Paramètres</code> ➔ <code>Textes</code> et
+                          renseignez le nom du hackathon (60 caractères max).
+                        </>
+                      )}
                     </p>
                     <div className="info-box warning">
                       <AlertTriangle size={15} className="info-box-icon" />
                       <div className="info-box-text">
-                        {isEn
-                          ? <>That name, spaces replaced by dashes, is the GitHub organization the team repositories go into. <strong>It must already exist on GitHub</strong> — the platform never creates it.</>
-                          : <>Ce nom, espaces remplacés par des tirets, désigne l'organisation GitHub où atterrissent les dépôts des équipes. <strong>Elle doit déjà exister sur GitHub</strong> — la plateforme ne la crée jamais.</>}
+                        {isEn ? (
+                          <>
+                            That name, spaces replaced by dashes, is the GitHub
+                            organization the team repositories go into.{" "}
+                            <strong>It must already exist on GitHub</strong> —
+                            the platform never creates it.
+                          </>
+                        ) : (
+                          <>
+                            Ce nom, espaces remplacés par des tirets, désigne
+                            l'organisation GitHub où atterrissent les dépôts des
+                            équipes.{" "}
+                            <strong>Elle doit déjà exister sur GitHub</strong> —
+                            la plateforme ne la crée jamais.
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -562,8 +728,10 @@ export function ConfigSite() {
             <div className="info-box warning">
               <Info size={15} className="info-box-icon" />
               <div className="info-box-text">
-                <div className="info-box-title">{isEn ? 'Email sending' : "Envoi d'emails"}</div>
-                {t('step8.tip2')}
+                <div className="info-box-title">
+                  {isEn ? "Email sending" : "Envoi d'emails"}
+                </div>
+                {t("step8.tip2")}
               </div>
             </div>
           </div>
@@ -574,7 +742,9 @@ export function ConfigSite() {
       <div className="done-badge-row">
         <div className="done-badge">
           <CheckCircle size={22} />
-          {isEn ? 'Your hackathon infrastructure is configured!' : 'Votre infrastructure hackathon est configurée !'}
+          {isEn
+            ? "Your hackathon infrastructure is configured!"
+            : "Votre infrastructure hackathon est configurée !"}
         </div>
       </div>
 
@@ -584,12 +754,12 @@ export function ConfigSite() {
           isEn={isEn}
           onCancel={() => setRestartPending(null)}
           onProceed={() => {
-            const keyToUse = restartPending
-            setRestartPending(null)
-            launchRestart(keyToUse)
+            const keyToUse = restartPending;
+            setRestartPending(null);
+            launchRestart(keyToUse);
           }}
         />
       )}
     </WizardLayout>
-  )
+  );
 }

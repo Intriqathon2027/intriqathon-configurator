@@ -1,8 +1,6 @@
 import { type ReactNode } from 'react'
 
 interface ManualSectionProps {
-  /** Small marker before the title — an icon, or the step's number. */
-  icon?: ReactNode
   title: string
   /** One line saying what this part of the fallback is for. */
   desc?: ReactNode
@@ -19,13 +17,10 @@ interface ManualSectionProps {
  * gaps were applied twice. Spacing now comes from one place, and a section
  * added later inherits it instead of inventing its own.
  */
-export function ManualSection({ icon, title, desc, children }: ManualSectionProps) {
+export function ManualSection({ title, desc, children }: ManualSectionProps) {
   return (
     <section className="manual-section">
-      <h4 className="manual-section__title">
-        {icon && <span className="manual-section__icon">{icon}</span>}
-        {title}
-      </h4>
+      <h4 className="manual-section__title">{title}</h4>
       {desc && <p className="manual-section__desc">{desc}</p>}
       <div className="manual-section__body">{children}</div>
     </section>
