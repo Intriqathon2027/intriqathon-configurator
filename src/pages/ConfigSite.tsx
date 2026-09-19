@@ -5,7 +5,6 @@ import {
   Info,
   Database,
   Terminal,
-  KeyRound,
   UserPlus,
   AlertTriangle,
 } from "lucide-react";

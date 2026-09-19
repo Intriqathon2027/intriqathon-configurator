@@ -292,7 +292,7 @@ export const translations: Translations = {
 
     'step3.title': 'Authentification OAuth2',
     'step3.desc': 'Configurez les connexions via Discord et GitHub pour permettre aux participants de s\'authentifier.',
-    'step3.section.discord': 'Discord OAuth2',
+    'step3.section.discord': 'DISCORD OAUTH2',
     'step3.discord.callback': 'URL de callback à configurer dans Discord',
     'step3.discordClientId': 'Discord Client ID',
     'step3.discordClientId.path': 'Votre application > General Information > Application ID',
@@ -300,7 +300,7 @@ export const translations: Translations = {
     'step3.discordSecret': 'Discord Client Secret',
     'step3.discordSecret.path': 'Votre application > OAuth2 > Reset Secret',
     'step3.discordSecret.hint': 'Secret de l\'application, affiché une seule fois — copiez-le immédiatement. Pensez aussi à enregistrer l\'URL de callback du formulaire dans OAuth2 > Redirects.',
-    'step3.section.github': 'GitHub OAuth2',
+    'step3.section.github': 'GITHUB OAUTH2',
     'step3.github.homepage': 'Homepage URL à configurer dans GitHub',
     'step3.github.callback': 'URL de callback à configurer dans GitHub',
     'step3.githubClientId': 'GitHub Client ID',
@@ -311,7 +311,7 @@ export const translations: Translations = {
     'step3.githubSecret.hint': 'Affiché une seule fois — copiez-le immédiatement. Vérifiez au passage que la Homepage URL et la Callback URL de l\'app correspondent à celles du formulaire.',
 
     // Discord Bot (integrated into step3)
-    'step3.section.bot': 'Bot Discord',
+    'step3.section.bot': 'BOT DISCORD',
     'step3.botClientId': 'Application ID (Client ID)',
     'step3.botClientId.path': 'Votre application > General Information > Application ID',
     'step3.botClientId.hint': 'Identique au Discord Client ID ci-dessus si vous réutilisez la même application pour l\'OAuth2 et le bot.',
@@ -673,7 +673,7 @@ export const translations: Translations = {
 
     'step3.title': 'OAuth2 Authentication',
     'step3.desc': 'Configure Discord and GitHub login to allow participants to authenticate.',
-    'step3.section.discord': 'Discord OAuth2',
+    'step3.section.discord': 'DISCORD OAUTH2',
     'step3.discord.callback': 'Callback URL to set in Discord',
     'step3.discordClientId': 'Discord Client ID',
     'step3.discordClientId.path': 'Your application > General Information > Application ID',
@@ -681,7 +681,7 @@ export const translations: Translations = {
     'step3.discordSecret': 'Discord Client Secret',
     'step3.discordSecret.path': 'Your application > OAuth2 > Reset Secret',
     'step3.discordSecret.hint': 'Secret of the application, shown only once — copy it immediately. Remember to register the callback URL from the form under OAuth2 > Redirects.',
-    'step3.section.github': 'GitHub OAuth2',
+    'step3.section.github': 'GITHUB OAUTH2',
     'step3.github.homepage': 'Homepage URL to set in GitHub',
     'step3.github.callback': 'Callback URL to set in GitHub',
     'step3.githubClientId': 'GitHub Client ID',
@@ -692,7 +692,7 @@ export const translations: Translations = {
     'step3.githubSecret.hint': 'Shown only once — copy it immediately. While you are there, check that the app\'s Homepage URL and Callback URL match the ones in the form.',
 
     // Discord Bot (integrated into step3)
-    'step3.section.bot': 'Discord Bot',
+    'step3.section.bot': 'DISCORD BOT',
     'step3.botClientId': 'Application ID (Client ID)',
     'step3.botClientId.path': 'Your application > General Information > Application ID',
     'step3.botClientId.hint': 'Same as the Discord Client ID above if you reuse one application for both OAuth2 and the bot.',
