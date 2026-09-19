@@ -296,13 +296,12 @@ export function ServiceConfigBlock({
             still the way forward from there. */}
         {(primaryAction || manualToggleBtn) && (
           <div className="service-config-block__action-row">
-            {!locked && (
+            {!locked ? (
               <>
                 {primaryAction}
                 {manualToggleBtn}
               </>
-            )}
-            {locked && (
+            ) : (
               <>
                 {manualToggleBtn}
                 {primaryAction}

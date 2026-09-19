@@ -5,10 +5,11 @@ import { useSession } from '../../context/SessionContext'
 import { generateEnvContent } from '../../utils/deploy'
 import { collectPreDeployGaps, type PreDeployGap } from '../../utils/preDeployChecks'
 import { useDeployment } from '../../hooks/useDeployment'
-import { DeployDialog } from './DeployDialog'
-import { PreDeployWarning } from './PreDeployWarning'
-import { IconRowList } from '../ui/IconRowList'
-import { SshKeySelector, type SshKeySelectorHandle } from '../ui/SshKeySelector'
+import { DeployDialog } from '../../components/deploy/DeployDialog'
+import { PreDeployWarning } from '../../components/deploy/PreDeployWarning'
+import { Card } from '../../components/ui/Card'
+import { IconRowList } from '../../components/ui/IconRowList'
+import { SshKeySelector, type SshKeySelectorHandle } from '../../components/ui/SshKeySelector'
 import type { SshKeyInfo } from '../../types/electron'
 import type { DeployLogEntry, DeploymentStatus } from '../../hooks/useDeployment'
 
@@ -77,7 +78,7 @@ export function DeployAutoTab() {
   }, [logs])
 
   const [localDeployPath, setLocalDeployPath] = useState(config.DEPLOY_PATH || '')
-  
+
   const handleBrowse = async () => {
     if (window.electronAPI) {
       const selected = await window.electronAPI.openFolderDialog()
@@ -130,12 +131,7 @@ export function DeployAutoTab() {
 
   return (
     <>
-      <div className="card">
-        <div className="card-title">
-          <Terminal size={16} color="var(--color-primary-text)" />
-          {t('step6.auto.title')}
-        </div>
-
+      <Card icon={<Terminal size={16} color="var(--color-primary-text)" />} title={t('step6.auto.title')}>
         {/* Deploy path selector */}
         <div className="deploy-path-selector" style={{ marginBottom: 'var(--space-3)' }}>
           <label className="form-label" style={{ marginBottom: 'var(--space-2)', display: 'block' }}>
@@ -237,14 +233,14 @@ export function DeployAutoTab() {
             </button>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Explanatory card */}
-      <div className="card" style={{ marginTop: 'var(--space-5)' }}>
-        <div className="card-title">
-          <Info size={16} color="var(--color-primary-text)" />
-          {t('step6.auto.info.title')}
-        </div>
+      <Card
+        icon={<Info size={16} color="var(--color-primary-text)" />}
+        title={t('step6.auto.info.title')}
+        style={{ marginTop: 'var(--space-5)' }}
+      >
         <p className="step-description">
           {t('step6.auto.info.desc')}
         </p>
@@ -257,7 +253,7 @@ export function DeployAutoTab() {
             { key: 'docker', icon: <Rocket size={16} />, text: `4. ${t('step6.auto.info.step4')}` },
           ]}
         />
-      </div>
+      </Card>
 
       {/* Unfinished steps, raised before the transfer starts */}
       {pendingStart && (

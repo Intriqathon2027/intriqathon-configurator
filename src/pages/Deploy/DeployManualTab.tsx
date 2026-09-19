@@ -1,6 +1,7 @@
 import { FileDown, Download, Terminal } from 'lucide-react'
-import { CommandBlock } from '../ui/CopyBlock'
-import { ManualCheck } from '../ui/ManualCheck'
+import { Card } from '../../components/ui/Card'
+import { CommandBlock } from '../../components/ui/CopyBlock'
+import { ManualCheck } from '../../components/ui/ManualCheck'
 import { useApp } from '../../context/AppContext'
 
 import { generateEnvContent } from '../../utils/deploy'
@@ -47,8 +48,7 @@ export function DeployManualTab() {
   return (
     <>
       {/* .env preview + download */}
-      <div className="card">
-        <div className="card-title"><FileDown size={16} color="var(--color-primary-text)" />{t('step6.preview')}</div>
+      <Card icon={<FileDown size={16} color="var(--color-primary-text)" />} title={t('step6.preview')}>
         <div className="env-preview">{colorizedEnv}</div>
         <div className="download-section">
           <div className="download-icon">
@@ -63,13 +63,15 @@ export function DeployManualTab() {
             {t('btn.downloadEnv')}
           </button>
         </div>
-      </div>
+      </Card>
 
       {/* Deployment commands — one stack, spaced by the list, so the blocks
           no longer each carry a margin of their own. */}
-      <div className="card">
-        <div className="card-title"><Terminal size={16} color="var(--color-primary-text)" />{t('step6.commands.title')}</div>
-
+      <Card
+        icon={<Terminal size={16} color="var(--color-primary-text)" />}
+        title={t('step6.commands.title')}
+        style={{ marginTop: 'var(--space-5)' }}
+      >
         <div className="command-stack">
           <CommandBlock label={t('step6.cmd.cd')} command={`cd ${deployPath}`} />
 
@@ -96,7 +98,7 @@ export function DeployManualTab() {
             label={isEn ? 'The deployment has been carried out' : 'Le déploiement a été effectué'}
           />
         </div>
-      </div>
+      </Card>
     </>
   )
 }

@@ -613,6 +613,12 @@ export function ConfigSite() {
                         ? "Email address, password and confirmation — your choice, 8 characters minimum."
                         : "Adresse email, mot de passe et confirmation — à votre convenance, 8 caractères minimum."}
                     </p>
+                    <div className="link-buttons-row">
+                      <ExternalLinkBtn
+                        url={ADMIN_LOGIN_URL}
+                        label={t("step8.adminLogin.btn")}
+                      />
+                    </div>
                     <div className="info-box info">
                       <UserPlus size={15} className="info-box-icon" />
                       <div className="info-box-text">
@@ -620,12 +626,6 @@ export function ConfigSite() {
                           ? "This is what creates the ORGANIZER account you then sign in with on the site — nothing else does."
                           : "C'est ce qui crée le compte ORGANIZER avec lequel vous vous connecterez ensuite au site — rien d'autre ne le fait."}
                       </div>
-                    </div>
-                    <div className="link-buttons-row">
-                      <ExternalLinkBtn
-                        url={ADMIN_LOGIN_URL}
-                        label={t("step8.adminLogin.btn")}
-                      />
                     </div>
                   </div>
                 </li>
