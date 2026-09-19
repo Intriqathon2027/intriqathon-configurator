@@ -13,6 +13,13 @@ export interface Config {
   DOMAIN: string
   SPACESHIP_API_KEY: string
   SPACESHIP_API_SECRET: string
+  /**
+   * 'true' when the reader will manage DNS at another registrar than
+   * Spaceship. The domain itself is still needed — only the Spaceship
+   * account fields become optional, and step 3 shows its manual DNS
+   * configuration directly instead of gating it behind that account.
+   */
+  USE_OTHER_DOMAIN_PROVIDER: string
 
   // Account Creation — Supabase
   SUPABASE_ACCESS_TOKEN: string
@@ -104,6 +111,7 @@ const defaultConfig: Config = {
   DOMAIN: '',
   SPACESHIP_API_KEY: '',
   SPACESHIP_API_SECRET: '',
+  USE_OTHER_DOMAIN_PROVIDER: '',
   SUPABASE_ACCESS_TOKEN: '',
   SUPABASE_DB_PASSWORD: '',
   SUPABASE_PROJECT_REF: '',

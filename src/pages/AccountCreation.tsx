@@ -37,6 +37,7 @@ export function AccountCreation() {
   const isResendComplete = isAccountComplete(config, "resend");
   const isSpaceshipComplete = isAccountComplete(config, "spaceship");
   const isScalewayComplete = isAccountComplete(config, "scaleway");
+  const usesOtherDomainProvider = config.USE_OTHER_DOMAIN_PROVIDER === "true";
 
   return (
     <WizardLayout
@@ -113,7 +114,11 @@ export function AccountCreation() {
 
         {/* Spaceship */}
         <ServiceAccountCard
-          serviceName={t("accountCreation.spaceship.title")}
+          serviceName={
+            usesOtherDomainProvider
+              ? t("accountCreation.domainProvider.title")
+              : t("accountCreation.spaceship.title")
+          }
           serviceIcon={<Globe size={16} color="var(--color-primary-text)" />}
           helpAnchor="svc-spaceship"
           isComplete={isSpaceshipComplete}
@@ -126,21 +131,40 @@ export function AccountCreation() {
               onChange={(v) => setField("DOMAIN", v)}
               placeholder={t("accountCreation.spaceship.domain.placeholder")}
             />
-            <FormField
-              id="spaceship-api-key"
-              label={t("accountCreation.spaceship.apiKey")}
-              value={config.SPACESHIP_API_KEY}
-              onChange={(v) => setField("SPACESHIP_API_KEY", v)}
-              placeholder="sk_abc123..."
-            />
-            <FormField
-              id="spaceship-api-secret"
-              label={t("accountCreation.spaceship.apiSecret")}
-              value={config.SPACESHIP_API_SECRET}
-              onChange={(v) => setField("SPACESHIP_API_SECRET", v)}
-              placeholder="ss_xyz789..."
-              type="password"
-            />
+            <label className="manual-check">
+              <input
+                type="checkbox"
+                checked={usesOtherDomainProvider}
+                onChange={(e) =>
+                  setField(
+                    "USE_OTHER_DOMAIN_PROVIDER",
+                    e.target.checked ? "true" : "false",
+                  )
+                }
+              />
+              <span className="manual-check__label">
+                {t("accountCreation.spaceship.otherProvider")}
+              </span>
+            </label>
+            {!usesOtherDomainProvider && (
+              <>
+                <FormField
+                  id="spaceship-api-key"
+                  label={t("accountCreation.spaceship.apiKey")}
+                  value={config.SPACESHIP_API_KEY}
+                  onChange={(v) => setField("SPACESHIP_API_KEY", v)}
+                  placeholder="sk_abc123..."
+                />
+                <FormField
+                  id="spaceship-api-secret"
+                  label={t("accountCreation.spaceship.apiSecret")}
+                  value={config.SPACESHIP_API_SECRET}
+                  onChange={(v) => setField("SPACESHIP_API_SECRET", v)}
+                  placeholder="ss_xyz789..."
+                  type="password"
+                />
+              </>
+            )}
           </div>
         </ServiceAccountCard>
 

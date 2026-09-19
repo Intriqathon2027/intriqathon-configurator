@@ -62,6 +62,12 @@ interface ServiceConfigBlockProps {
   locked?: boolean;
   lockedReason?: string;
   /**
+   * This step has no automation to run at all — there is nothing to lock,
+   * launch or retry, only the manual configuration below. Suppresses the
+   * whole primary-action row (start/retry/rerun button or locked reason).
+   */
+  manualOnly?: boolean;
+  /**
    * Sits above the action row — for the inputs the automation itself
    * consumes (the SSH key Scaleway installs on the instance, say), which
    * belong to the run rather than to the manual fallback.
@@ -97,6 +103,7 @@ export function ServiceConfigBlock({
   helpHint,
   locked = false,
   lockedReason,
+  manualOnly = false,
   extra,
   manualLabel,
   children,
@@ -156,7 +163,9 @@ export function ServiceConfigBlock({
   );
 
   let primaryAction: ReactNode = null;
-  if (status === "running" && onCancel) {
+  if (manualOnly) {
+    // Nothing to start, retry or lock — the manual panel below is the whole step.
+  } else if (status === "running" && onCancel) {
     primaryAction = (
       <button
         className="btn btn-danger service-config-block__btn-cancel"

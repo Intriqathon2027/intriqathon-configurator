@@ -186,6 +186,8 @@ export const translations: Translations = {
     'accountCreation.spaceship.apiSecret': 'API Secret',
     'accountCreation.spaceship.apiSecret.path': 'Launchpad > API Manager > New API key',
     'accountCreation.spaceship.apiSecret.hint': 'Fourni en même temps que l\'API Key et affiché une seule fois.',
+    'accountCreation.spaceship.otherProvider': 'J\'utiliserai un autre fournisseur de nom de domaine que Spaceship',
+    'accountCreation.domainProvider.title': 'NOM DE DOMAINE',
 
     // Scaleway
     'accountCreation.scaleway.title': 'SCALEWAY',
@@ -255,6 +257,7 @@ export const translations: Translations = {
     'apiConfig.supabase.pwFill.btn': 'Remplacer',
 
     // Spaceship API config
+    'apiConfig.domainProvider.title': 'FOURNISSEUR DE DOMAINE',
     'apiConfig.spaceship.helpHint': 'Launchpad, Advanced DNS et enregistrements A.',
     'apiConfig.spaceship.dnsPath': 'Launchpad (ou recherche / ou ⌘ K) > Advanced DNS > votre domaine > DNS records > Custom records > Add record.',
     'apiConfig.spaceship.hostNote': 'Le champ Host de Spaceship attend le nom sans le domaine : @ pour le domaine lui-même, config pour le panneau d\'administration. Les valeurs ci-dessous sont déjà écrites sous cette forme.',
@@ -567,6 +570,8 @@ export const translations: Translations = {
     'accountCreation.spaceship.apiSecret': 'API Secret',
     'accountCreation.spaceship.apiSecret.path': 'Launchpad > API Manager > New API key',
     'accountCreation.spaceship.apiSecret.hint': 'Issued together with the API Key and shown only once.',
+    'accountCreation.spaceship.otherProvider': 'I will use a domain name provider other than Spaceship',
+    'accountCreation.domainProvider.title': 'DOMAIN NAME',
 
     // Scaleway
     'accountCreation.scaleway.title': 'SCALEWAY',
@@ -636,6 +641,7 @@ export const translations: Translations = {
     'apiConfig.supabase.pwFill.btn': 'Replace',
 
     // Spaceship API config
+    'apiConfig.domainProvider.title': 'DOMAIN PROVIDER',
     'apiConfig.spaceship.helpHint': 'Launchpad, Advanced DNS and A records.',
     'apiConfig.spaceship.dnsPath': 'Launchpad (or the / or ⌘ K search) > Advanced DNS > your domain > DNS records > Custom records > Add record.',
     'apiConfig.spaceship.hostNote': 'Spaceship\'s Host field takes the name without the domain: @ for the domain itself, config for the admin panel. The values below are already written that way.',

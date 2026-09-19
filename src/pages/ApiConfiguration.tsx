@@ -126,6 +126,7 @@ export function ApiConfiguration() {
   );
   const isScalewayComplete = !!config.IPV4_INSTANCE;
   const isResendComplete = !!(config.FROM_EMAIL && config.ALLOWED_EMAILS);
+  const usesOtherDomainProvider = config.USE_OTHER_DOMAIN_PROVIDER === "true";
 
   /**
    * What the checkboxes carry, per block. These steps leave nothing in the
@@ -492,16 +493,20 @@ export function ApiConfiguration() {
           </div>
         </ServiceConfigBlock>
 
-        {/* Spaceship */}
+        {/* Spaceship — or whichever registrar holds the domain, once step 1
+            says another provider will handle it */}
         <ServiceConfigBlock
           stepNumber={3}
-          serviceName="SPACESHIP"
+          serviceName={
+            usesOtherDomainProvider ? t("apiConfig.domainProvider.title") : "SPACESHIP"
+          }
           serviceIcon={<Globe size={18} color="var(--color-primary-text)" />}
           description={t("apiConfig.spaceship.desc")}
           status={spaceshipStatus}
           manuallyConfirmed={spaceshipManualDone}
-          locked={!!spaceshipLock}
+          locked={!usesOtherDomainProvider && !!spaceshipLock}
           lockedReason={spaceshipLock ?? undefined}
+          manualOnly={usesOtherDomainProvider}
           onStart={() => handleStart("Spaceship")}
           onCancel={() => handleCancel("Spaceship")}
           btnStartLabel={t("apiConfig.btnStart")}
@@ -509,23 +514,25 @@ export function ApiConfiguration() {
           statusLabels={statusLabels}
           helpAnchor="svc-spaceship"
           helpHint={t("apiConfig.spaceship.helpHint")}
-          manualLabel={t("apiConfig.manualConfig")}
+          manualLabel={usesOtherDomainProvider ? undefined : t("apiConfig.manualConfig")}
         >
           <div className="form-section">
             <ManualSection
               title={t("step4.dns.title")}
               desc={t("apiConfig.spaceship.dnsPath")}
             >
-              <div className="link-buttons-row">
-                <ExternalLinkBtn
-                  url={SPACESHIP_LAUNCHPAD_URL}
-                  label="Launchpad"
-                />
-                <ExternalLinkBtn
-                  url={SPACESHIP_DNS_HELP_URL}
-                  label={isEn ? "Spaceship DNS help" : "Aide DNS Spaceship"}
-                />
-              </div>
+              {!usesOtherDomainProvider && (
+                <div className="link-buttons-row">
+                  <ExternalLinkBtn
+                    url={SPACESHIP_LAUNCHPAD_URL}
+                    label="Launchpad"
+                  />
+                  <ExternalLinkBtn
+                    url={SPACESHIP_DNS_HELP_URL}
+                    label={isEn ? "Spaceship DNS help" : "Aide DNS Spaceship"}
+                  />
+                </div>
+              )}
               <table className="dns-table">
                 <thead>
                   <tr>
