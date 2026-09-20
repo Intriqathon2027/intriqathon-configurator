@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Database, Mail, Globe, Server, FolderOpen } from "lucide-react";
 import toast from "react-hot-toast";
 import { WizardLayout } from "../components/layout/WizardLayout";
@@ -8,10 +8,15 @@ import { useApp } from "../context/AppContext";
 import { SupabaseProjectSetup } from "../components/provision/SupabaseProjectSetup";
 import { CredentialWarning } from "../components/ui/CredentialWarning";
 import { isAccountComplete } from "../utils/serviceCompletion";
+import type { CredentialState } from "../types/credentials";
 import { AccountCreationHelpContent } from "../PagesHelpContent/AccountCreationHelpContent";
 
 export function AccountCreation() {
   const { t, config, setField, hasSavedConfig } = useApp();
+  // Shared with the project picker below: while this box is already saying
+  // the token is refused, the picker's own fetches fail for the very same
+  // reason and have nothing to add by repeating it.
+  const [supabaseTokenState, setSupabaseTokenState] = useState<CredentialState>("unknown");
 
   useEffect(() => {
     if (!hasSavedConfig) {
@@ -34,7 +39,15 @@ export function AccountCreation() {
   // automations of steps 2 and 8 read it to decide whether they may run at all.
   const defaultMailSubdomain = `mail.${config.DOMAIN || "votredomaine.fr"}`;
 
-  const isSupabaseComplete = isAccountComplete(config, "supabase");
+  /**
+   * The fields being filled in is not the same claim as the token working —
+   * a project created earlier, on a token since revoked or mistyped, still
+   * has every field on file. `!== "invalid"` rather than `=== "valid"`, so a
+   * check still in flight or a provider that could not be reached does not
+   * itself grey out a card whose fields are otherwise complete.
+   */
+  const isSupabaseComplete =
+    isAccountComplete(config, "supabase") && supabaseTokenState !== "invalid";
   const isResendComplete = isAccountComplete(config, "resend");
   const isSpaceshipComplete = isAccountComplete(config, "spaceship");
   const isScalewayComplete = isAccountComplete(config, "scaleway");
@@ -73,6 +86,7 @@ export function AccountCreation() {
                   : null
               }
               message={t("accountCreation.invalid.supabase")}
+              onStateChange={setSupabaseTokenState}
             />
 
             {/* The project itself: adopted or created from here, plus the

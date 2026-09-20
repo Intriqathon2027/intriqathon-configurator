@@ -144,6 +144,15 @@ export function ApiConfiguration() {
    */
   const supabaseManualDone =
     isManualChecked("supabase-buckets") && isSupabaseComplete;
+  /**
+   * An IPv4 typed by hand names no instance the app has ever seen — only a run
+   * that produced one, or the reader's own word for it, does. Without this the
+   * block reads as done the moment any address sits in the field, and the
+   * Spaceship and Resend steps downstream would point DNS at it without
+   * anyone having confirmed a server actually answers there.
+   */
+  const scalewayManualDone =
+    isManualChecked("scaleway-instance") && isScalewayComplete;
   const spaceshipManualDone = isManualChecked("spaceship-dns");
   const resendManualDone =
     isManualChecked("resend-subdomain") && isResendComplete;
@@ -206,7 +215,11 @@ export function ApiConfiguration() {
   }, [supabase.status]);
 
   useEffect(() => {
-    if (scalewayStatus === "done") markRunDone("api-scaleway");
+    if (scalewayStatus !== "done") return;
+    markRunDone("api-scaleway");
+    // The run created the instance and read its IP back from Scaleway itself:
+    // what the box asks the reader to confirm is already established.
+    confirmManual("scaleway-instance");
   }, [scalewayStatus]);
 
   useEffect(() => {
@@ -513,7 +526,8 @@ export function ApiConfiguration() {
           serviceIcon={<Server size={18} color="var(--color-primary-text)" />}
           description={t("apiConfig.scaleway.desc")}
           status={scwStatus}
-          isComplete={isScalewayComplete}
+          isComplete={scalewayManualDone}
+          manuallyConfirmed={scalewayManualDone}
           locked={!!scalewayLock}
           lockedReason={scalewayLock ?? undefined}
           onStart={() => handleStartScaleway()}
@@ -537,13 +551,24 @@ export function ApiConfiguration() {
           manualLabel={t("apiConfig.manualConfig")}
         >
           <div className="form-section">
-            <FormField
-              id="ipv4"
-              label={t("apiConfig.spaceship.ipv4")}
-              value={config.IPV4_INSTANCE}
-              onChange={(v) => setField("IPV4_INSTANCE", v)}
-              placeholder="198.51.100.1"
-            />
+            <div className="manual-section__body">
+              <FormField
+                id="ipv4"
+                label={t("apiConfig.spaceship.ipv4")}
+                value={config.IPV4_INSTANCE}
+                onChange={(v) => setField("IPV4_INSTANCE", v)}
+                placeholder="198.51.100.1"
+              />
+
+              <ManualCheck
+                checkKey="scaleway-instance"
+                label={
+                  isEn
+                    ? "This IP matches an instance that was actually launched"
+                    : "Cette IP correspond à une instance qui a bien été lancée"
+                }
+              />
+            </div>
 
             <ManualSection title={t("step1.specs.title")}>
               <IconRowList items={specs} />
@@ -634,7 +659,9 @@ export function ApiConfiguration() {
         <ServiceConfigBlock
           stepNumber={4}
           serviceName={
-            usesOtherDomainProvider ? t("apiConfig.domainProvider.title") : "SPACESHIP"
+            usesOtherDomainProvider
+              ? t("apiConfig.domainProvider.title")
+              : "SPACESHIP"
           }
           serviceIcon={<Globe size={18} color="var(--color-primary-text)" />}
           description={t("apiConfig.spaceship.desc")}
@@ -655,7 +682,9 @@ export function ApiConfiguration() {
           statusLabels={statusLabels}
           helpAnchor="svc-spaceship"
           helpHint={t("apiConfig.spaceship.helpHint")}
-          manualLabel={usesOtherDomainProvider ? undefined : t("apiConfig.manualConfig")}
+          manualLabel={
+            usesOtherDomainProvider ? undefined : t("apiConfig.manualConfig")
+          }
         >
           <div className="form-section">
             <ManualSection

@@ -215,6 +215,9 @@ export function SupabaseProjectSetup() {
       setOrgError(result.error || t('accountCreation.supabase.orgs.error'))
       return
     }
+    // A fixed token still has last attempt's refusal sitting in this slot —
+    // unlike `applyProjects`, which already clears its own error here.
+    setOrgError(null)
     setOrgs(result.data)
     // A single organization is not a choice — pick it and move on.
     if (result.data.length === 1) {
@@ -388,13 +391,12 @@ export function SupabaseProjectSetup() {
       <span>{t('accountCreation.supabase.verify.running')}</span>
     </div>
   ) : currentVerifyError ? (
-    <div className="project-verification project-verification--failed">
-      <div className="project-create-status">
-        <X size={15} />
-        <span>{t('accountCreation.supabase.verify.failed')}</span>
-      </div>
-      <p className="form-error" style={{ margin: 0 }}>{currentVerifyError}</p>
-    </div>
+    // Nothing rendered here on purpose: a refused token fails this lookup
+    // too, and the warning box above already says so — a second box guessing
+    // "project not found" on top of it would be a wrong story, not just a
+    // repeated one. `currentVerifyError` still gates `verifying` above; it is
+    // just never shown as its own message.
+    null
   ) : currentVerification ? (
     <div className={`project-verification${currentVerification.ready ? ' project-verification--ok' : ''}`}>
               <div className="project-create-status project-create-status--done">
@@ -483,8 +485,6 @@ export function SupabaseProjectSetup() {
 
           {/* Detection runs on its own; only its outcome is shown. */}
           {verificationPanel}
-
-          {projectsError && <p className="form-error">{projectsError}</p>}
         </>
       )}
 
@@ -517,7 +517,6 @@ export function SupabaseProjectSetup() {
                 <option key={org.slug} value={org.slug}>{org.name}</option>
               ))}
             </select>
-            {orgError && <p className="form-error">{orgError}</p>}
             {!config.SUPABASE_ACCESS_TOKEN && (
               <p className="t-caption" style={{ margin: '4px 0 0' }}>
                 {t('accountCreation.supabase.organization.needToken')}

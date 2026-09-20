@@ -36,6 +36,7 @@ export type RunKey =
 
 export type ManualKey =
   | 'supabase-buckets'
+  | 'scaleway-instance'
   | 'spaceship-dns'
   | 'resend-subdomain'
   | 'deploy-manual'

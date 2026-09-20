@@ -1,11 +1,19 @@
+import { useEffect } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { useCredentialCheck } from '../../hooks/useCredentialCheck'
-import type { CredentialCheckRequest } from '../../types/credentials'
+import type { CredentialCheckRequest, CredentialState } from '../../types/credentials'
 
 interface CredentialWarningProps {
   /** `null` while the fields are too incomplete to ask the provider anything. */
   request: CredentialCheckRequest | null
   message: string
+  /**
+   * Lets a sibling that runs its own checks against the same key — the
+   * Supabase project picker, say — stay quiet while this box is already
+   * saying the key is the problem, instead of both repeating the provider's
+   * refusal in their own words.
+   */
+  onStateChange?: (state: CredentialState) => void
 }
 
 /**
@@ -16,8 +24,13 @@ interface CredentialWarningProps {
  * crowd out the one that matters, and the account cards already turn green on
  * their own once they are filled in.
  */
-export function CredentialWarning({ request, message }: CredentialWarningProps) {
+export function CredentialWarning({ request, message, onStateChange }: CredentialWarningProps) {
   const state = useCredentialCheck(request)
+
+  useEffect(() => {
+    onStateChange?.(state)
+  }, [state, onStateChange])
+
   if (state !== 'invalid') return null
 
   return (
