@@ -174,6 +174,10 @@ export const translations: Translations = {
     'accountCreation.resend.apiKey.hint': 'Clé serveur utilisée pour l\'envoi des emails du hackathon (invitations, notifications). Affichée une seule fois — copiez-la immédiatement.',
     'accountCreation.resend.mailSubdomain': 'Sous-domaine d\'envoi',
     'accountCreation.resend.mailSubdomain.hint': 'Sous-domaine dédié aux emails, à ajouter dans Resend. Pré-rempli avec mail.votredomaine ; changez-le si ce sous-domaine sert déjà à autre chose. Les enregistrements DNS et l\'adresse d\'expédition en découlent.',
+    'accountCreation.invalid.supabase': 'Jeton d\'accès Supabase refusé — vérifiez qu\'il a été copié en entier depuis Account ➔ Access Tokens, et qu\'il n\'a pas été révoqué.',
+    'accountCreation.invalid.scaleway': 'Clé secrète Scaleway refusée — vérifiez qu\'elle a été copiée en entier, et que la clé API dispose des droits IAM nécessaires.',
+    'accountCreation.invalid.spaceship': 'Clé API Spaceship refusée — vérifiez la clé et le secret, et que les permissions DNS sont activées sur la clé (le secret n\'est affiché qu\'à sa création).',
+    'accountCreation.invalid.resend': 'Clé API Resend refusée — vérifiez qu\'elle a été copiée en entier depuis resend.com/api-keys, avec les droits « Full access ».',
 
     // Spaceship
     'accountCreation.spaceship.title': 'SPACESHIP',
@@ -215,7 +219,7 @@ export const translations: Translations = {
     'apiConfig.locked.scalewayKeys': "En attente de l'étape 1 : clé API et Project ID Scaleway non renseignés.",
     'apiConfig.locked.needsIpv4': "En attente de l'étape Scaleway : l'IPv4 de l'instance est requise pour les enregistrements DNS.",
     'apiConfig.locked.needsDomain': "En attente de l'étape 1 : nom de domaine non renseigné.",
-    'apiConfig.locked.needsDns': "En attente de l'étape Spaceship : les enregistrements DNS doivent exister avant la vérification du domaine.",
+    'apiConfig.locked.needsDns': "En attente de l'étape Scaleway : l'IPv4 de l'instance doit être connue avant de toucher au DNS du domaine.",
     'apiConfig.locked.accountSupabase': "Carte Supabase incomplète à l'étape 1 (Création de comptes) — complétez-la pour lancer l'automatisation.",
     'apiConfig.locked.accountScaleway': "Carte Scaleway incomplète à l'étape 1 (Création de comptes) — complétez-la pour lancer l'automatisation.",
     'apiConfig.locked.accountSpaceship': "Carte Spaceship incomplète à l'étape 1 (Création de comptes) — complétez-la pour lancer l'automatisation.",
@@ -272,6 +276,8 @@ export const translations: Translations = {
 
     // Resend API config
     'apiConfig.resend.helpHint': 'Domaine d\'envoi, enregistrements DNS et vérification.',
+    'apiConfig.resend.records.title': 'Enregistrements demandés par Resend',
+    'apiConfig.resend.records.desc': 'Récupérés auprès de Resend lors du lancement. Publiés automatiquement chez Spaceship ; chez un autre registrar, ce sont ces lignes à recopier avant de relancer pour la vérification.',
     'apiConfig.resend.desc': 'Ajout du domaine d\'envoi, vérification DNS, création des clés secondaires',
 
     // =============================================
@@ -558,6 +564,10 @@ export const translations: Translations = {
     'accountCreation.resend.apiKey.hint': 'Server key used to send the hackathon emails (invitations, notifications). Shown only once — copy it immediately.',
     'accountCreation.resend.mailSubdomain': 'Sending subdomain',
     'accountCreation.resend.mailSubdomain.hint': 'The dedicated email subdomain to add in Resend. Pre-filled with mail.yourdomain; change it if that subdomain is already in use. The DNS records and the sender address derive from it.',
+    'accountCreation.invalid.supabase': 'Supabase rejected this access token — check it was copied in full from Account ➔ Access Tokens, and that it has not been revoked.',
+    'accountCreation.invalid.scaleway': 'Scaleway rejected this secret key — check it was copied in full, and that the API key has the required IAM permissions.',
+    'accountCreation.invalid.spaceship': 'Spaceship rejected these credentials — check the key and the secret, and that DNS permissions are enabled on the key (the secret is only shown once, at creation).',
+    'accountCreation.invalid.resend': 'Resend rejected this API key — check it was copied in full from resend.com/api-keys, with "Full access" rights.',
 
     // Spaceship
     'accountCreation.spaceship.title': 'SPACESHIP',
@@ -599,7 +609,7 @@ export const translations: Translations = {
     'apiConfig.locked.scalewayKeys': 'Waiting on step 1: the Scaleway API key and Project ID are missing.',
     'apiConfig.locked.needsIpv4': 'Waiting on the Scaleway step: the instance IPv4 is required for the DNS records.',
     'apiConfig.locked.needsDomain': 'Waiting on step 1: the domain name is missing.',
-    'apiConfig.locked.needsDns': 'Waiting on the Spaceship step: the DNS records must exist before the domain can be verified.',
+    'apiConfig.locked.needsDns': "Waiting on the Scaleway step: the instance IPv4 must be known before touching the domain's DNS.",
     'apiConfig.locked.accountSupabase': 'The Supabase card is still incomplete at step 1 (Account creation) — finish it to run the automation.',
     'apiConfig.locked.accountScaleway': 'The Scaleway card is still incomplete at step 1 (Account creation) — finish it to run the automation.',
     'apiConfig.locked.accountSpaceship': 'The Spaceship card is still incomplete at step 1 (Account creation) — finish it to run the automation.',
@@ -656,6 +666,8 @@ export const translations: Translations = {
 
     // Resend API config
     'apiConfig.resend.helpHint': 'Sending domain, DNS records and verification.',
+    'apiConfig.resend.records.title': 'Records requested by Resend',
+    'apiConfig.resend.records.desc': 'Retrieved from Resend when the step runs. Published to Spaceship automatically; at any other registrar these are the lines to copy across before relaunching for verification.',
     'apiConfig.resend.desc': 'Sending domain addition, DNS verification, secondary key creation',
 
     // =============================================

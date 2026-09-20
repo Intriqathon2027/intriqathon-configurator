@@ -28,6 +28,8 @@ import { useApp } from './AppContext'
 export type RunKey =
   | 'api-supabase'
   | 'api-scaleway'
+  | 'api-spaceship'
+  | 'api-resend'
   | 'deploy'
   | 'site-supabase'
   | 'site-docker'

@@ -172,6 +172,17 @@ export type TranslationKeys = {
   'accountCreation.resend.mailSubdomain': string
   'accountCreation.resend.mailSubdomain.hint': string
 
+  /**
+   * Shown only when the provider itself refuses the key. Each covers both of
+   * the causes a refusal can have — a wrong key, and a key without the rights
+   * the automation needs — because the reader's next move is the same either
+   * way: go back to the provider and look at the key.
+   */
+  'accountCreation.invalid.supabase': string
+  'accountCreation.invalid.scaleway': string
+  'accountCreation.invalid.spaceship': string
+  'accountCreation.invalid.resend': string
+
   // Spaceship
   'accountCreation.spaceship.title': string
   'accountCreation.spaceship.domain': string
@@ -183,6 +194,9 @@ export type TranslationKeys = {
   'accountCreation.spaceship.apiSecret': string
   'accountCreation.spaceship.apiSecret.path': string
   'accountCreation.spaceship.apiSecret.hint': string
+  'accountCreation.spaceship.otherProvider': string
+  /** What the card is called once DNS is somebody else's registrar. */
+  'accountCreation.domainProvider.title': string
 
   // Scaleway
   'accountCreation.scaleway.title': string
@@ -259,6 +273,7 @@ export type TranslationKeys = {
   'apiConfig.spaceship.ipv4': string
   'apiConfig.spaceship.ipv4.path': string
   'apiConfig.spaceship.ipv4.hint': string
+  'apiConfig.domainProvider.title': string
 
   // Scaleway API config
   'apiConfig.scaleway.desc': string
@@ -267,6 +282,8 @@ export type TranslationKeys = {
   // Resend API config
   'apiConfig.resend.desc': string
   'apiConfig.resend.helpHint': string
+  'apiConfig.resend.records.title': string
+  'apiConfig.resend.records.desc': string
 
   // =============================================
   // Step 3 — OAuth2 + Discord Bot

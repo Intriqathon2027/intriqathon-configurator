@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   Database,
   Mail,
@@ -10,7 +10,6 @@ import {
   MemoryStick,
   HardDrive,
   Monitor,
-  Copy,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { WizardLayout } from "../components/layout/WizardLayout";
@@ -30,7 +29,9 @@ import { useServiceProvision } from "../hooks/useServiceProvision";
 import { useSession } from "../context/SessionContext";
 import { ManualCheck } from "../components/ui/ManualCheck";
 import { ManualSection } from "../components/ui/ManualSection";
+import { DnsTable } from "../components/ui/DnsTable";
 import { STORAGE_BUCKETS } from "../shared/supabaseBuckets";
+import { buildInfraDnsRecords, type DnsRecord } from "../shared/dnsRecords";
 import {
   BUCKETS_URL,
   SPACESHIP_LAUNCHPAD_URL,
@@ -61,32 +62,39 @@ export function ApiConfiguration() {
   };
 
   const supabase = useServiceProvision("supabase", applyPatch);
+  const spaceship = useServiceProvision("spaceship", applyPatch);
+  const resend = useServiceProvision("resend", applyPatch);
 
   const domain = config.DOMAIN || "<DOMAIN>";
   const ipv4 = config.IPV4_INSTANCE || "<IPV4_INSTANCE>";
   const mailSubdomain = config.MAIL_SUBDOMAIN || `mail.${domain}`;
 
-  /**
-   * Spaceship's Host field takes the name *without* the domain — `@` for the
-   * apex, `config` for the admin panel — which is also what its API documents
-   * ("name of resource record excluding domain name part"). Pasting the full
-   * hostname there creates `config.domain.fr.domain.fr`, a record that resolves
-   * for nobody and looks right in the table.
-   */
-  const mailHost = mailSubdomain.endsWith(`.${domain}`)
-    ? mailSubdomain.slice(0, -(domain.length + 1))
-    : mailSubdomain;
+  // The very records the Spaceship run publishes — one list, so what is read
+  // here and what is written there can never drift apart.
+  const dnsRecords = buildInfraDnsRecords(domain, ipv4, mailSubdomain);
 
-  const dnsRecords = [
-    {
-      type: "TXT",
-      host: `_dmarc.${mailHost}`,
-      answer: "v=DMARC1;p=none;",
-      ttl: "3600",
-    },
-    { type: "A", host: "@", answer: ipv4, ttl: "3600" },
-    { type: "A", host: "config", answer: ipv4, ttl: "3600" },
-  ];
+  /**
+   * What Resend asked for, as its run brought them back. Nothing can know them
+   * in advance: the DKIM key is minted with the domain. Until the run has been,
+   * the card shows the subdomain alone.
+   */
+  const resendRecords = useMemo<DnsRecord[]>(() => {
+    if (!config.RESEND_DNS_RECORDS) return [];
+    try {
+      return JSON.parse(config.RESEND_DNS_RECORDS) as DnsRecord[];
+    } catch {
+      return [];
+    }
+  }, [config.RESEND_DNS_RECORDS]);
+
+  const dnsLabels = {
+    type: t("step4.dns.type"),
+    host: t("step4.dns.host"),
+    answer: t("step4.dns.answer"),
+    ttl: t("step4.dns.ttl"),
+    copy: t("btn.copy"),
+    copyRow: isEn ? "Copy the whole row" : "Copier la ligne entière",
+  };
 
   const specs: IconRowItem[] = [
     {
@@ -149,11 +157,6 @@ export function ApiConfiguration() {
     btnLabel: t("apiConfig.supabase.pwFill.btn"),
   };
 
-  // Not yet automated — these two still run on the manual fallback, and their
-  // checkboxes are what say the work was done.
-  const [spaceshipStatus] = useState<Status>("idle");
-  const [resendStatus] = useState<Status>("idle");
-
   const {
     status: scalewayStatus,
     logs: scwLogs,
@@ -185,6 +188,14 @@ export function ApiConfiguration() {
     scalewayStatus === "idle" && isRunDone("api-scaleway")
       ? "done"
       : scalewayStatus;
+  const spaceshipStatus: Status =
+    spaceship.status === "idle" && isRunDone("api-spaceship")
+      ? "done"
+      : spaceship.status;
+  const resendStatus: Status =
+    resend.status === "idle" && isRunDone("api-resend")
+      ? "done"
+      : resend.status;
 
   useEffect(() => {
     if (supabase.status !== "done") return;
@@ -197,6 +208,25 @@ export function ApiConfiguration() {
   useEffect(() => {
     if (scalewayStatus === "done") markRunDone("api-scaleway");
   }, [scalewayStatus]);
+
+  useEffect(() => {
+    if (spaceship.status !== "done") return;
+    markRunDone("api-spaceship");
+    // The run published those exact records and read the zone back to prove it.
+    confirmManual("spaceship-dns");
+  }, [spaceship.status]);
+
+  /**
+   * The Resend box says the subdomain is added *and verified*, so it is only
+   * ticked once Resend has said so itself. A run that published the records
+   * and ran out of patience waiting for DNS to propagate has still done its
+   * job — it just cannot claim that one.
+   */
+  useEffect(() => {
+    if (resend.status !== "done") return;
+    markRunDone("api-resend");
+    if (config.RESEND_DOMAIN_VERIFIED_AT) confirmManual("resend-subdomain");
+  }, [resend.status, config.RESEND_DOMAIN_VERIFIED_AT]);
 
   const handleStartScaleway = async (
     keyToUse: SshKeyInfo | null = selectedSshKey,
@@ -301,12 +331,40 @@ export function ApiConfiguration() {
     });
   };
 
-  const handleStart = (service: string) => {
-    console.log(`Starting ${service} config...`);
+  const handleStartSpaceship = () => {
+    if (spaceshipLock) return;
+    void spaceship.startSpaceship({
+      apiKey: config.SPACESHIP_API_KEY,
+      apiSecret: config.SPACESHIP_API_SECRET,
+      domain: config.DOMAIN,
+      // Straight from the Scaleway step: this is the address the apex and the
+      // admin panel are about to point at.
+      ipv4: config.IPV4_INSTANCE,
+      mailSubdomain,
+    });
   };
 
-  const handleCancel = (service: string) => {
-    console.log(`Cancelling ${service} config...`);
+  const handleStartResend = () => {
+    if (resendLock) return;
+    void resend.startResend({
+      apiKey: config.RESEND_API_KEY,
+      domain: config.DOMAIN,
+      mailSubdomain,
+      // Present from the second run on — what stops a second domain from being
+      // created on the account.
+      domainId: config.RESEND_DOMAIN_ID || undefined,
+      /**
+       * Only when Spaceship holds the zone. Handed over, the run publishes
+       * what Resend asks for by itself; withheld, it stops once the records
+       * are known and they are shown below for the other registrar.
+       */
+      ...(usesOtherDomainProvider
+        ? {}
+        : {
+            spaceshipApiKey: config.SPACESHIP_API_KEY,
+            spaceshipApiSecret: config.SPACESHIP_API_SECRET,
+          }),
+    });
   };
 
   return (
@@ -493,10 +551,88 @@ export function ApiConfiguration() {
           </div>
         </ServiceConfigBlock>
 
+        {/* Resend — before Spaceship, because the records it asks for cannot
+            be known until its domain exists: the DKIM key is minted with it.
+            The run publishes them itself when Spaceship holds the zone. */}
+        <ServiceConfigBlock
+          stepNumber={3}
+          serviceName="RESEND"
+          serviceIcon={<Mail size={18} color="var(--color-primary-text)" />}
+          description={t("apiConfig.resend.desc")}
+          status={resendStatus}
+          isComplete={resendManualDone}
+          manuallyConfirmed={resendManualDone}
+          logs={resend.logs}
+          progress={resend.progress}
+          locked={!!resendLock}
+          lockedReason={resendLock ?? undefined}
+          errorMessage={resend.error}
+          onStart={handleStartResend}
+          onCancel={resend.cancel}
+          btnStartLabel={t("apiConfig.btnStart")}
+          btnRetryLabel={t("apiConfig.btnRetry")}
+          btnRerunLabel={t("apiConfig.btnRerun")}
+          btnCancelLabel={t("apiConfig.btnCancel")}
+          statusLabels={statusLabels}
+          helpAnchor="svc-resend"
+          helpHint={t("apiConfig.resend.helpHint")}
+          manualLabel={t("apiConfig.manualConfig")}
+        >
+          <div className="form-section">
+            <ManualSection title={t("step4.subdomain")}>
+              <CopyRow content={mailSubdomain} />
+              <ManualCheck
+                checkKey="resend-subdomain"
+                label={
+                  isEn
+                    ? "This subdomain is added in Resend and verified"
+                    : "Ce sous-domaine est ajouté dans Resend et vérifié"
+                }
+              />
+            </ManualSection>
+
+            {/* Only once a run has been: before that there is nothing to show,
+                and inventing a DKIM line would be worse than an empty space. */}
+            {resendRecords.length > 0 && (
+              <ManualSection
+                title={t("apiConfig.resend.records.title")}
+                desc={t("apiConfig.resend.records.desc")}
+              >
+                <DnsTable records={resendRecords} labels={dnsLabels} />
+                <div className="info-box info">
+                  <Info size={15} className="info-box-icon" />
+                  <div className="info-box-text">
+                    {t("apiConfig.spaceship.hostNote")}
+                  </div>
+                </div>
+              </ManualSection>
+            )}
+
+            <ManualSection
+              title={isEn ? "Sending settings" : "Réglages d'envoi"}
+            >
+              <FormField
+                id="from-email"
+                label={t("apiConfig.supabase.fromEmail")}
+                value={config.FROM_EMAIL}
+                onChange={(v) => setField("FROM_EMAIL", v)}
+                placeholder="Hackathon Team <onboarding@mail.domain.com>"
+              />
+              <FormField
+                id="allowed-emails"
+                label={t("apiConfig.supabase.allowedEmails")}
+                value={config.ALLOWED_EMAILS}
+                onChange={(v) => setField("ALLOWED_EMAILS", v)}
+                placeholder="*"
+              />
+            </ManualSection>
+          </div>
+        </ServiceConfigBlock>
+
         {/* Spaceship — or whichever registrar holds the domain, once step 1
             says another provider will handle it */}
         <ServiceConfigBlock
-          stepNumber={3}
+          stepNumber={4}
           serviceName={
             usesOtherDomainProvider ? t("apiConfig.domainProvider.title") : "SPACESHIP"
           }
@@ -504,12 +640,17 @@ export function ApiConfiguration() {
           description={t("apiConfig.spaceship.desc")}
           status={spaceshipStatus}
           manuallyConfirmed={spaceshipManualDone}
+          logs={spaceship.logs}
+          progress={spaceship.progress}
           locked={!usesOtherDomainProvider && !!spaceshipLock}
           lockedReason={spaceshipLock ?? undefined}
           manualOnly={usesOtherDomainProvider}
-          onStart={() => handleStart("Spaceship")}
-          onCancel={() => handleCancel("Spaceship")}
+          errorMessage={spaceship.error}
+          onStart={handleStartSpaceship}
+          onCancel={spaceship.cancel}
           btnStartLabel={t("apiConfig.btnStart")}
+          btnRetryLabel={t("apiConfig.btnRetry")}
+          btnRerunLabel={t("apiConfig.btnRerun")}
           btnCancelLabel={t("apiConfig.btnCancel")}
           statusLabels={statusLabels}
           helpAnchor="svc-spaceship"
@@ -533,47 +674,7 @@ export function ApiConfiguration() {
                   />
                 </div>
               )}
-              <table className="dns-table">
-                <thead>
-                  <tr>
-                    <th>{t("step4.dns.type")}</th>
-                    <th>{t("step4.dns.host")}</th>
-                    <th>{t("step4.dns.answer")}</th>
-                    <th>{t("step4.dns.ttl")}</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dnsRecords.map((rec, i) => (
-                    <tr key={i}>
-                      <td>
-                        <span className="dns-table__type">{rec.type}</span>
-                      </td>
-                      <td>{rec.host}</td>
-                      <td>{rec.answer}</td>
-                      <td>{rec.ttl}</td>
-                      <td>
-                        <button
-                          className="btn btn-copy"
-                          onClick={() =>
-                            navigator.clipboard.writeText(
-                              `${rec.type},${rec.host},${rec.answer},${rec.ttl}`,
-                            )
-                          }
-                          title={
-                            isEn
-                              ? "Copy the whole row"
-                              : "Copier la ligne entière"
-                          }
-                        >
-                          <Copy size={11} />
-                          {t("btn.copy")}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DnsTable records={dnsRecords} labels={dnsLabels} />
               <div className="info-box info">
                 <Info size={15} className="info-box-icon" />
                 <div className="info-box-text">
@@ -591,62 +692,6 @@ export function ApiConfiguration() {
                     ? "These records are added in Advanced DNS"
                     : "Ces enregistrements sont ajoutés dans Advanced DNS"
                 }
-              />
-            </ManualSection>
-          </div>
-        </ServiceConfigBlock>
-
-        {/* Resend */}
-        <ServiceConfigBlock
-          stepNumber={4}
-          serviceName="RESEND"
-          serviceIcon={<Mail size={18} color="var(--color-primary-text)" />}
-          description={t("apiConfig.resend.desc")}
-          status={resendStatus}
-          isComplete={resendManualDone}
-          manuallyConfirmed={resendManualDone}
-          locked={!!resendLock}
-          lockedReason={resendLock ?? undefined}
-          onStart={() => handleStart("Resend")}
-          onCancel={() => handleCancel("Resend")}
-          btnStartLabel={t("apiConfig.btnStart")}
-          btnCancelLabel={t("apiConfig.btnCancel")}
-          statusLabels={statusLabels}
-          helpAnchor="svc-resend"
-          helpHint={t("apiConfig.resend.helpHint")}
-          manualLabel={t("apiConfig.manualConfig")}
-        >
-          <div className="form-section">
-            <ManualSection
-              title={t("step4.subdomain")}
-            >
-              <CopyRow content={mailSubdomain} />
-              <ManualCheck
-                checkKey="resend-subdomain"
-                label={
-                  isEn
-                    ? "This subdomain is added in Resend and verified"
-                    : "Ce sous-domaine est ajouté dans Resend et vérifié"
-                }
-              />
-            </ManualSection>
-
-            <ManualSection
-              title={isEn ? "Sending settings" : "Réglages d'envoi"}
-            >
-              <FormField
-                id="from-email"
-                label={t("apiConfig.supabase.fromEmail")}
-                value={config.FROM_EMAIL}
-                onChange={(v) => setField("FROM_EMAIL", v)}
-                placeholder="Hackathon Team <onboarding@mail.domain.com>"
-              />
-              <FormField
-                id="allowed-emails"
-                label={t("apiConfig.supabase.allowedEmails")}
-                value={config.ALLOWED_EMAILS}
-                onChange={(v) => setField("ALLOWED_EMAILS", v)}
-                placeholder="*"
               />
             </ManualSection>
           </div>

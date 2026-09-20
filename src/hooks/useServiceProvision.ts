@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createProvisionBridge, type ProvisionBridge } from '../services/provisionBridge'
-import type { ProvisionService, SupabaseProvisionRequest, SupabaseSiteSetupRequest } from '../types/provision'
+import type {
+  ProvisionService,
+  ResendProvisionRequest,
+  SpaceshipProvisionRequest,
+  SupabaseProvisionRequest,
+  SupabaseSiteSetupRequest,
+} from '../types/provision'
 
 export type ProvisionStatus = 'idle' | 'running' | 'done' | 'error'
 
@@ -63,32 +69,44 @@ export function useServiceProvision(
     return () => cleanups.forEach(fn => fn())
   }, [bridge, service])
 
-  const startSupabase = useCallback(async (req: SupabaseProvisionRequest) => {
+  /**
+   * Every run starts the same way: a clean pane, and `running` until an event
+   * says otherwise. The catch only covers the dispatch itself — once the call
+   * is through, failures arrive over `provision:error`.
+   */
+  const run = useCallback(async (dispatch: () => Promise<void>) => {
     setLogs([])
     setProgress(0)
     setError(null)
     setStatus('running')
     try {
-      await bridge.startSupabase(req)
+      await dispatch()
     } catch (err) {
       setError(String(err))
       setStatus('error')
     }
-  }, [bridge])
+  }, [])
+
+  const startSupabase = useCallback(
+    (req: SupabaseProvisionRequest) => run(() => bridge.startSupabase(req)),
+    [bridge, run],
+  )
 
   /** Same lifecycle as `startSupabase`, for the post-deployment settings run. */
-  const startSiteSetup = useCallback(async (req: SupabaseSiteSetupRequest) => {
-    setLogs([])
-    setProgress(0)
-    setError(null)
-    setStatus('running')
-    try {
-      await bridge.startSupabaseSiteSetup(req)
-    } catch (err) {
-      setError(String(err))
-      setStatus('error')
-    }
-  }, [bridge])
+  const startSiteSetup = useCallback(
+    (req: SupabaseSiteSetupRequest) => run(() => bridge.startSupabaseSiteSetup(req)),
+    [bridge, run],
+  )
+
+  const startSpaceship = useCallback(
+    (req: SpaceshipProvisionRequest) => run(() => bridge.startSpaceship(req)),
+    [bridge, run],
+  )
+
+  const startResend = useCallback(
+    (req: ResendProvisionRequest) => run(() => bridge.startResend(req)),
+    [bridge, run],
+  )
 
   const cancel = useCallback(() => {
     void bridge.cancel(service)
@@ -96,5 +114,5 @@ export function useServiceProvision(
     setProgress(0)
   }, [bridge, service])
 
-  return { status, logs, progress, error, startSupabase, startSiteSetup, cancel }
+  return { status, logs, progress, error, startSupabase, startSiteSetup, startSpaceship, startResend, cancel }
 }

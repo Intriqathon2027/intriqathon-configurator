@@ -2,6 +2,11 @@ import { ipcMain } from 'electron'
 import type { BrowserWindow } from 'electron'
 import { SupabaseProvisionService, type SupabaseProvisionRequest } from '../services/SupabaseProvisionService'
 import { SupabaseSiteSetupService, type SupabaseSiteSetupRequest } from '../services/SupabaseSiteSetupService'
+import { SpaceshipProvisionService } from '../services/SpaceshipProvisionService'
+import { ResendProvisionService } from '../services/ResendProvisionService'
+import { checkCredentials } from '../services/CredentialCheckService'
+import type { CredentialCheckRequest } from '../../types/credentials'
+import type { ResendProvisionRequest, SpaceshipProvisionRequest } from '../../types/provision'
 
 /**
  * IPC surface for the "Configuration par API" automations.
@@ -14,6 +19,8 @@ import { SupabaseSiteSetupService, type SupabaseSiteSetupRequest } from '../serv
 export function registerProvisionHandlers(getWin: () => BrowserWindow | null): void {
   const supabase = new SupabaseProvisionService()
   const supabaseSite = new SupabaseSiteSetupService()
+  const spaceship = new SpaceshipProvisionService()
+  const resend = new ResendProvisionService()
 
   const requireWin = (): BrowserWindow => {
     const win = getWin()
@@ -56,8 +63,31 @@ export function registerProvisionHandlers(getWin: () => BrowserWindow | null): v
     }
   })
 
+  ipcMain.handle('provision:spaceship:start', (_event, req: SpaceshipProvisionRequest) => {
+    void spaceship.start(requireWin(), req)
+  })
+
+  ipcMain.handle('provision:resend:start', (_event, req: ResendProvisionRequest) => {
+    void resend.start(requireWin(), req)
+  })
+
+  /**
+   * Answers for one key, on demand. Read-only and retry-free by design — it
+   * runs on every edit of the account page, not as part of a run.
+   */
+  ipcMain.handle('credentials:check', async (_event, req: CredentialCheckRequest) => {
+    try {
+      return await checkCredentials(req)
+    } catch {
+      // A check that cannot complete says nothing about the key.
+      return { state: 'unknown' }
+    }
+  })
+
   ipcMain.handle('provision:cancel', (_event, service: string) => {
     if (service === 'supabase') supabase.cancel()
     if (service === 'supabase-site') supabaseSite.cancel()
+    if (service === 'spaceship') spaceship.cancel()
+    if (service === 'resend') resend.cancel()
   })
 }

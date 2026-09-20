@@ -6,6 +6,7 @@ import { FormField } from "../components/ui/FormField";
 import { ServiceAccountCard } from "../components/ui/ServiceAccountCard";
 import { useApp } from "../context/AppContext";
 import { SupabaseProjectSetup } from "../components/provision/SupabaseProjectSetup";
+import { CredentialWarning } from "../components/ui/CredentialWarning";
 import { isAccountComplete } from "../utils/serviceCompletion";
 import { AccountCreationHelpContent } from "../PagesHelpContent/AccountCreationHelpContent";
 
@@ -63,6 +64,17 @@ export function AccountCreation() {
               type="password"
             />
 
+            {/* Silent while the token works. A key that is merely present is
+                what colours the card; this is the provider's own verdict. */}
+            <CredentialWarning
+              request={
+                config.SUPABASE_ACCESS_TOKEN
+                  ? { service: "supabase", accessToken: config.SUPABASE_ACCESS_TOKEN }
+                  : null
+              }
+              message={t("accountCreation.invalid.supabase")}
+            />
+
             {/* The project itself: adopted or created from here, plus the
                 database password that makes step 2 fully automatic. */}
             <SupabaseProjectSetup />
@@ -108,6 +120,57 @@ export function AccountCreation() {
                   {t("btn.browse")}
                 </button>
               }
+            />
+
+            {/* The secret key only. A Project ID that does not exist is a
+                different mistake, and the Scaleway run names it with the
+                context that makes it fixable. */}
+            <CredentialWarning
+              request={
+                config.SCW_SECRET_KEY
+                  ? { service: "scaleway", secretKey: config.SCW_SECRET_KEY }
+                  : null
+              }
+              message={t("accountCreation.invalid.scaleway")}
+            />
+          </div>
+        </ServiceAccountCard>
+
+        {/* Resend — kept ahead of the registrar card, in the order step 2
+            runs them: the records to publish are Resend's to hand out. */}
+        <ServiceAccountCard
+          serviceName={t("accountCreation.resend.title")}
+          serviceIcon={<Mail size={16} color="var(--color-primary-text)" />}
+          helpAnchor="svc-resend"
+          isComplete={isResendComplete}
+        >
+          <div className="form-section">
+            <FormField
+              id="resend-api-key"
+              label={t("accountCreation.resend.apiKey")}
+              value={config.RESEND_API_KEY}
+              onChange={(v) => setField("RESEND_API_KEY", v)}
+              placeholder="re_abc123..."
+              type="password"
+            />
+            {/* Pre-filled with `mail.<domain>` as soon as the domain is known,
+                and editable from here: the DNS records, the Resend domain and
+                the sender address are all built from this value. */}
+            <FormField
+              id="mail-subdomain"
+              label={t("accountCreation.resend.mailSubdomain")}
+              value={config.MAIL_SUBDOMAIN}
+              onChange={(v) => setField("MAIL_SUBDOMAIN", v)}
+              placeholder={defaultMailSubdomain}
+            />
+
+            <CredentialWarning
+              request={
+                config.RESEND_API_KEY
+                  ? { service: "resend", apiKey: config.RESEND_API_KEY }
+                  : null
+              }
+              message={t("accountCreation.invalid.resend")}
             />
           </div>
         </ServiceAccountCard>
@@ -163,37 +226,22 @@ export function AccountCreation() {
                   placeholder="ss_xyz789..."
                   type="password"
                 />
+                {/* Both halves or nothing: a secret typed against a key that
+                    is still half-pasted would be reported as refused. */}
+                <CredentialWarning
+                  request={
+                    config.SPACESHIP_API_KEY && config.SPACESHIP_API_SECRET
+                      ? {
+                          service: "spaceship",
+                          apiKey: config.SPACESHIP_API_KEY,
+                          apiSecret: config.SPACESHIP_API_SECRET,
+                        }
+                      : null
+                  }
+                  message={t("accountCreation.invalid.spaceship")}
+                />
               </>
             )}
-          </div>
-        </ServiceAccountCard>
-
-        {/* Resend */}
-        <ServiceAccountCard
-          serviceName={t("accountCreation.resend.title")}
-          serviceIcon={<Mail size={16} color="var(--color-primary-text)" />}
-          helpAnchor="svc-resend"
-          isComplete={isResendComplete}
-        >
-          <div className="form-section">
-            <FormField
-              id="resend-api-key"
-              label={t("accountCreation.resend.apiKey")}
-              value={config.RESEND_API_KEY}
-              onChange={(v) => setField("RESEND_API_KEY", v)}
-              placeholder="re_abc123..."
-              type="password"
-            />
-            {/* Pre-filled with `mail.<domain>` as soon as the domain is known,
-                and editable from here: the DNS records, the Resend domain and
-                the sender address are all built from this value. */}
-            <FormField
-              id="mail-subdomain"
-              label={t("accountCreation.resend.mailSubdomain")}
-              value={config.MAIL_SUBDOMAIN}
-              onChange={(v) => setField("MAIL_SUBDOMAIN", v)}
-              placeholder={defaultMailSubdomain}
-            />
           </div>
         </ServiceAccountCard>
       </div>

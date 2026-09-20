@@ -54,6 +54,40 @@ export interface SupabaseProvisionRequest {
 }
 
 /**
+ * The DNS run. Everything it writes is derived from these four values, and
+ * they are passed in rather than read from the vault for the same reason the
+ * Supabase request carries its token: the reader can press "Lancer" straight
+ * after typing one of them.
+ */
+export interface SpaceshipProvisionRequest {
+  apiKey: string
+  apiSecret: string
+  domain: string
+  ipv4: string
+  mailSubdomain: string
+}
+
+export interface ResendProvisionRequest {
+  apiKey: string
+  /** The registered domain — what the records' names are relative to. */
+  domain: string
+  /** The subdomain Resend sends from, and the domain created on the account. */
+  mailSubdomain: string
+  /**
+   * Resolved by an earlier run. Reusing it is what stops a second click from
+   * creating a second domain on the account.
+   */
+  domainId?: string
+  /**
+   * Present when Spaceship holds the DNS. The run then publishes the records
+   * Resend asks for by itself; without them it stops after creating the
+   * domain and leaves the records for the reader to copy to their registrar.
+   */
+  spaceshipApiKey?: string
+  spaceshipApiSecret?: string
+}
+
+/**
  * The site-configuration run. It works against a project that already exists
  * and whose database the deployment has migrated, so it needs nothing but the
  * token and the reference.

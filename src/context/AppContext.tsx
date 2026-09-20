@@ -60,6 +60,21 @@ export interface Config {
    */
   MAIL_SUBDOMAIN: string
 
+  /**
+   * The domain Resend created for that subdomain. Not part of the .env — it is
+   * what stops a second run from creating a second domain on the account.
+   */
+  RESEND_DOMAIN_ID: string
+  /**
+   * What Resend asks to be published, as a JSON `DnsRecord[]`. Only known once
+   * its API has been asked — the DKIM key is minted with the domain — and kept
+   * so the records survive a reopen, which is what the reader copies from when
+   * another registrar holds the zone.
+   */
+  RESEND_DNS_RECORDS: string
+  /** When Resend last reported the domain verified (ISO date). */
+  RESEND_DOMAIN_VERIFIED_AT: string
+
   // Account Creation — Scaleway
   SCW_SECRET_KEY: string
   SCW_DEFAULT_PROJECT_ID: string
@@ -123,6 +138,9 @@ const defaultConfig: Config = {
   SUPABASE_REGION: 'eu-west-3',
   RESEND_API_KEY: '',
   MAIL_SUBDOMAIN: '',
+  RESEND_DOMAIN_ID: '',
+  RESEND_DNS_RECORDS: '',
+  RESEND_DOMAIN_VERIFIED_AT: '',
   SCW_SECRET_KEY: '',
   SCW_DEFAULT_PROJECT_ID: '',
   DEPLOY_PATH: '',

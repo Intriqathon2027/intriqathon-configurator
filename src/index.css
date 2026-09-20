@@ -2227,10 +2227,26 @@ body {
   letter-spacing: 0.04em;
 }
 
+/* An MX preference, kept beside its value rather than given a column of
+   its own: only one record type in the whole table ever carries one. */
+.dns-table__priority {
+  color: var(--color-text-muted);
+  /* Kept in one piece: wrapped mid-way, it reads as a stray bullet on one
+     line and a bare number on the next. */
+  white-space: nowrap;
+}
+
 .dns-table td:last-child {
   width: 1%;
   text-align: right;
   white-space: nowrap;
+}
+
+/* A DKIM value is a few hundred characters of base64 — left to its own
+   devices it stretches the card past the window. */
+.dns-table td:nth-child(3) {
+  max-width: 22ch;
+  overflow-wrap: anywhere;
 }
 
 /* =============================================
