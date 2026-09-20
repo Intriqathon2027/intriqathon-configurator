@@ -154,6 +154,11 @@ export interface ResendVerificationResult {
 export interface SupabaseSiteSetupRequest {
   accessToken: string
   ref: string
+  /**
+   * A deployment ran in this session. The run then waits for its migrations
+   * rather than configuring an empty schema and reporting what it could not do.
+   */
+  awaitMigrations?: boolean
 }
 
 export interface SupabaseOrganizationSummary {
@@ -184,6 +189,35 @@ export interface SupabaseProjectVerification {
   services: { name: string; healthy: boolean }[]
   /** The project answers and every service checked is healthy. */
   ready: boolean
+}
+
+/**
+ * What the manual checkboxes claim, put to the providers that would know.
+ *
+ * Every part is optional: the page sends whatever credentials it holds, and
+ * whatever cannot be asked simply is not answered.
+ */
+export interface ManualCheckProbeRequest {
+  supabase?: { accessToken: string; ref: string }
+  scaleway?: { secretKey: string; ipv4: string; zone?: string }
+  spaceship?: { apiKey: string; apiSecret: string; domain: string; records: DnsRecord[] }
+}
+
+/**
+ * One answer per box, and `undefined` wherever the question could not be put.
+ * A box is never unticked on an absent answer — only on a clear "no".
+ */
+export interface ManualCheckProbe {
+  /** The five storage buckets exist, with those exact names. */
+  buckets?: boolean
+  /** An instance really answers at the IPv4 on file. */
+  instance?: boolean
+  /** Every record the table lists is in the zone. */
+  dnsRecords?: boolean
+  /** The privileges the SQL block hands out are held. */
+  siteGrants?: boolean
+  /** Exposed schema, Realtime, email confirmation and RLS all as they should be. */
+  siteSettings?: boolean
 }
 
 export interface ProvisionQueryResult<T> {

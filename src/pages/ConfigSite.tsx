@@ -194,7 +194,7 @@ function supabaseFinalSteps(isEn: boolean): HelpFlowStep[] {
 
 export function ConfigSite() {
   const { t, config, state, selectedSshKey, setFields, saveConfig } = useApp();
-  const { isRunDone, markRunDone, isManualChecked, confirmManual } =
+  const { isRunDone, markRunDone, isManualChecked, confirmManual, setManualCheck } =
     useSession();
   const { status, logs, progress, start, cancel } = useDockerRestart();
   const sshSelectorRef = useRef<SshKeySelectorHandle>(null);
@@ -288,8 +288,42 @@ export function ConfigSite() {
     void siteSetup.startSiteSetup({
       accessToken: config.SUPABASE_ACCESS_TOKEN,
       ref: config.SUPABASE_PROJECT_REF,
+      /**
+       * A deployment in this session means its migrations are on their way,
+       * and arriving before them is what made this step report a Realtime it
+       * could not configure. The run waits for them rather than the reader
+       * running it twice.
+       */
+      awaitMigrations: deployDone,
     });
   };
+
+  /**
+   * What the two boxes claim, read back from the project itself. Both cover
+   * work that leaves nothing here — privileges in the database, four settings
+   * in the dashboard — so the tick was the only record there was, and it
+   * stayed ticked whatever happened to the project afterwards.
+   */
+  const syncManualChecks = async () => {
+    if (!config.SUPABASE_ACCESS_TOKEN || !config.SUPABASE_PROJECT_REF) return;
+
+    const res = await siteSetup.readManualChecks({
+      supabase: {
+        accessToken: config.SUPABASE_ACCESS_TOKEN,
+        ref: config.SUPABASE_PROJECT_REF,
+      },
+    });
+    if (!res.success || !res.data) return;
+
+    const { siteGrants, siteSettings } = res.data;
+    if (siteGrants !== undefined) setManualCheck("site-supabase-sql", siteGrants);
+    if (siteSettings !== undefined)
+      setManualCheck("site-supabase-actions", siteSettings);
+  };
+
+  useEffect(() => {
+    void syncManualChecks();
+  }, [config.SUPABASE_PROJECT_REF, siteSetup.status]);
 
   // Validate the site-config step once the Docker restart succeeds, and record
   // the run so the block stays green across a remount of this page.

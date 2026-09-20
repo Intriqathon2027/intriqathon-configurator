@@ -5,8 +5,10 @@ import { SupabaseSiteSetupService, type SupabaseSiteSetupRequest } from '../serv
 import { SpaceshipProvisionService } from '../services/SpaceshipProvisionService'
 import { ResendProvisionService } from '../services/ResendProvisionService'
 import { checkCredentials } from '../services/CredentialCheckService'
+import { ManualCheckService } from '../services/ManualCheckService'
 import type { CredentialCheckRequest } from '../../types/credentials'
 import type {
+  ManualCheckProbeRequest,
   ResendDomainReadRequest,
   ResendProvisionRequest,
   ResendVerifyRequest,
@@ -26,6 +28,7 @@ export function registerProvisionHandlers(getWin: () => BrowserWindow | null): v
   const supabaseSite = new SupabaseSiteSetupService()
   const spaceship = new SpaceshipProvisionService()
   const resend = new ResendProvisionService()
+  const manualChecks = new ManualCheckService()
 
   const requireWin = (): BrowserWindow => {
     const win = getWin()
@@ -96,6 +99,19 @@ export function registerProvisionHandlers(getWin: () => BrowserWindow | null): v
   ipcMain.handle('provision:resend:verify', async (_event, req: ResendVerifyRequest) => {
     try {
       return { success: true, data: await resend.verifyOnly(req) }
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  /**
+   * What the manual checkboxes claim, checked against the providers. Read-only
+   * throughout: it runs when a step is opened, and must never be the thing
+   * that changes a configuration.
+   */
+  ipcMain.handle('provision:checks:read', async (_event, req: ManualCheckProbeRequest) => {
+    try {
+      return { success: true, data: await manualChecks.read(req) }
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : String(err) }
     }

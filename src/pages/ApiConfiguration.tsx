@@ -371,9 +371,61 @@ export function ApiConfiguration() {
     }
   };
 
+  /**
+   * The boxes, put to the providers that would know.
+   *
+   * They exist because these steps leave nothing behind here — a bucket, a
+   * server, a DNS record all live at the provider — which also meant a tick
+   * survived the thing it vouched for being deleted. Each answer stands on its
+   * own: an unanswered one leaves the box exactly as the reader left it.
+   */
+  const syncManualChecks = async () => {
+    const res = await resend.readManualChecks({
+      ...(config.SUPABASE_ACCESS_TOKEN && config.SUPABASE_PROJECT_REF
+        ? {
+            supabase: {
+              accessToken: config.SUPABASE_ACCESS_TOKEN,
+              ref: config.SUPABASE_PROJECT_REF,
+            },
+          }
+        : {}),
+      ...(config.SCW_SECRET_KEY && config.IPV4_INSTANCE
+        ? { scaleway: { secretKey: config.SCW_SECRET_KEY, ipv4: config.IPV4_INSTANCE } }
+        : {}),
+      ...(!usesOtherDomainProvider &&
+      config.SPACESHIP_API_KEY &&
+      config.SPACESHIP_API_SECRET &&
+      config.DOMAIN
+        ? {
+            spaceship: {
+              apiKey: config.SPACESHIP_API_KEY,
+              apiSecret: config.SPACESHIP_API_SECRET,
+              domain: config.DOMAIN,
+              records: allDnsRecords,
+            },
+          }
+        : {}),
+    });
+
+    if (!res.success || !res.data) return;
+    const { buckets, instance, dnsRecords } = res.data;
+    if (buckets !== undefined) setManualCheck("supabase-buckets", buckets);
+    if (instance !== undefined) setManualCheck("scaleway-instance", instance);
+    if (dnsRecords !== undefined) setManualCheck("spaceship-dns", dnsRecords);
+  };
+
   useEffect(() => {
     void syncResendDomain();
   }, [config.RESEND_API_KEY, config.DOMAIN, mailSubdomain, resendKeyRefused]);
+
+  useEffect(() => {
+    void syncManualChecks();
+  }, [
+    config.SUPABASE_PROJECT_REF,
+    config.IPV4_INSTANCE,
+    config.DOMAIN,
+    config.RESEND_DNS_RECORDS,
+  ]);
 
   const handleStartScaleway = async (
     keyToUse: SshKeyInfo | null = selectedSshKey,
@@ -917,7 +969,10 @@ export function ApiConfiguration() {
                 <div className="link-buttons-row">
                   <button
                     className="btn btn-secondary"
-                    onClick={() => void syncResendDomain(true)}
+                    onClick={() => {
+                      void syncResendDomain(true);
+                      void syncManualChecks();
+                    }}
                     disabled={syncingResend}
                     type="button"
                   >

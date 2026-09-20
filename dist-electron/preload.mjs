@@ -70,6 +70,7 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
 	startResendProvision: (req) => electron.ipcRenderer.invoke("provision:resend:start", req),
 	verifyResendDomain: (req) => electron.ipcRenderer.invoke("provision:resend:verify", req),
 	readResendDomain: (req) => electron.ipcRenderer.invoke("provision:resend:read-domain", req),
+	readManualChecks: (req) => electron.ipcRenderer.invoke("provision:checks:read", req),
 	checkCredentials: (req) => electron.ipcRenderer.invoke("credentials:check", req),
 	startSupabaseSiteSetup: (req) => electron.ipcRenderer.invoke("provision:supabase:site-setup", req),
 	listSupabaseOrganizations: (accessToken) => electron.ipcRenderer.invoke("provision:supabase:organizations", accessToken),

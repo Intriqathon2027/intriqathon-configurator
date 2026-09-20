@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createProvisionBridge, type ProvisionBridge } from '../services/provisionBridge'
 import type {
   ProvisionService,
+  ManualCheckProbeRequest,
   ResendDomainReadRequest,
   ResendProvisionRequest,
   ResendVerifyRequest,
@@ -128,11 +129,17 @@ export function useServiceProvision(
     [bridge],
   )
 
+  /** Read-only too: what the manual checkboxes claim, put to the providers. */
+  const readManualChecks = useCallback(
+    (req: ManualCheckProbeRequest) => bridge.readManualChecks(req),
+    [bridge],
+  )
+
   const cancel = useCallback(() => {
     void bridge.cancel(service)
     setStatus('idle')
     setProgress(0)
   }, [bridge, service])
 
-  return { status, logs, progress, error, startSupabase, startSiteSetup, startSpaceship, startResend, verifyResend, readResendDomain, cancel }
+  return { status, logs, progress, error, startSupabase, startSiteSetup, startSpaceship, startResend, verifyResend, readResendDomain, readManualChecks, cancel }
 }

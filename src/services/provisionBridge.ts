@@ -6,6 +6,8 @@ import type {
   ProvisionLogPayload,
   ProvisionProgressPayload,
   ProvisionQueryResult,
+  ManualCheckProbe,
+  ManualCheckProbeRequest,
   ResendDomainReadRequest,
   ResendDomainSnapshot,
   ResendProvisionRequest,
@@ -34,6 +36,8 @@ export interface ProvisionBridge {
   verifyResendDomain(req: ResendVerifyRequest): Promise<ProvisionQueryResult<ResendVerificationResult>>
   /** What Resend holds for the sending domain today — read-only. */
   readResendDomain(req: ResendDomainReadRequest): Promise<ProvisionQueryResult<ResendDomainSnapshot>>
+  /** Whether what the manual checkboxes claim is still true — read-only. */
+  readManualChecks(req: ManualCheckProbeRequest): Promise<ProvisionQueryResult<ManualCheckProbe>>
   listOrganizations(accessToken: string): Promise<ProvisionQueryResult<SupabaseOrganizationSummary[]>>
   listProjects(accessToken: string): Promise<ProvisionQueryResult<SupabaseProjectSummary[]>>
   verifyProject(accessToken: string, ref: string): Promise<ProvisionQueryResult<SupabaseProjectVerification>>
@@ -63,6 +67,9 @@ class ElectronProvisionBridge implements ProvisionBridge {
   }
   readResendDomain(req: ResendDomainReadRequest) {
     return window.electronAPI.readResendDomain(req)
+  }
+  readManualChecks(req: ManualCheckProbeRequest) {
+    return window.electronAPI.readManualChecks(req)
   }
   listOrganizations(accessToken: string) {
     return window.electronAPI.listSupabaseOrganizations(accessToken)
@@ -333,6 +340,23 @@ class MockProvisionBridge implements ProvisionBridge {
         domainId: req.domainId || 'mock-4f3a2b1c-domain',
         status: 'verified' as const,
         verifiedAt: new Date().toISOString(),
+      },
+    }
+  }
+
+  /**
+   * The fake account confirms whatever it was given credentials for — enough
+   * for the pages to exercise the ticking, without pretending to know about
+   * services this mock has no state for.
+   */
+  async readManualChecks(req: ManualCheckProbeRequest) {
+    await new Promise(resolve => setTimeout(resolve, 300))
+    return {
+      success: true,
+      data: {
+        ...(req.supabase?.ref ? { buckets: true, siteGrants: true, siteSettings: true } : {}),
+        ...(req.scaleway?.ipv4 ? { instance: true as const } : {}),
+        ...(req.spaceship?.records.length ? { dnsRecords: true } : {}),
       },
     }
   }

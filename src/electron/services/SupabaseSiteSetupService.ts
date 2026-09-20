@@ -3,6 +3,7 @@ import { SupabaseApiClient, SupabaseApiError } from './supabase/SupabaseApiClien
 import { Redactor } from './supabase/redact'
 import {
   GRANTS_SQL,
+  PUBLIC_TABLE_COUNT_SQL,
   PUBLIC_TABLES_SQL,
   REALTIME_CHECK_SQL,
   REALTIME_PUBLICATION,
@@ -12,11 +13,21 @@ import {
   realtimeAddSql,
   withPublicSchema,
   type PendingRlsRow,
+  type PublicTableCountRow,
   type RealtimeCheckRow,
 } from '../../shared/supabaseSiteSetup'
 import { findLegacyServiceKey } from './supabase/keys'
 
 const SERVICE = 'supabase-site'
+
+/**
+ * How long the run will wait for a deployment's migrations to land. Prisma
+ * applies them as the stack comes up, which is seconds after the deploy step
+ * reports success — but the containers are still settling, and a reader who
+ * moves straight on to this step arrives first.
+ */
+const MIGRATION_POLL_INTERVAL_MS = 4_000
+const MIGRATION_TIMEOUT_MS = 2 * 60_000
 
 /**
  * How the run gets its API client. Injectable for the tests, which exercise the
@@ -30,6 +41,11 @@ export interface SupabaseSiteSetupRequest {
   accessToken: string
   /** The project the wizard works against — `SUPABASE_PROJECT_REF`. */
   ref: string
+  /**
+   * A deployment ran in this session, so tables are expected and worth waiting
+   * for. Without it an empty schema is reported at once instead.
+   */
+  awaitMigrations?: boolean
 }
 
 /**
@@ -106,6 +122,9 @@ export class SupabaseSiteSetupService {
       const pending: string[] = []
 
       this.checkpoint()
+      await this.awaitMigratedTables(win, client, req)
+
+      this.checkpoint()
       await this.applyGrants(win, client, req.ref)
 
       this.checkpoint()
@@ -153,6 +172,55 @@ export class SupabaseSiteSetupService {
     } finally {
       this.controller = null
     }
+  }
+
+  /**
+   * Waits for the tables the deployment creates, when one has just run.
+   *
+   * Every step below is about tables: the grants apply to the ones that exist
+   * at the time, Realtime needs its own, RLS covers them all. Run against a
+   * schema the migrations have not filled yet, the whole thing completes on an
+   * empty database and reports a Realtime it could not configure — which is
+   * why running it a second time, a minute later, has always been the fix.
+   * This is that minute, spent inside the run instead of by the reader.
+   *
+   * Only when a deployment is known to have happened in this session. Without
+   * one an empty schema is not a race but a step that has not been done, and
+   * saying so at once beats a minute of waiting for tables nobody created.
+   */
+  private async awaitMigratedTables(
+    win: BrowserWindow,
+    client: SupabaseApiClient,
+    req: SupabaseSiteSetupRequest,
+  ): Promise<void> {
+    const count = async (): Promise<number> => {
+      const [row] = await client.runQuery<PublicTableCountRow>(req.ref, PUBLIC_TABLE_COUNT_SQL)
+      return row?.public_tables ?? 0
+    }
+
+    if ((await count()) > 0) return
+    if (!req.awaitMigrations) return
+
+    this.log(
+      win,
+      'Schéma public encore vide — attente des tables créées par le déploiement (jusqu\'à 2 minutes)…',
+    )
+
+    const deadline = Date.now() + MIGRATION_TIMEOUT_MS
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, MIGRATION_POLL_INTERVAL_MS))
+      this.checkpoint()
+
+      const tables = await count()
+      if (tables > 0) {
+        this.log(win, `${tables} table(s) trouvée(s) — configuration du projet.`, 'done')
+        return
+      }
+    }
+
+    // Not an error of its own: the steps below report what they could not do,
+    // and one of them names this exact situation with what to do about it.
+    this.log(win, 'Toujours aucune table dans le schéma public — poursuite de la configuration.')
   }
 
   // ── Step 1 — the default privileges ────────────────────────────────────

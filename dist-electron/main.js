@@ -1703,6 +1703,12 @@ var REALTIME_CHECK_SQL = `SELECT
       AND schemaname = 'public'
       AND lower(tablename) = lower('${REALTIME_TABLE}')
   ) AS already_published;`;
+/**
+* Whether the public schema holds anything at all — the cheapest form of the
+* check above, for the wait that precedes the run.
+*/
+var PUBLIC_TABLE_COUNT_SQL = `SELECT count(*)::int AS public_tables
+FROM pg_tables WHERE schemaname = 'public';`;
 /** The public tables, to name them when the expected one is not among them. */
 var PUBLIC_TABLES_SQL = `SELECT tablename
 FROM pg_tables
@@ -1735,6 +1741,30 @@ BEGIN
   END LOOP;
 END $$;`;
 /**
+* Whether the privileges `GRANTS_SQL` hands out are in fact held — the read-only
+* half of that block, for the box that claims it was run.
+*
+* Asked of the roles rather than of the grant statements: a reader who applied
+* the same privileges some other way has done the thing the box says, and the
+* point is what is true of the schema, not how it got that way.
+*/
+var GRANTS_CHECK_SQL = `SELECT
+  (SELECT count(*)::int FROM pg_tables WHERE schemaname = 'public') AS public_tables,
+  (
+    has_schema_privilege('anon', 'public', 'USAGE')
+    AND has_schema_privilege('authenticated', 'public', 'USAGE')
+    AND has_schema_privilege('service_role', 'public', 'USAGE')
+  ) AS schema_granted,
+  NOT EXISTS (
+    SELECT 1 FROM pg_tables t
+    WHERE t.schemaname = 'public'
+      AND NOT (
+        has_table_privilege('anon', format('public.%I', t.tablename), 'SELECT')
+        AND has_table_privilege('authenticated', format('public.%I', t.tablename), 'SELECT')
+        AND has_table_privilege('service_role', format('public.%I', t.tablename), 'SELECT')
+      )
+  ) AS tables_granted;`;
+/**
 * Adds `public` to the Data API's exposed schemas without dropping the ones
 * already there (`graphql_public` in particular). Returns `null` when the list
 * already covers it — nothing to PATCH.
@@ -1747,6 +1777,14 @@ function withPublicSchema(current) {
 //#endregion
 //#region src/electron/services/SupabaseSiteSetupService.ts
 var SERVICE$2 = "supabase-site";
+/**
+* How long the run will wait for a deployment's migrations to land. Prisma
+* applies them as the stack comes up, which is seconds after the deploy step
+* reports success — but the containers are still settling, and a reader who
+* moves straight on to this step arrives first.
+*/
+var MIGRATION_POLL_INTERVAL_MS = 4e3;
+var MIGRATION_TIMEOUT_MS = 2 * 6e4;
 /**
 * The tail end of the Supabase setup: what has to be true of the project *after*
 * the deployment has migrated the database — privileges, the exposed schema,
@@ -1805,6 +1843,8 @@ var SupabaseSiteSetupService = class {
 			this.log(win, `Projet ${project.name} (${project.ref}) — configuration finale…`);
 			const pending = [];
 			this.checkpoint();
+			await this.awaitMigratedTables(win, client, req);
+			this.checkpoint();
 			await this.applyGrants(win, client, req.ref);
 			this.checkpoint();
 			await this.exposePublicSchema(win, client, req.ref);
@@ -1841,6 +1881,40 @@ var SupabaseSiteSetupService = class {
 		} finally {
 			this.controller = null;
 		}
+	}
+	/**
+	* Waits for the tables the deployment creates, when one has just run.
+	*
+	* Every step below is about tables: the grants apply to the ones that exist
+	* at the time, Realtime needs its own, RLS covers them all. Run against a
+	* schema the migrations have not filled yet, the whole thing completes on an
+	* empty database and reports a Realtime it could not configure — which is
+	* why running it a second time, a minute later, has always been the fix.
+	* This is that minute, spent inside the run instead of by the reader.
+	*
+	* Only when a deployment is known to have happened in this session. Without
+	* one an empty schema is not a race but a step that has not been done, and
+	* saying so at once beats a minute of waiting for tables nobody created.
+	*/
+	async awaitMigratedTables(win, client, req) {
+		const count = async () => {
+			const [row] = await client.runQuery(req.ref, PUBLIC_TABLE_COUNT_SQL);
+			return row?.public_tables ?? 0;
+		};
+		if (await count() > 0) return;
+		if (!req.awaitMigrations) return;
+		this.log(win, "Schéma public encore vide — attente des tables créées par le déploiement (jusqu'à 2 minutes)…");
+		const deadline = Date.now() + MIGRATION_TIMEOUT_MS;
+		while (Date.now() < deadline) {
+			await new Promise((resolve) => setTimeout(resolve, MIGRATION_POLL_INTERVAL_MS));
+			this.checkpoint();
+			const tables = await count();
+			if (tables > 0) {
+				this.log(win, `${tables} table(s) trouvée(s) — configuration du projet.`, "done");
+				return;
+			}
+		}
+		this.log(win, "Toujours aucune table dans le schéma public — poursuite de la configuration.");
 	}
 	async applyGrants(win, client, ref) {
 		this.log(win, "Application des privilèges sur le schéma public…");
@@ -2701,6 +2775,119 @@ function checkCredentials(req) {
 	}
 }
 //#endregion
+//#region src/electron/services/ManualCheckService.ts
+var SCALEWAY_ZONE = "fr-par-1";
+/**
+* Answers, for each box the wizard asks the reader to tick, whether the thing
+* it claims is true right now.
+*
+* The boxes exist because these steps leave nothing in the config — a bucket, a
+* DNS record, a Realtime publication all live at the provider — so the tick was
+* the only state there was, and it stayed ticked long after someone deleted the
+* bucket. Every provider here can be asked directly, so it is.
+*
+* Each answer is `undefined` until it is known. That distinction is the whole
+* safety of this: a provider that could not be reached, a credential that is
+* missing, a call that failed — none of them are grounds for unticking a box
+* the reader ticked, and only a clear "no" from the provider is.
+*/
+var ManualCheckService = class {
+	async read(req) {
+		const [buckets, instance, dnsRecords, site] = await Promise.all([
+			this.settle(() => this.readBuckets(req)),
+			this.settle(() => this.readInstance(req)),
+			this.settle(() => this.readDnsRecords(req)),
+			this.settle(() => this.readSiteSetup(req))
+		]);
+		return {
+			buckets,
+			instance,
+			dnsRecords,
+			siteGrants: site?.grants,
+			siteSettings: site?.settings
+		};
+	}
+	/** A probe that throws has learned nothing, which is not the same as "no". */
+	async settle(probe) {
+		try {
+			return await probe();
+		} catch {
+			return;
+		}
+	}
+	async readBuckets(req) {
+		if (!req.supabase?.accessToken || !req.supabase.ref) return void 0;
+		const client = new SupabaseApiClient({ accessToken: req.supabase.accessToken });
+		const existing = new Set((await client.listBuckets(req.supabase.ref)).map((b) => b.name));
+		return STORAGE_BUCKETS.every((bucket) => existing.has(bucket.name));
+	}
+	/**
+	* An instance answering at that address. The box says the IPv4 belongs to a
+	* server that was really launched, which is exactly what the listing settles
+	* — and what a value typed by hand never did.
+	*
+	* Only ever answers "yes". The listing covers one zone, the one this app
+	* creates instances in, so finding the address proves the claim while not
+	* finding it may only mean the reader's server lives somewhere else. Unticking
+	* on that would be taking a guess away from someone who knew better.
+	*/
+	async readInstance(req) {
+		if (!req.scaleway?.secretKey || !req.scaleway.ipv4) return void 0;
+		const zone = req.scaleway.zone || SCALEWAY_ZONE;
+		const response = await fetch(`https://api.scaleway.com/instance/v1/zones/${zone}/servers?per_page=100`, { headers: {
+			"X-Auth-Token": req.scaleway.secretKey.trim(),
+			Accept: "application/json"
+		} });
+		if (!response.ok) return void 0;
+		const { servers } = await response.json();
+		if (!servers) return void 0;
+		const wanted = req.scaleway.ipv4.trim();
+		return servers.some((server) => server.public_ip?.address === wanted || (server.public_ips ?? []).some((ip) => ip.address === wanted)) ? true : void 0;
+	}
+	/**
+	* Every record the table shows, present in the zone. Matched on name and
+	* type rather than value, for the same reason the Spaceship run's read-back
+	* is: a zone normalises what it stores, and a comparison that tripped over
+	* quoting would untick a box that is perfectly true.
+	*/
+	async readDnsRecords(req) {
+		const spaceship = req.spaceship;
+		if (!spaceship?.apiKey || !spaceship.apiSecret || !spaceship.domain) return void 0;
+		if (spaceship.records.length === 0) return void 0;
+		const existing = await new SpaceshipApiClient({
+			apiKey: spaceship.apiKey,
+			apiSecret: spaceship.apiSecret
+		}).listRecords(spaceship.domain);
+		const present = new Set(existing.map((item) => `${item.name.toLowerCase().replace(/\.$/, "")}|${item.type.toUpperCase()}`));
+		return spaceship.records.every((record) => present.has(`${record.host.toLowerCase()}|${record.type}`));
+	}
+	/**
+	* The two halves of "Configuration du site", read rather than applied: the
+	* grants the SQL block hands out, and the four settings the run flips.
+	*
+	* Both are answered from one client so the project is fetched once. An empty
+	* schema leaves them unanswered rather than false — a database the
+	* deployment has not migrated says nothing about work the reader did or did
+	* not do.
+	*/
+	async readSiteSetup(req) {
+		if (!req.supabase?.accessToken || !req.supabase.ref) return void 0;
+		const { accessToken, ref } = req.supabase;
+		const client = new SupabaseApiClient({ accessToken });
+		const [grantRow] = await client.runQuery(ref, GRANTS_CHECK_SQL);
+		if (!grantRow || grantRow.public_tables === 0) return void 0;
+		const [realtime] = await client.runQuery(ref, REALTIME_CHECK_SQL);
+		const pendingRls = await client.runQuery(ref, RLS_PENDING_SQL);
+		const postgrest = await client.getPostgrestConfig(ref);
+		const auth = await client.getAuthConfig(ref);
+		const exposed = (postgrest.db_schema ?? "").split(",").map((s) => s.trim()).includes(REQUIRED_EXPOSED_SCHEMA);
+		return {
+			grants: grantRow.schema_granted && grantRow.tables_granted,
+			settings: exposed && !!realtime?.already_published && !!auth.mailer_autoconfirm && pendingRls.length === 0
+		};
+	}
+};
+//#endregion
 //#region src/electron/ipc/provisionHandlers.ts
 /**
 * IPC surface for the "Configuration par API" automations.
@@ -2715,6 +2902,7 @@ function registerProvisionHandlers(getWin) {
 	const supabaseSite = new SupabaseSiteSetupService();
 	const spaceship = new SpaceshipProvisionService();
 	const resend = new ResendProvisionService();
+	const manualChecks = new ManualCheckService();
 	const requireWin = () => {
 		const win = getWin();
 		if (!win) throw new Error("No active window");
@@ -2798,6 +2986,24 @@ function registerProvisionHandlers(getWin) {
 			return {
 				success: true,
 				data: await resend.verifyOnly(req)
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: err instanceof Error ? err.message : String(err)
+			};
+		}
+	});
+	/**
+	* What the manual checkboxes claim, checked against the providers. Read-only
+	* throughout: it runs when a step is opened, and must never be the thing
+	* that changes a configuration.
+	*/
+	ipcMain.handle("provision:checks:read", async (_event, req) => {
+		try {
+			return {
+				success: true,
+				data: await manualChecks.read(req)
 			};
 		} catch (err) {
 			return {

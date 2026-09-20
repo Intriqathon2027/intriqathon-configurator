@@ -72,6 +72,9 @@ function makeClient(state: {
       s.tablesWithoutRls = []
       return []
     }
+    if (query.includes('AS public_tables') && !query.includes('matched_table')) {
+      return [{ public_tables: s.publicTables.length }]
+    }
     if (query.includes('matched_table')) {
       return [{
         public_tables: s.publicTables.length,
@@ -115,7 +118,12 @@ function makeClient(state: {
 function run(client: Partial<Record<keyof SupabaseApiClient, unknown>>) {
   const service = new SupabaseSiteSetupService(() => client as unknown as SupabaseApiClient)
   const ctx = makeWindow()
-  return { service, ctx, start: () => service.start(ctx.win, { accessToken: 'sbp_test', ref: 'abcdefghijklmnopqrst' }) }
+  return {
+    service,
+    ctx,
+    start: (awaitMigrations = false) =>
+      service.start(ctx.win, { accessToken: 'sbp_test', ref: 'abcdefghijklmnopqrst', awaitMigrations }),
+  }
 }
 
 describe('withPublicSchema', () => {
@@ -279,5 +287,58 @@ describe('SupabaseSiteSetupService', () => {
     await start()
 
     expect(ctx.error()?.payload.message).not.toContain('sbp_test')
+  })
+})
+
+/**
+ * The step that runs straight after a deployment used to arrive before its
+ * migrations: every check ran against an empty schema, Realtime was reported
+ * as impossible, and running the very same thing a minute later fixed it. The
+ * minute now belongs to the run.
+ */
+describe('waiting for the deployment’s migrations', () => {
+  /**
+   * A healthy project whose table count reads 0 the first time it is asked —
+   * the migration lands during the wait, and every later query sees it.
+   */
+  function latecomer() {
+    const client = makeClient({})
+    const answer = client.runQuery
+    let counts = 0
+
+    client.runQuery = vi.fn(async (ref: string, query: string) => {
+      if (query.includes('AS public_tables') && !query.includes('matched_table')) {
+        counts += 1
+        if (counts === 1) return [{ public_tables: 0 }]
+      }
+      return answer(ref, query)
+    }) as typeof client.runQuery
+
+    return client
+  }
+
+  it('reports the empty schema at once when no deployment ran', async () => {
+    const { ctx, start } = run(makeClient({ publicTables: [], matchedTable: null }))
+    await start(false)
+
+    expect(ctx.error()?.payload.message).toMatch(/le schéma public est vide/)
+    expect(ctx.logs().some(l => l.includes('attente des tables'))).toBe(false)
+  })
+
+  it('waits for them when one did, and carries on once they land', async () => {
+    vi.useFakeTimers()
+    try {
+      const { ctx, start } = run(latecomer())
+
+      const running = start(true)
+      await vi.advanceTimersByTimeAsync(5_000)
+      await running
+
+      expect(ctx.logs().some(l => l.includes('attente des tables'))).toBe(true)
+      expect(ctx.logs().some(l => l.includes('2 table(s) trouvée(s)'))).toBe(true)
+      expect(ctx.error()).toBeUndefined()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

@@ -34,13 +34,19 @@ export function useStepComplete(): (step: number) => boolean {
       case 0:
         return fieldsFilled && !CREDENTIAL_SERVICES.some(isCredentialRefused)
 
-      // Configuration par API — four services, each with a manual half
+      /**
+       * Configuration par API — four services, each with a manual half. One
+       * box per service, the same four the page colours its blocks with: a
+       * tick here while one of those blocks is still grey is the sidebar
+       * saying a step is behind you that its own page says is not.
+       */
       case 1: {
         // The automation creates and verifies the buckets; short of that, the
         // checkbox is the only thing that can speak for them.
         const buckets = isRunDone('api-supabase') || isManualChecked('supabase-buckets')
         return fieldsFilled
           && buckets
+          && isManualChecked('scaleway-instance')
           && isManualChecked('spaceship-dns')
           && isManualChecked('resend-subdomain')
       }
