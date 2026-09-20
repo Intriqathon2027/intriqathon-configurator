@@ -223,6 +223,7 @@ export const translations: Translations = {
     'apiConfig.locked.accountSupabase': "Carte Supabase incomplète à l'étape 1 (Création de comptes) — complétez-la pour lancer l'automatisation.",
     'apiConfig.locked.accountScaleway': "Carte Scaleway incomplète à l'étape 1 (Création de comptes) — complétez-la pour lancer l'automatisation.",
     'apiConfig.locked.accountSpaceship': "Carte Spaceship incomplète à l'étape 1 (Création de comptes) — complétez-la pour lancer l'automatisation.",
+    'apiConfig.locked.credentialRefused': 'Clé API refusée par le fournisseur — corrigez-la à l\'étape 1 (Création de comptes) avant de lancer.',
     'apiConfig.locked.accountResend': "Carte Resend incomplète à l'étape 1 (Création de comptes) — complétez-la pour lancer l'automatisation.",
     'apiConfig.status.done': 'Terminé',
     'apiConfig.status.running': 'En cours…',
@@ -265,7 +266,11 @@ export const translations: Translations = {
     'apiConfig.spaceship.helpHint': 'Launchpad, Advanced DNS et enregistrements A.',
     'apiConfig.spaceship.dnsPath': 'Launchpad (ou recherche / ou ⌘ K) > Advanced DNS > votre domaine > DNS records > Custom records > Add record.',
     'apiConfig.spaceship.hostNote': 'Le champ Host de Spaceship attend le nom sans le domaine : @ pour le domaine lui-même, config pour le panneau d\'administration. Les valeurs ci-dessous sont déjà écrites sous cette forme.',
-    'apiConfig.spaceship.desc': 'Configuration des entrées DNS (A records, DMARC, TXT) pour votre domaine',
+    'apiConfig.spaceship.desc': 'Toutes les entrées DNS du déploiement, y compris celles demandées par Resend',
+    'apiConfig.dns.refresh': 'Actualiser depuis Resend',
+    'apiConfig.dns.refreshing': 'Actualisation…',
+    'apiConfig.dns.resendRefused': 'Resend refuse la clé API saisie à l\'étape 1 : les enregistrements récupérés précédemment ne sont plus fiables et ne sont donc plus affichés. Corrigez la clé, ou relevez les enregistrements sur resend.com/domains.',
+    'apiConfig.dns.resendMissing': 'Les enregistrements demandés par Resend (SPF, DKIM) ne sont pas encore connus : ils n\'existent qu\'une fois le domaine d\'envoi créé. Lancez l\'étape Resend pour les récupérer, ou relevez-les vous-même sur resend.com/domains et ajoutez-les avec les lignes ci-dessus.',
     'apiConfig.spaceship.ipv4': 'Adresse IPv4 de l\'instance',
     'apiConfig.spaceship.ipv4.path': 'Console Scaleway > Compute > Instances > Votre instance',
     'apiConfig.spaceship.ipv4.hint': 'IPv4 publique de l\'instance. C\'est elle que pointeront les enregistrements DNS A et que le déploiement SSH contactera.',
@@ -276,9 +281,14 @@ export const translations: Translations = {
 
     // Resend API config
     'apiConfig.resend.helpHint': 'Domaine d\'envoi, enregistrements DNS et vérification.',
-    'apiConfig.resend.records.title': 'Enregistrements demandés par Resend',
-    'apiConfig.resend.records.desc': 'Récupérés auprès de Resend lors du lancement. Publiés automatiquement chez Spaceship ; chez un autre registrar, ce sont ces lignes à recopier avant de relancer pour la vérification.',
     'apiConfig.resend.desc': 'Ajout du domaine d\'envoi, vérification DNS, création des clés secondaires',
+    'apiConfig.resend.domainsBtn': 'Domaines Resend',
+    'apiConfig.resend.verify.btn': 'Relancer la vérification Resend',
+    'apiConfig.resend.verify.running': 'Vérification en cours…',
+    'apiConfig.resend.verify.verified': 'Domaine vérifié par Resend — les envois sont possibles.',
+    'apiConfig.resend.verify.pending': 'Resend ne voit pas encore les enregistrements. La propagation DNS peut prendre jusqu\'à 15 minutes — réessayez dans quelques minutes.',
+    'apiConfig.resend.verify.failed': 'Vérification impossible auprès de Resend.',
+    'apiConfig.resend.pendingBox': 'Enregistrements publiés et vérification demandée : cette étape est terminée. La propagation DNS peut prendre jusqu\'à 15 minutes — inutile d\'attendre ici, passez à la suite. Le bouton « Relancer la vérification Resend » (étape 4) redemandera le contrôle.',
 
     // =============================================
     // Step 3 — OAuth2 + Discord Bot
@@ -613,6 +623,7 @@ export const translations: Translations = {
     'apiConfig.locked.accountSupabase': 'The Supabase card is still incomplete at step 1 (Account creation) — finish it to run the automation.',
     'apiConfig.locked.accountScaleway': 'The Scaleway card is still incomplete at step 1 (Account creation) — finish it to run the automation.',
     'apiConfig.locked.accountSpaceship': 'The Spaceship card is still incomplete at step 1 (Account creation) — finish it to run the automation.',
+    'apiConfig.locked.credentialRefused': 'API key refused by the provider — fix it in step 1 (Account creation) before launching.',
     'apiConfig.locked.accountResend': 'The Resend card is still incomplete at step 1 (Account creation) — finish it to run the automation.',
     'apiConfig.status.done': 'Done',
     'apiConfig.status.running': 'Running...',
@@ -655,7 +666,11 @@ export const translations: Translations = {
     'apiConfig.spaceship.helpHint': 'Launchpad, Advanced DNS and A records.',
     'apiConfig.spaceship.dnsPath': 'Launchpad (or the / or ⌘ K search) > Advanced DNS > your domain > DNS records > Custom records > Add record.',
     'apiConfig.spaceship.hostNote': 'Spaceship\'s Host field takes the name without the domain: @ for the domain itself, config for the admin panel. The values below are already written that way.',
-    'apiConfig.spaceship.desc': 'DNS records configuration (A records, DMARC, TXT) for your domain',
+    'apiConfig.spaceship.desc': 'Every DNS record the deployment needs, including the ones Resend asks for',
+    'apiConfig.dns.refresh': 'Refresh from Resend',
+    'apiConfig.dns.refreshing': 'Refreshing…',
+    'apiConfig.dns.resendRefused': 'Resend is refusing the API key entered in step 1: the records retrieved earlier can no longer be trusted, so they are not shown. Fix the key, or read the records off resend.com/domains.',
+    'apiConfig.dns.resendMissing': 'The records Resend asks for (SPF, DKIM) are not known yet: they only exist once the sending domain has been created. Run the Resend step to retrieve them, or read them off resend.com/domains yourself and add them alongside the rows above.',
     'apiConfig.spaceship.ipv4': 'Instance IPv4 address',
     'apiConfig.spaceship.ipv4.path': 'Scaleway console > Compute > Instances > Your instance',
     'apiConfig.spaceship.ipv4.hint': 'Public IPv4 of the instance. This is what the DNS A records point to and what the SSH deployment connects to.',
@@ -666,9 +681,14 @@ export const translations: Translations = {
 
     // Resend API config
     'apiConfig.resend.helpHint': 'Sending domain, DNS records and verification.',
-    'apiConfig.resend.records.title': 'Records requested by Resend',
-    'apiConfig.resend.records.desc': 'Retrieved from Resend when the step runs. Published to Spaceship automatically; at any other registrar these are the lines to copy across before relaunching for verification.',
     'apiConfig.resend.desc': 'Sending domain addition, DNS verification, secondary key creation',
+    'apiConfig.resend.domainsBtn': 'Resend domains',
+    'apiConfig.resend.verify.btn': 'Re-check Resend verification',
+    'apiConfig.resend.verify.running': 'Checking…',
+    'apiConfig.resend.verify.verified': 'Domain verified by Resend — sending is available.',
+    'apiConfig.resend.verify.pending': 'Resend cannot see the records yet. DNS propagation can take up to 15 minutes — try again in a few minutes.',
+    'apiConfig.resend.verify.failed': 'Could not check the domain with Resend.',
+    'apiConfig.resend.pendingBox': 'Records published and verification requested: this step is finished. DNS propagation can take up to 15 minutes — no need to wait here, move on. The "Re-check Resend verification" button (step 4) will ask for the check again.',
 
     // =============================================
     // Step 3 — OAuth2 + Discord Bot

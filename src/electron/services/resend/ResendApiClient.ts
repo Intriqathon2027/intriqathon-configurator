@@ -1,3 +1,5 @@
+import type { ResendDomainStatus } from '../../../types/provision'
+
 const RESEND_BASE = 'https://api.resend.com'
 const MAX_ATTEMPTS = 4
 const BASE_BACKOFF_MS = 1000
@@ -51,13 +53,6 @@ export interface ResendDnsRecord {
   status?: string
   priority?: number
 }
-
-export type ResendDomainStatus =
-  | 'not_started'
-  | 'pending'
-  | 'verified'
-  | 'failed'
-  | 'temporary_failure'
 
 export interface ResendDomain {
   id: string

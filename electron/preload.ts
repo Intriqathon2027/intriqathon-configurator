@@ -77,6 +77,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startSupabaseProvision: (req: any) => ipcRenderer.invoke('provision:supabase:start', req),
   startSpaceshipProvision: (req: any) => ipcRenderer.invoke('provision:spaceship:start', req),
   startResendProvision: (req: any) => ipcRenderer.invoke('provision:resend:start', req),
+  verifyResendDomain: (req: any) => ipcRenderer.invoke('provision:resend:verify', req),
+  readResendDomain: (req: any) => ipcRenderer.invoke('provision:resend:read-domain', req),
   checkCredentials: (req: any) => ipcRenderer.invoke('credentials:check', req),
   startSupabaseSiteSetup: (req: any) => ipcRenderer.invoke('provision:supabase:site-setup', req),
   listSupabaseOrganizations: (accessToken: string) => ipcRenderer.invoke('provision:supabase:organizations', accessToken),

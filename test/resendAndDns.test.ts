@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { ResendApiClient, ResendApiError } from '../src/electron/services/resend/ResendApiClient'
 import { buildInfraDnsRecords, hostPart } from '../src/shared/dnsRecords'
+import { checkCredentials } from '../src/electron/services/CredentialCheckService'
 
 interface FakeCall {
   url: string
@@ -71,6 +72,51 @@ describe('buildInfraDnsRecords', () => {
   it('follows a sending subdomain that is not mail.<domain>', () => {
     const custom = buildInfraDnsRecords('domain.fr', '198.51.100.1', 'envois.domain.fr')
     expect(custom.find(r => r.type === 'TXT')?.host).toBe('_dmarc.envois')
+  })
+})
+
+/**
+ * The step-1 warning, and with it the card's colour, hangs on a refusal being
+ * recognised as one. Resend is the odd one out: it answers a key it does not
+ * accept with 400, where the other three providers send 401 — and a 400 read
+ * as "nothing learned" left the reader with a silent card on a dead key.
+ */
+describe('checkCredentials', () => {
+  const answering = (status: number) =>
+    vi.fn(async () => ({ status }) as Response)
+
+  it('reads Resend’s 400 as a refusal', async () => {
+    vi.stubGlobal('fetch', answering(400))
+    expect(await checkCredentials({ service: 'resend', apiKey: 'nope' })).toEqual({ state: 'invalid' })
+    vi.unstubAllGlobals()
+  })
+
+  it('still reads the usual 401 as a refusal', async () => {
+    vi.stubGlobal('fetch', answering(401))
+    expect(await checkCredentials({ service: 'resend', apiKey: 'nope' })).toEqual({ state: 'invalid' })
+    vi.unstubAllGlobals()
+  })
+
+  it('leaves a key unjudged when the provider is merely unhappy', async () => {
+    vi.stubGlobal('fetch', answering(500))
+    expect(await checkCredentials({ service: 'resend', apiKey: 're_test' })).toEqual({ state: 'unknown' })
+    vi.unstubAllGlobals()
+  })
+
+  it('accepts a key the provider answers', async () => {
+    vi.stubGlobal('fetch', answering(200))
+    expect(await checkCredentials({ service: 'resend', apiKey: 're_test' })).toEqual({ state: 'valid' })
+    vi.unstubAllGlobals()
+  })
+
+  /**
+   * 400 is Resend's alone — elsewhere it is a malformed request, which says
+   * nothing about the key that came with it.
+   */
+  it('does not treat 400 as a refusal for the other providers', async () => {
+    vi.stubGlobal('fetch', answering(400))
+    expect(await checkCredentials({ service: 'scaleway', secretKey: 'nope' })).toEqual({ state: 'unknown' })
+    vi.unstubAllGlobals()
   })
 })
 

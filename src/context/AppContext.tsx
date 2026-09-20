@@ -74,6 +74,8 @@ export interface Config {
   RESEND_DNS_RECORDS: string
   /** When Resend last reported the domain verified (ISO date). */
   RESEND_DOMAIN_VERIFIED_AT: string
+  /** Set when a run asked Resend to verify and left DNS propagation to finish. */
+  RESEND_VERIFICATION_PENDING_SINCE: string
 
   // Account Creation — Scaleway
   SCW_SECRET_KEY: string
@@ -141,6 +143,7 @@ const defaultConfig: Config = {
   RESEND_DOMAIN_ID: '',
   RESEND_DNS_RECORDS: '',
   RESEND_DOMAIN_VERIFIED_AT: '',
+  RESEND_VERIFICATION_PENDING_SINCE: '',
   SCW_SECRET_KEY: '',
   SCW_DEFAULT_PROJECT_ID: '',
   DEPLOY_PATH: '',

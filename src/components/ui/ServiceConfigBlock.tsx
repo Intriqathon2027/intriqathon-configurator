@@ -78,6 +78,12 @@ interface ServiceConfigBlockProps {
    * to render the children plainly, with no button to open them.
    */
   manualLabel?: string;
+  /**
+   * Fired when the manual panel is opened, never when it is closed. For a
+   * panel whose contents are read from a provider: opening it is the moment
+   * the reader looks, and the moment stale values would be believed.
+   */
+  onManualOpen?: () => void;
   children?: ReactNode;
 }
 
@@ -106,6 +112,7 @@ export function ServiceConfigBlock({
   manualOnly = false,
   extra,
   manualLabel,
+  onManualOpen,
   children,
 }: ServiceConfigBlockProps) {
   /**
@@ -149,7 +156,13 @@ export function ServiceConfigBlock({
   const manualToggleBtn = hasManual && (
     <button
       className="btn btn-secondary service-config-block__btn-manual"
-      onClick={() => setManualOpen((o) => !o)}
+      onClick={() => {
+        // Outside the updater: React may replay one while rendering, and a
+        // callback that reaches into a parent's state would be running during
+        // that render.
+        if (!manualOpen) onManualOpen?.();
+        setManualOpen((o) => !o);
+      }}
       type="button"
       aria-expanded={manualOpen}
     >

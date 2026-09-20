@@ -294,15 +294,16 @@ export function ApiConfigurationHelpContent() {
       desc: isEn ? (
         <>
           Two A records pointing at the Scaleway IPv4 — the site and the admin
-          panel — plus Resend's MX and TXT records below. The <code>Host</code>{" "}
-          field takes the name <strong>without the domain</strong>.
+          panel — plus Resend's MX and TXT records, all in the same table. The{" "}
+          <code>Host</code> field takes the name{" "}
+          <strong>without the domain</strong>.
         </>
       ) : (
         <>
           Deux enregistrements A vers l'IPv4 Scaleway — le site et le panneau
-          admin — plus les enregistrements MX et TXT de Resend, ci-dessous. Le
-          champ <code>Host</code> attend le nom <strong>sans le domaine</strong>
-          .
+          admin — plus les enregistrements MX et TXT de Resend, réunis dans le
+          même tableau. Le champ <code>Host</code> attend le nom{" "}
+          <strong>sans le domaine</strong>.
         </>
       ),
       copyValues: [
@@ -413,12 +414,18 @@ export function ApiConfigurationHelpContent() {
       title: isEn ? "Verify the domain" : "Vérifier le domaine",
       desc: isEn ? (
         <>
-          Back on Resend, <code>Verify DNS Records</code>.{" "}
+          Resend's dashboard checks on its own schedule, with no button to ask
+          it sooner — a domain can sit at <code>Pending</code> for hours. The
+          card's <strong>Re-check verification</strong> asks for the check now.{" "}
           <strong>Until the domain turns Verified, every send fails.</strong>
         </>
       ) : (
         <>
-          De retour sur Resend, <code>Verify DNS Records</code>.{" "}
+          Le tableau de bord Resend vérifie de lui-même, à son rythme, sans
+          bouton pour le presser — un domaine peut rester <code>Pending</code>{" "}
+          des heures. Le bouton{" "}
+          <strong>Relancer la vérification</strong> de la carte demande la
+          vérification tout de suite.{" "}
           <strong>
             Tant que le domaine n'est pas Verified, les envois échouent.
           </strong>

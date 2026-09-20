@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { Database, Mail, Globe, Server, FolderOpen } from "lucide-react";
 import toast from "react-hot-toast";
 import { WizardLayout } from "../components/layout/WizardLayout";
 import { FormField } from "../components/ui/FormField";
 import { ServiceAccountCard } from "../components/ui/ServiceAccountCard";
 import { useApp } from "../context/AppContext";
+import { useSession } from "../context/SessionContext";
 import { SupabaseProjectSetup } from "../components/provision/SupabaseProjectSetup";
 import { CredentialWarning } from "../components/ui/CredentialWarning";
 import { isAccountComplete } from "../utils/serviceCompletion";
@@ -13,10 +14,30 @@ import { AccountCreationHelpContent } from "../PagesHelpContent/AccountCreationH
 
 export function AccountCreation() {
   const { t, config, setField, hasSavedConfig } = useApp();
-  // Shared with the project picker below: while this box is already saying
-  // the token is refused, the picker's own fetches fail for the very same
-  // reason and have nothing to add by repeating it.
-  const [supabaseTokenState, setSupabaseTokenState] = useState<CredentialState>("unknown");
+  /**
+   * Every verdict is reported to the session, not kept here: the sidebar's
+   * tick and step 2's own cards have to read the same answer, and a refusal
+   * remembered there survives a reload — without which these cards spend the
+   * first second after one claiming to be complete.
+   */
+  const { recordCredentialState, isCredentialRefused } = useSession();
+
+  const reportSupabase = useCallback(
+    (s: CredentialState) => recordCredentialState("supabase", s),
+    [recordCredentialState],
+  );
+  const reportScaleway = useCallback(
+    (s: CredentialState) => recordCredentialState("scaleway", s),
+    [recordCredentialState],
+  );
+  const reportResend = useCallback(
+    (s: CredentialState) => recordCredentialState("resend", s),
+    [recordCredentialState],
+  );
+  const reportSpaceship = useCallback(
+    (s: CredentialState) => recordCredentialState("spaceship", s),
+    [recordCredentialState],
+  );
 
   useEffect(() => {
     if (!hasSavedConfig) {
@@ -40,18 +61,28 @@ export function AccountCreation() {
   const defaultMailSubdomain = `mail.${config.DOMAIN || "votredomaine.fr"}`;
 
   /**
-   * The fields being filled in is not the same claim as the token working —
-   * a project created earlier, on a token since revoked or mistyped, still
-   * has every field on file. `!== "invalid"` rather than `=== "valid"`, so a
-   * check still in flight or a provider that could not be reached does not
-   * itself grey out a card whose fields are otherwise complete.
+   * The fields being filled in is not the same claim as the key working — a
+   * project created earlier, on a token since revoked or mistyped, still has
+   * every field on file. Only an outright refusal takes the colour away: a
+   * check still in flight, or a provider that could not be reached, says
+   * nothing about a card whose fields are otherwise complete.
    */
-  const isSupabaseComplete =
-    isAccountComplete(config, "supabase") && supabaseTokenState !== "invalid";
-  const isResendComplete = isAccountComplete(config, "resend");
-  const isSpaceshipComplete = isAccountComplete(config, "spaceship");
-  const isScalewayComplete = isAccountComplete(config, "scaleway");
   const usesOtherDomainProvider = config.USE_OTHER_DOMAIN_PROVIDER === "true";
+
+  const isSupabaseComplete =
+    isAccountComplete(config, "supabase") && !isCredentialRefused("supabase");
+  const isResendComplete =
+    isAccountComplete(config, "resend") && !isCredentialRefused("resend");
+  const isScalewayComplete =
+    isAccountComplete(config, "scaleway") && !isCredentialRefused("scaleway");
+  /**
+   * The verdict is disregarded once another registrar holds the domain: the
+   * fields it was about are gone from the card, and the last answer they drew
+   * would otherwise keep colouring a card that no longer asks anything.
+   */
+  const isSpaceshipComplete =
+    isAccountComplete(config, "spaceship") &&
+    (usesOtherDomainProvider || !isCredentialRefused("spaceship"));
 
   return (
     <WizardLayout
@@ -82,11 +113,14 @@ export function AccountCreation() {
             <CredentialWarning
               request={
                 config.SUPABASE_ACCESS_TOKEN
-                  ? { service: "supabase", accessToken: config.SUPABASE_ACCESS_TOKEN }
+                  ? {
+                      service: "supabase",
+                      accessToken: config.SUPABASE_ACCESS_TOKEN,
+                    }
                   : null
               }
               message={t("accountCreation.invalid.supabase")}
-              onStateChange={setSupabaseTokenState}
+              onStateChange={reportSupabase}
             />
 
             {/* The project itself: adopted or created from here, plus the
@@ -146,6 +180,7 @@ export function AccountCreation() {
                   : null
               }
               message={t("accountCreation.invalid.scaleway")}
+              onStateChange={reportScaleway}
             />
           </div>
         </ServiceAccountCard>
@@ -185,6 +220,7 @@ export function AccountCreation() {
                   : null
               }
               message={t("accountCreation.invalid.resend")}
+              onStateChange={reportResend}
             />
           </div>
         </ServiceAccountCard>
@@ -253,6 +289,7 @@ export function AccountCreation() {
                       : null
                   }
                   message={t("accountCreation.invalid.spaceship")}
+                  onStateChange={reportSpaceship}
                 />
               </>
             )}

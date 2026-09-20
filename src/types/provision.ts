@@ -3,6 +3,8 @@
  * Lives outside `src/electron` so both sides import the same definitions.
  */
 
+import type { DnsRecord } from '../shared/dnsRecords'
+
 export type ProvisionService =
   | 'supabase'
   /** The post-deployment Supabase settings, driven from "Configuration du site". */
@@ -65,6 +67,11 @@ export interface SpaceshipProvisionRequest {
   domain: string
   ipv4: string
   mailSubdomain: string
+  /**
+   * What Resend last asked for, when anything has. Published by its own run,
+   * so this pass only puts back what has gone missing from the zone since.
+   */
+  resendRecords?: DnsRecord[]
 }
 
 export interface ResendProvisionRequest {
@@ -85,6 +92,58 @@ export interface ResendProvisionRequest {
    */
   spaceshipApiKey?: string
   spaceshipApiSecret?: string
+}
+
+export type ResendDomainStatus =
+  | 'not_started'
+  | 'pending'
+  | 'verified'
+  | 'failed'
+  | 'temporary_failure'
+
+/**
+ * A verification on its own, without the run around it. Resend's dashboard has
+ * no "check now" control — its own check runs on a schedule — so this is the
+ * only way to ask for one the moment the records are in place.
+ */
+export interface ResendVerifyRequest {
+  apiKey: string
+  /** The domain registered on the account — what it is found by, absent an id. */
+  mailSubdomain: string
+  domainId?: string
+}
+
+/**
+ * A read of the sending domain as Resend holds it right now. Answers the one
+ * question nothing else here can: the records on file were written by a run
+ * that has long since finished, and a domain deleted from the dashboard since
+ * leaves them behind with nothing to say so.
+ */
+export interface ResendDomainReadRequest {
+  apiKey: string
+  /** The registered domain — what the records' names are relative to. */
+  domain: string
+  mailSubdomain: string
+}
+
+export interface ResendDomainSnapshot {
+  /** The account still lists this sending domain. */
+  exists: boolean
+  domainId?: string
+  status?: ResendDomainStatus
+  /** What it asks to be published, as it asks for it today. */
+  records?: DnsRecord[]
+}
+
+export interface ResendVerificationResult {
+  /**
+   * Resolved during the check: an id saved by an earlier run can name a domain
+   * that has since been deleted, in which case the one found by name is this.
+   */
+  domainId: string
+  status: ResendDomainStatus
+  /** Only when Resend reports the domain verified. */
+  verifiedAt?: string
 }
 
 /**

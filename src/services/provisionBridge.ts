@@ -6,7 +6,11 @@ import type {
   ProvisionLogPayload,
   ProvisionProgressPayload,
   ProvisionQueryResult,
+  ResendDomainReadRequest,
+  ResendDomainSnapshot,
   ResendProvisionRequest,
+  ResendVerificationResult,
+  ResendVerifyRequest,
   SpaceshipProvisionRequest,
   SupabaseOrganizationSummary,
   SupabaseProjectSummary,
@@ -26,6 +30,10 @@ export interface ProvisionBridge {
   startSupabaseSiteSetup(req: SupabaseSiteSetupRequest): Promise<void>
   startSpaceship(req: SpaceshipProvisionRequest): Promise<void>
   startResend(req: ResendProvisionRequest): Promise<void>
+  /** The standalone check, outside any run — nothing is created or published. */
+  verifyResendDomain(req: ResendVerifyRequest): Promise<ProvisionQueryResult<ResendVerificationResult>>
+  /** What Resend holds for the sending domain today — read-only. */
+  readResendDomain(req: ResendDomainReadRequest): Promise<ProvisionQueryResult<ResendDomainSnapshot>>
   listOrganizations(accessToken: string): Promise<ProvisionQueryResult<SupabaseOrganizationSummary[]>>
   listProjects(accessToken: string): Promise<ProvisionQueryResult<SupabaseProjectSummary[]>>
   verifyProject(accessToken: string, ref: string): Promise<ProvisionQueryResult<SupabaseProjectVerification>>
@@ -49,6 +57,12 @@ class ElectronProvisionBridge implements ProvisionBridge {
   }
   startResend(req: ResendProvisionRequest) {
     return window.electronAPI.startResendProvision(req)
+  }
+  verifyResendDomain(req: ResendVerifyRequest) {
+    return window.electronAPI.verifyResendDomain(req)
+  }
+  readResendDomain(req: ResendDomainReadRequest) {
+    return window.electronAPI.readResendDomain(req)
   }
   listOrganizations(accessToken: string) {
     return window.electronAPI.listSupabaseOrganizations(accessToken)
@@ -90,6 +104,9 @@ class MockProvisionBridge implements ProvisionBridge {
     { id: '1', ref: 'abcdefghijklmnopqrst', name: 'demo', status: 'ACTIVE_HEALTHY', region: 'eu-west-3' },
     { id: '2', ref: 'bbcdefghijklmnopqrst', name: 'autre-projet', status: 'ACTIVE_HEALTHY', region: 'eu-west-1' },
   ]
+
+  /** The sending domain this fake account holds, once a run has created one. */
+  private resendDomain: { id: string; name: string; records: DnsRecord[]; verified: boolean } | null = null
 
   private logCbs: ((p: ProvisionLogPayload) => void)[] = []
   private progressCbs: ((p: ProvisionProgressPayload) => void)[] = []
@@ -263,7 +280,7 @@ class MockProvisionBridge implements ProvisionBridge {
       [`Publication des enregistrements chez Spaceship sur ${req.domain}…`, 55],
       ['Enregistrements publiés.', 60],
       ['Demande de vérification à Resend…', 70],
-      ['Domaine vérifié par Resend — les envois sont possibles.', 90],
+      ["Vérification demandée. La propagation DNS peut prendre jusqu'à 15 minutes : cette étape est terminée.", 90],
     ]
 
     for (const [message, value] of script) {
@@ -273,15 +290,51 @@ class MockProvisionBridge implements ProvisionBridge {
       this.progressCbs.forEach(cb => cb({ service: 'resend', value }))
     }
 
+    this.resendDomain = { id: 'mock-4f3a2b1c-domain', name: req.mailSubdomain, records, verified: false }
+
     this.progressCbs.forEach(cb => cb({ service: 'resend', value: 100 }))
     this.doneCbs.forEach(cb => cb({
       service: 'resend',
       patch: {
         RESEND_DOMAIN_ID: 'mock-4f3a2b1c-domain',
         RESEND_DNS_RECORDS: JSON.stringify(records),
-        RESEND_DOMAIN_VERIFIED_AT: new Date().toISOString(),
+        // As the real run now ends: asked, not yet confirmed.
+        RESEND_VERIFICATION_PENDING_SINCE: new Date().toISOString(),
       },
     }))
+  }
+
+  /**
+   * The mock account holds whatever its last `startResend` created, so the
+   * read answers "no such domain" until one has been — which is the state the
+   * page has to handle, and the one it used to get wrong.
+   */
+  async readResendDomain(req: ResendDomainReadRequest) {
+    await new Promise(resolve => setTimeout(resolve, 400))
+    if (this.resendDomain?.name !== req.mailSubdomain) return { success: true, data: { exists: false } }
+    return {
+      success: true,
+      data: {
+        exists: true,
+        domainId: this.resendDomain.id,
+        status: this.resendDomain.verified ? ('verified' as const) : ('pending' as const),
+        records: this.resendDomain.records,
+      },
+    }
+  }
+
+  /** The check as the real one answers on the happy path: asked, then seen. */
+  async verifyResendDomain(req: ResendVerifyRequest) {
+    await new Promise(resolve => setTimeout(resolve, 900))
+    if (this.resendDomain) this.resendDomain.verified = true
+    return {
+      success: true,
+      data: {
+        domainId: req.domainId || 'mock-4f3a2b1c-domain',
+        status: 'verified' as const,
+        verifiedAt: new Date().toISOString(),
+      },
+    }
   }
 
   async listOrganizations() {

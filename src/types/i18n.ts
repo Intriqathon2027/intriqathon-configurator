@@ -229,6 +229,7 @@ export type TranslationKeys = {
   'apiConfig.locked.accountScaleway': string
   'apiConfig.locked.accountSpaceship': string
   'apiConfig.locked.accountResend': string
+  'apiConfig.locked.credentialRefused': string
   'apiConfig.status.done': string
   'apiConfig.status.running': string
   'apiConfig.status.error': string
@@ -267,6 +268,10 @@ export type TranslationKeys = {
 
   // Spaceship API config
   'apiConfig.spaceship.desc': string
+  'apiConfig.dns.resendMissing': string
+  'apiConfig.dns.resendRefused': string
+  'apiConfig.dns.refresh': string
+  'apiConfig.dns.refreshing': string
   'apiConfig.spaceship.helpHint': string
   'apiConfig.spaceship.dnsPath': string
   'apiConfig.spaceship.hostNote': string
@@ -282,8 +287,13 @@ export type TranslationKeys = {
   // Resend API config
   'apiConfig.resend.desc': string
   'apiConfig.resend.helpHint': string
-  'apiConfig.resend.records.title': string
-  'apiConfig.resend.records.desc': string
+  'apiConfig.resend.domainsBtn': string
+  'apiConfig.resend.verify.btn': string
+  'apiConfig.resend.verify.running': string
+  'apiConfig.resend.verify.verified': string
+  'apiConfig.resend.verify.pending': string
+  'apiConfig.resend.verify.failed': string
+  'apiConfig.resend.pendingBox': string
 
   // =============================================
   // Step 3 — OAuth2 + Discord Bot

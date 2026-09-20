@@ -8,9 +8,10 @@ const SERVICE = 'spaceship'
 
 /**
  * Publishes the deployment's own DNS records on the domain: the site, the
- * admin panel and the DMARC policy. What Resend needs is not here — those
- * records only exist once its API has been asked for them, and the Resend run
- * publishes them itself.
+ * admin panel and the DMARC policy. What Resend needs is not built here —
+ * those records only exist once its API has been asked for them, and the
+ * Resend run publishes them itself — but they are checked over on the way
+ * past, and put back if the zone has lost them.
  */
 export class SpaceshipProvisionService {
   private controller: AbortController | null = null
@@ -74,6 +75,7 @@ export class SpaceshipProvisionService {
       this.progress(win, 75)
 
       await this.verifyWritten(win, client, req.domain, records)
+      await this.restoreResendRecords(win, client, req.domain, req.resendRecords ?? [])
 
       this.progress(win, 100)
       this.log(win, 'Enregistrements DNS publiés.', 'done')
@@ -90,6 +92,52 @@ export class SpaceshipProvisionService {
     } finally {
       this.controller = null
     }
+  }
+
+  /**
+   * A second look at what Resend asked for, while the zone is already open.
+   *
+   * Those records are published by the Resend run, not this one, so they are
+   * normally here already and this does nothing but say so. It exists for the
+   * cases where they are not: a run that failed midway, a record deleted by
+   * hand at the registrar, a zone restored from an older state. The symptom is
+   * always the same and always distant — mail that silently stops being
+   * delivered — so the cheapest moment to catch it is the one where the zone is
+   * being read anyway.
+   *
+   * Never the source of truth for their *content*: what is republished is what
+   * Resend last handed back, which the step above keeps current.
+   */
+  private async restoreResendRecords(
+    win: BrowserWindow,
+    client: SpaceshipApiClient,
+    domain: string,
+    resendRecords: DnsRecord[],
+  ): Promise<void> {
+    if (resendRecords.length === 0) return
+
+    this.log(win, 'Contrôle des enregistrements demandés par Resend…')
+    const existing = await client.listRecords(domain)
+    const present = new Set(
+      existing.map(item => `${item.name.toLowerCase().replace(/\.$/, '')}|${item.type.toUpperCase()}`),
+    )
+
+    const missing = resendRecords.filter(
+      record => !present.has(`${record.host.toLowerCase()}|${record.type}`),
+    )
+
+    if (missing.length === 0) {
+      this.log(win, `Enregistrements Resend en place (${resendRecords.length}).`, 'done')
+      return
+    }
+
+    this.log(win, `Enregistrements Resend absents de la zone (${missing.length}) — republication :`)
+    for (const record of missing) {
+      this.log(win, `  ${record.type}  ${record.host}`)
+    }
+
+    await client.saveRecords(domain, missing)
+    await this.verifyWritten(win, client, domain, missing)
   }
 
   /**

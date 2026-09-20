@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Database,
   Mail,
@@ -10,6 +10,7 @@ import {
   MemoryStick,
   HardDrive,
   Monitor,
+  RefreshCw,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { WizardLayout } from "../components/layout/WizardLayout";
@@ -26,7 +27,7 @@ import {
 } from "../components/ui/SshKeySelector";
 import type { SshKeyInfo } from "../types/electron";
 import { useServiceProvision } from "../hooks/useServiceProvision";
-import { useSession } from "../context/SessionContext";
+import { useSession, type RunKey } from "../context/SessionContext";
 import { ManualCheck } from "../components/ui/ManualCheck";
 import { ManualSection } from "../components/ui/ManualSection";
 import { DnsTable } from "../components/ui/DnsTable";
@@ -34,6 +35,7 @@ import { STORAGE_BUCKETS } from "../shared/supabaseBuckets";
 import { buildInfraDnsRecords, type DnsRecord } from "../shared/dnsRecords";
 import {
   BUCKETS_URL,
+  RESEND_DOMAINS_URL,
   SPACESHIP_LAUNCHPAD_URL,
   SPACESHIP_DNS_HELP_URL,
 } from "../shared/apiConfigLinks";
@@ -45,9 +47,17 @@ type Status = "idle" | "running" | "done" | "error";
 
 export function ApiConfiguration() {
   const { t, config, setField, setFields, saveConfig, state } = useApp();
-  const { isRunDone, markRunDone, isManualChecked, confirmManual } =
-    useSession();
+  const {
+    isRunDone,
+    markRunDone,
+    clearRun,
+    isManualChecked,
+    confirmManual,
+    setManualCheck,
+    isCredentialRefused,
+  } = useSession();
   const isEn = state.language === "en";
+  const resendKeyRefused = isCredentialRefused("resend");
 
   // The automation pre-fills the very same fields the manual fallback edits, so
   // a partial or wrong result can always be corrected by hand afterwards.
@@ -79,13 +89,30 @@ export function ApiConfiguration() {
    * the card shows the subdomain alone.
    */
   const resendRecords = useMemo<DnsRecord[]>(() => {
+    /**
+     * A refused key makes what is on file unusable rather than merely old: the
+     * DKIM value was minted for a domain on an account this key can no longer
+     * reach, and nothing here can tell whether that domain still exists. The
+     * records are dropped rather than shown — the card then says where to read
+     * the real ones — and they come back of their own accord if the key does.
+     */
+    if (resendKeyRefused) return [];
     if (!config.RESEND_DNS_RECORDS) return [];
     try {
       return JSON.parse(config.RESEND_DNS_RECORDS) as DnsRecord[];
     } catch {
       return [];
     }
-  }, [config.RESEND_DNS_RECORDS]);
+  }, [config.RESEND_DNS_RECORDS, resendKeyRefused]);
+
+  /**
+   * One table, at the registrar. The deployment's own records and the ones
+   * Resend asks for are pasted into the same form in the same sitting, so they
+   * are read from one list — splitting them put half the DNS work inside a
+   * card about a mail service. Resend's half is absent until its run has been:
+   * nothing can know a DKIM key before the domain that mints it exists.
+   */
+  const allDnsRecords = [...dnsRecords, ...resendRecords];
 
   const dnsLabels = {
     type: t("step4.dns.type"),
@@ -176,6 +203,8 @@ export function ApiConfiguration() {
 
   const { selectedSshKey } = useApp();
   const sshSelectorRef = useRef<SshKeySelectorHandle>(null);
+  const [verifyingResend, setVerifyingResend] = useState(false);
+  const [syncingResend, setSyncingResend] = useState(false);
 
   const statusLabels = {
     done: t("apiConfig.status.done"),
@@ -184,27 +213,49 @@ export function ApiConfiguration() {
   };
 
   /**
+   * How a block reads, from what was run and what is still there.
+   *
    * A run that succeeded earlier in this session keeps its block green after
    * the page is remounted — leaving step 2 and coming back resets the hooks,
-   * not what happened. The config the run brought back is already persisted;
-   * this only concerns how the block reads.
+   * not what happened.
+   *
+   * But "it ran" is not the same claim as "it holds": a value cleared or a box
+   * unticked in the manual configuration afterwards undoes what the run
+   * established, and a block left green on the strength of history alone would
+   * be reporting a state nobody could point at any more. So `holds` has the
+   * last word over `done` — and only over `done`: a run in flight still says
+   * so, and a failure keeps its message.
    */
-  const supabaseStatus: Status =
-    supabase.status === "idle" && isRunDone("api-supabase")
-      ? "done"
-      : supabase.status;
-  const scwStatus: Status =
-    scalewayStatus === "idle" && isRunDone("api-scaleway")
-      ? "done"
-      : scalewayStatus;
-  const spaceshipStatus: Status =
-    spaceship.status === "idle" && isRunDone("api-spaceship")
-      ? "done"
-      : spaceship.status;
-  const resendStatus: Status =
-    resend.status === "idle" && isRunDone("api-resend")
-      ? "done"
-      : resend.status;
+  const blockStatus = (live: Status, key: RunKey, holds: boolean): Status => {
+    if (!holds) return live === "done" ? "idle" : live;
+    return live === "idle" && isRunDone(key) ? "done" : live;
+  };
+
+  const supabaseStatus = blockStatus(
+    supabase.status,
+    "api-supabase",
+    supabaseManualDone,
+  );
+  const scwStatus = blockStatus(
+    scalewayStatus,
+    "api-scaleway",
+    scalewayManualDone,
+  );
+  const spaceshipStatus = blockStatus(
+    spaceship.status,
+    "api-spaceship",
+    spaceshipManualDone,
+  );
+  /**
+   * Resend is not held to its checkbox: that one says the subdomain is
+   * *verified*, which a run that handed the propagation back cannot claim yet.
+   * What it is held to is the values it needs to send anything at all.
+   */
+  const resendStatus = blockStatus(
+    resend.status,
+    "api-resend",
+    isResendComplete,
+  );
 
   useEffect(() => {
     if (supabase.status !== "done") return;
@@ -240,6 +291,89 @@ export function ApiConfiguration() {
     markRunDone("api-resend");
     if (config.RESEND_DOMAIN_VERIFIED_AT) confirmManual("resend-subdomain");
   }, [resend.status, config.RESEND_DOMAIN_VERIFIED_AT]);
+
+  /**
+   * What Resend holds, reconciled against what is on file, whenever the step
+   * is opened or its key or subdomain changes.
+   *
+   * The records were written by a run that has long since finished, and
+   * nothing about a domain deleted from the dashboard afterwards reaches this
+   * app on its own: without this, the table went on offering a DKIM line for a
+   * domain that no longer exists. Only an answer from Resend clears anything —
+   * a failed call says the account could not be reached, not that it is empty.
+   */
+  /**
+   * `visible` is for the syncs the reader asked for — the refresh button, and
+   * opening the panel — which say they are working. The one that runs on
+   * arrival stays quiet: nobody asked, and announcing it would be one more
+   * thing flickering on a page that has just loaded.
+   */
+  const syncResendDomain = async (visible = false) => {
+    // A key the provider refuses can answer nothing about the domain, and the
+    // records are already being disregarded on that account.
+    if (!config.RESEND_API_KEY || !config.DOMAIN || resendKeyRefused) return;
+
+    if (visible) setSyncingResend(true);
+    try {
+      const res = await resend.readResendDomain({
+        apiKey: config.RESEND_API_KEY,
+        domain: config.DOMAIN,
+        mailSubdomain,
+      });
+      if (!res.success || !res.data) return;
+      const snapshot = res.data;
+
+      if (!snapshot.exists) {
+        // Nothing on file describes anything any more, and the tick claiming
+        // a verified subdomain is the least true part of it.
+        if (
+          !config.RESEND_DOMAIN_ID &&
+          !config.RESEND_DNS_RECORDS &&
+          !config.RESEND_DOMAIN_VERIFIED_AT &&
+          !config.RESEND_VERIFICATION_PENDING_SINCE
+        )
+          return;
+        applyPatch({
+          RESEND_DOMAIN_ID: "",
+          RESEND_DNS_RECORDS: "",
+          RESEND_DOMAIN_VERIFIED_AT: "",
+          RESEND_VERIFICATION_PENDING_SINCE: "",
+        });
+        clearRun("api-resend");
+        setManualCheck("resend-subdomain", false);
+        return;
+      }
+
+      // It exists: what it asks for now replaces what it asked for then.
+      const records = JSON.stringify(snapshot.records ?? []);
+      const patch: Record<string, string> = {};
+      if (snapshot.domainId && snapshot.domainId !== config.RESEND_DOMAIN_ID)
+        patch.RESEND_DOMAIN_ID = snapshot.domainId;
+      if (records !== config.RESEND_DNS_RECORDS)
+        patch.RESEND_DNS_RECORDS = records;
+
+      const verified = snapshot.status === "verified";
+      if (verified) {
+        if (!config.RESEND_DOMAIN_VERIFIED_AT)
+          patch.RESEND_DOMAIN_VERIFIED_AT = new Date().toISOString();
+        // The wait is over, however it ended.
+        if (config.RESEND_VERIFICATION_PENDING_SINCE)
+          patch.RESEND_VERIFICATION_PENDING_SINCE = "";
+        confirmManual("resend-subdomain");
+      } else if (config.RESEND_DOMAIN_VERIFIED_AT) {
+        patch.RESEND_DOMAIN_VERIFIED_AT = "";
+        setManualCheck("resend-subdomain", false);
+      }
+
+      if (Object.keys(patch).length > 0) applyPatch(patch);
+    } finally {
+      if (visible) setSyncingResend(false);
+    }
+  };
+
+  useEffect(() => {
+    void syncResendDomain();
+  }, [config.RESEND_API_KEY, config.DOMAIN, mailSubdomain, resendKeyRefused]);
 
   const handleStartScaleway = async (
     keyToUse: SshKeyInfo | null = selectedSshKey,
@@ -298,36 +432,52 @@ export function ApiConfiguration() {
    * fields below it: when the chain is stuck, filling them in by hand is the
    * way forward.
    */
+  /**
+   * A key its own provider has refused locks the run as firmly as a missing
+   * one: the automation would open with the same refusal, several seconds and
+   * one red card later. Checked after the fields, so the reader is told what
+   * is missing before being told what is wrong.
+   */
+  const refused = t("apiConfig.locked.credentialRefused");
+
   const supabaseLock = !config.SUPABASE_ACCESS_TOKEN
     ? t("apiConfig.locked.supabaseToken")
     : !config.SUPABASE_DB_PASSWORD
       ? t("apiConfig.locked.supabasePassword")
       : !isAccountComplete(config, "supabase")
         ? t("apiConfig.locked.accountSupabase")
-        : null;
+        : isCredentialRefused("supabase")
+          ? refused
+          : null;
 
   const scalewayLock =
     !config.SCW_SECRET_KEY || !config.SCW_DEFAULT_PROJECT_ID
       ? t("apiConfig.locked.scalewayKeys")
       : !isAccountComplete(config, "scaleway")
         ? t("apiConfig.locked.accountScaleway")
-        : null;
+        : isCredentialRefused("scaleway")
+          ? refused
+          : null;
 
   const spaceshipLock = !config.DOMAIN
     ? t("apiConfig.locked.needsDomain")
     : !isAccountComplete(config, "spaceship")
       ? t("apiConfig.locked.accountSpaceship")
-      : !config.IPV4_INSTANCE
-        ? t("apiConfig.locked.needsIpv4")
-        : null;
+      : isCredentialRefused("spaceship")
+        ? refused
+        : !config.IPV4_INSTANCE
+          ? t("apiConfig.locked.needsIpv4")
+          : null;
 
   const resendLock = !isAccountComplete(config, "resend")
     ? t("apiConfig.locked.accountResend")
-    : !config.DOMAIN
-      ? t("apiConfig.locked.needsDomain")
-      : !config.IPV4_INSTANCE
-        ? t("apiConfig.locked.needsDns")
-        : null;
+    : resendKeyRefused
+      ? refused
+      : !config.DOMAIN
+        ? t("apiConfig.locked.needsDomain")
+        : !config.IPV4_INSTANCE
+          ? t("apiConfig.locked.needsDns")
+          : null;
 
   const handleStartSupabase = () => {
     if (supabaseLock) return;
@@ -354,7 +504,60 @@ export function ApiConfiguration() {
       // admin panel are about to point at.
       ipv4: config.IPV4_INSTANCE,
       mailSubdomain,
+      // Published by the Resend run, checked over by this one: the zone is
+      // open anyway, and a DKIM line gone missing is otherwise only noticed
+      // when mail stops arriving.
+      resendRecords,
     });
+  };
+
+  /**
+   * The check on its own, once the records are finally in place at the
+   * registrar. Resend's dashboard has no equivalent — its own check runs on a
+   * schedule, and a domain sits at `pending` until it comes round — so this
+   * button is the only way to ask for one now. It publishes nothing and
+   * creates nothing, which is what separates it from a re-run.
+   */
+  const handleVerifyResend = async () => {
+    setVerifyingResend(true);
+    try {
+      const res = await resend.verifyResend({
+        apiKey: config.RESEND_API_KEY,
+        mailSubdomain,
+        domainId: config.RESEND_DOMAIN_ID || undefined,
+      });
+
+      if (!res.success || !res.data) {
+        toast.error(res.error ?? t("apiConfig.resend.verify.failed"), {
+          duration: 7000,
+        });
+        return;
+      }
+
+      const { domainId, status, verifiedAt } = res.data;
+      // The id can have been re-resolved by name — the saved one names a
+      // domain that may since have been deleted from the dashboard.
+      applyPatch({
+        RESEND_DOMAIN_ID: domainId,
+        ...(verifiedAt
+          ? {
+              RESEND_DOMAIN_VERIFIED_AT: verifiedAt,
+              RESEND_VERIFICATION_PENDING_SINCE: "",
+            }
+          : {}),
+      });
+
+      if (verifiedAt) {
+        confirmManual("resend-subdomain");
+        toast.success(t("apiConfig.resend.verify.verified"));
+      } else {
+        toast(`${t("apiConfig.resend.verify.pending")} (${status})`, {
+          duration: 7000,
+        });
+      }
+    } finally {
+      setVerifyingResend(false);
+    }
   };
 
   const handleStartResend = () => {
@@ -578,7 +781,9 @@ export function ApiConfiguration() {
 
         {/* Resend — before Spaceship, because the records it asks for cannot
             be known until its domain exists: the DKIM key is minted with it.
-            The run publishes them itself when Spaceship holds the zone. */}
+            The run publishes them itself when Spaceship holds the zone.
+            Nothing DNS is shown here: what it asked for is published, or
+            copied, at the registrar — the step below. */}
         <ServiceConfigBlock
           stepNumber={3}
           serviceName="RESEND"
@@ -601,6 +806,20 @@ export function ApiConfiguration() {
           statusLabels={statusLabels}
           helpAnchor="svc-resend"
           helpHint={t("apiConfig.resend.helpHint")}
+          /* The run hands DNS propagation back rather than sitting on it, so
+             the card has to say what it is waiting for — otherwise a step
+             that is genuinely finished reads as one that quietly gave up. */
+          extra={
+            config.RESEND_VERIFICATION_PENDING_SINCE &&
+            !config.RESEND_DOMAIN_VERIFIED_AT ? (
+              <div className="info-box info">
+                <Info size={15} className="info-box-icon" />
+                <div className="info-box-text">
+                  {t("apiConfig.resend.pendingBox")}
+                </div>
+              </div>
+            ) : undefined
+          }
           manualLabel={t("apiConfig.manualConfig")}
         >
           <div className="form-section">
@@ -615,24 +834,6 @@ export function ApiConfiguration() {
                 }
               />
             </ManualSection>
-
-            {/* Only once a run has been: before that there is nothing to show,
-                and inventing a DKIM line would be worse than an empty space. */}
-            {resendRecords.length > 0 && (
-              <ManualSection
-                title={t("apiConfig.resend.records.title")}
-                desc={t("apiConfig.resend.records.desc")}
-              >
-                <DnsTable records={resendRecords} labels={dnsLabels} />
-                <div className="info-box info">
-                  <Info size={15} className="info-box-icon" />
-                  <div className="info-box-text">
-                    {t("apiConfig.spaceship.hostNote")}
-                  </div>
-                </div>
-              </ManualSection>
-            )}
-
             <ManualSection
               title={isEn ? "Sending settings" : "Réglages d'envoi"}
             >
@@ -685,6 +886,11 @@ export function ApiConfiguration() {
           manualLabel={
             usesOtherDomainProvider ? undefined : t("apiConfig.manualConfig")
           }
+          /* The table below is half Resend's, and Resend's half is only ever
+             as current as the last time it was asked. Opening the panel is
+             the moment it is about to be copied into a registrar, so it is
+             the moment worth asking again. */
+          onManualOpen={() => void syncResendDomain(true)}
         >
           <div className="form-section">
             <ManualSection
@@ -703,7 +909,40 @@ export function ApiConfiguration() {
                   />
                 </div>
               )}
-              <DnsTable records={dnsRecords} labels={dnsLabels} />
+              {/* Refreshed when the panel opens, and on demand: a subdomain
+                  added at Resend a moment ago has records nothing here can
+                  guess, and the reader should not have to reload the app to
+                  see them appear. */}
+              {!!config.RESEND_API_KEY && (
+                <div className="link-buttons-row">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => void syncResendDomain(true)}
+                    disabled={syncingResend}
+                    type="button"
+                  >
+                    <RefreshCw size={14} />
+                    {syncingResend
+                      ? t("apiConfig.dns.refreshing")
+                      : t("apiConfig.dns.refresh")}
+                  </button>
+                </div>
+              )}
+              <DnsTable records={allDnsRecords} labels={dnsLabels} />
+              {/* The API is the only thing that knows a DKIM key — when it has
+                  not answered, the dashboard still shows the same lines, so
+                  the reader is sent to read them there rather than left with
+                  half a table and no way to complete it. */}
+              {resendRecords.length === 0 && (
+                <div className="info-box warning">
+                  <AlertTriangle size={15} className="info-box-icon" />
+                  <div className="info-box-text">
+                    {resendKeyRefused
+                      ? t("apiConfig.dns.resendRefused")
+                      : t("apiConfig.dns.resendMissing")}
+                  </div>
+                </div>
+              )}
               <div className="info-box info">
                 <Info size={15} className="info-box-icon" />
                 <div className="info-box-text">
@@ -713,6 +952,29 @@ export function ApiConfiguration() {
               <div className="info-box warning">
                 <AlertTriangle size={15} className="info-box-icon" />
                 <div className="info-box-text">{t("step4.warning")}</div>
+              </div>
+              {/* Where the records were just pasted is where the reader finds
+                  out whether they took: Resend checks on its own schedule and
+                  offers no way to ask sooner, so the button that does sits
+                  with the table rather than a card away. */}
+              <div className="link-buttons-row">
+                {!!config.RESEND_API_KEY && (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleVerifyResend}
+                    disabled={verifyingResend}
+                    type="button"
+                  >
+                    <RefreshCw size={14} />
+                    {verifyingResend
+                      ? t("apiConfig.resend.verify.running")
+                      : t("apiConfig.resend.verify.btn")}
+                  </button>
+                )}
+                <ExternalLinkBtn
+                  url={RESEND_DOMAINS_URL}
+                  label={t("apiConfig.resend.domainsBtn")}
+                />
               </div>
               <ManualCheck
                 checkKey="spaceship-dns"

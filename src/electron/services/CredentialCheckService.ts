@@ -9,21 +9,33 @@ import type { CredentialCheckRequest, CredentialCheckResult } from '../../types/
  */
 const TIMEOUT_MS = 8_000
 
+/** What refusing a key looks like nearly everywhere. */
+const REFUSED = [401, 403]
+
 /** Only a refusal is conclusive. Anything else leaves the key unjudged. */
-function classify(status: number): CredentialCheckResult {
+function classify(status: number, refused: number[]): CredentialCheckResult {
   if (status >= 200 && status < 300) return { state: 'valid' }
-  if (status === 401 || status === 403) return { state: 'invalid' }
+  if (refused.includes(status)) return { state: 'invalid' }
   return { state: 'unknown' }
 }
 
-async function probe(url: string, headers: Record<string, string>): Promise<CredentialCheckResult> {
+/**
+ * Which statuses mean "refused" is the provider's business, hence the
+ * parameter: the probe is a bare GET carrying nothing but the credentials, so
+ * whatever a provider rejects about it, it is rejecting the key.
+ */
+async function probe(
+  url: string,
+  headers: Record<string, string>,
+  refused: number[] = REFUSED,
+): Promise<CredentialCheckResult> {
   try {
     const response = await fetch(url, {
       method: 'GET',
       headers: { Accept: 'application/json', ...headers },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
-    return classify(response.status)
+    return classify(response.status, refused)
   } catch {
     // Offline, DNS failure, timeout — nothing was learned about the key.
     return { state: 'unknown' }
@@ -54,9 +66,17 @@ export function checkCredentials(req: CredentialCheckRequest): Promise<Credentia
         'X-API-Secret': req.apiSecret.trim(),
       })
 
+    /**
+     * 400 as well as the usual pair: Resend answers a key it does not accept
+     * with `400 {"message":"API key is invalid"}`, not the 401 every other
+     * provider here sends. Left out, its refusal read as "nothing learned" and
+     * the card stayed silent on a key that could never work.
+     */
     case 'resend':
-      return probe('https://api.resend.com/domains', {
-        Authorization: `Bearer ${req.apiKey.trim()}`,
-      })
+      return probe(
+        'https://api.resend.com/domains',
+        { Authorization: `Bearer ${req.apiKey.trim()}` },
+        [400, ...REFUSED],
+      )
   }
 }

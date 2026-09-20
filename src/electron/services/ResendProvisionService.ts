@@ -3,22 +3,28 @@ import { DNS_TTL, hostPart, type DnsRecord, type DnsRecordType } from '../../sha
 import { ResendApiClient, ResendApiError, type ResendDnsRecord, type ResendDomain } from './resend/ResendApiClient'
 import { SpaceshipApiClient, SpaceshipApiError } from './spaceship/SpaceshipApiClient'
 import { Redactor } from './supabase/redact'
-import type { ResendProvisionRequest } from '../../types/provision'
+import type {
+  ResendDomainReadRequest,
+  ResendDomainSnapshot,
+  ResendProvisionRequest,
+  ResendVerificationResult,
+  ResendVerifyRequest,
+} from '../../types/provision'
 
 const SERVICE = 'resend'
 
 /**
- * How long to wait for Resend to see the records. Its own documentation says a
- * domain usually verifies within 15 minutes, which is far too long to hold a
- * card open — so the run waits for the common fast case and hands the rest
- * back to the reader as a re-run rather than pretending to fail.
+ * The standalone check answers a button pressed by someone watching, so it is
+ * held to seconds. The run itself no longer waits at all: Resend puts DNS
+ * propagation at up to fifteen minutes, which is nothing a card held open can
+ * shorten.
  */
-const VERIFY_POLL_INTERVAL_MS = 10_000
-const VERIFY_TIMEOUT_MS = 3 * 60_000
+const CHECK_POLL_INTERVAL_MS = 5_000
+const CHECK_TIMEOUT_MS = 25_000
 
 /**
  * Creates the sending subdomain on Resend, publishes the records it asks for,
- * and waits for it to verify them.
+ * and asks it to verify them.
  *
  * The records are the reason this run exists: they are not knowable in
  * advance — the DKIM key is minted with the domain — so nothing can publish
@@ -102,10 +108,33 @@ export class ResendProvisionService {
       }
 
       await this.publishRecords(win, req, records)
-      const verifiedAt = await this.waitUntilVerified(win, client, domain.id)
+
+      /**
+       * The run ends here, at the moment the waiting would start.
+       *
+       * Everything an automation can do is done: the domain exists, the
+       * records are published, and Resend has been asked to look. What
+       * remains is DNS propagation, which its own documentation puts at up to
+       * fifteen minutes and which no amount of holding the card open makes
+       * faster. Reported as pending instead, so the reader moves on to the
+       * next step and comes back to a card that confirms itself.
+       */
+      if (domain.status === 'verified') {
+        this.log(win, 'Domaine déjà vérifié par Resend — les envois sont possibles.', 'done')
+        patch.RESEND_DOMAIN_VERIFIED_AT = new Date().toISOString()
+        patch.RESEND_VERIFICATION_PENDING_SINCE = ''
+      } else {
+        this.log(win, 'Demande de vérification à Resend…')
+        await client.verifyDomain(domain.id)
+        patch.RESEND_VERIFICATION_PENDING_SINCE = new Date().toISOString()
+        this.log(
+          win,
+          "Vérification demandée. La propagation DNS peut prendre jusqu'à 15 minutes : cette étape est terminée, Resend confirmera de son côté. Inutile d'attendre ici — « Relancer la vérification Resend » redemandera le contrôle.",
+          'done',
+        )
+      }
 
       this.progress(win, 100)
-      if (verifiedAt) patch.RESEND_DOMAIN_VERIFIED_AT = verifiedAt
       win.webContents.send('provision:done', { service: SERVICE, patch })
     } catch (err) {
       if (this.wasCancelled()) {
@@ -122,6 +151,87 @@ export class ResendProvisionService {
     } finally {
       this.controller = null
     }
+  }
+
+  /**
+   * The sending domain as Resend holds it now — read-only, and deliberately
+   * not a verification: this runs when the step is merely opened, and asking
+   * for a check on every visit would be a request the reader never made.
+   *
+   * Resolved by name rather than by the saved id, because the id is the very
+   * thing that goes stale: a domain deleted from the dashboard and added again
+   * has a new one, and a domain simply deleted has none. The account's own
+   * listing is the only thing that can settle either.
+   */
+  async readDomain(req: ResendDomainReadRequest): Promise<ResendDomainSnapshot> {
+    const client = new ResendApiClient({ apiKey: req.apiKey })
+
+    const listed = (await client.listDomains()).find(d => d.name === req.mailSubdomain)
+    if (!listed) return { exists: false }
+
+    // Only fetching the domain carries the records; the listing does not.
+    const domain = await client.getDomain(listed.id)
+    return {
+      exists: true,
+      domainId: domain.id,
+      status: domain.status,
+      records: this.normaliseRecords(domain.records ?? [], req.domain),
+    }
+  }
+
+  /**
+   * Asks Resend to look at the DNS now, and reports what it sees.
+   *
+   * Nothing is created and nothing is published: this is the button pressed
+   * once the records are in place at the registrar, which the dashboard itself
+   * offers no equivalent of — Resend's own check runs on its schedule, and a
+   * domain can sit at `pending` for hours waiting for it. Separate from
+   * `start` so re-checking never risks a second domain or a re-publish.
+   */
+  async verifyOnly(req: ResendVerifyRequest): Promise<ResendVerificationResult> {
+    const client = new ResendApiClient({ apiKey: req.apiKey })
+    const id = await this.findDomainId(client, req)
+
+    await client.verifyDomain(id)
+
+    // The check runs asynchronously on Resend's side, so an immediate read
+    // would report the state from before it was asked for.
+    const deadline = Date.now() + CHECK_TIMEOUT_MS
+    let status = (await client.getDomain(id)).status
+    while (status !== 'verified' && status !== 'failed' && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, CHECK_POLL_INTERVAL_MS))
+      status = (await client.getDomain(id)).status
+    }
+
+    return {
+      domainId: id,
+      status,
+      ...(status === 'verified' ? { verifiedAt: new Date().toISOString() } : {}),
+    }
+  }
+
+  /**
+   * The domain to check. An id saved by an earlier run is the direct route,
+   * but it names a domain that may have been deleted from the dashboard since
+   * — and a domain added there by hand has no id here at all — so both fall
+   * back to resolving it by name.
+   */
+  private async findDomainId(client: ResendApiClient, req: ResendVerifyRequest): Promise<string> {
+    if (req.domainId) {
+      try {
+        return (await client.getDomain(req.domainId)).id
+      } catch {
+        // Gone, or belonging to another account — resolve by name instead.
+      }
+    }
+
+    const known = (await client.listDomains()).find(d => d.name === req.mailSubdomain)
+    if (!known) {
+      throw new Error(
+        `${req.mailSubdomain} n'est pas (ou plus) enregistré sur ce compte Resend. Lancez l'étape pour le créer, ou ajoutez-le depuis resend.com/domains.`,
+      )
+    }
+    return known.id
   }
 
   // ── Step 1 — the domain, adopted or created ──────────────────────────────
@@ -201,56 +311,5 @@ export class ResendProvisionService {
     await spaceship.saveRecords(req.domain, records)
     this.progress(win, 60)
     this.log(win, 'Enregistrements publiés.', 'done')
-  }
-
-  // ── Step 3 — wait for Resend to see them ─────────────────────────────────
-
-  /**
-   * Returns when Resend reports the domain verified, or null when the wait ran
-   * out. Running out is not a failure: the records are published and the check
-   * is Resend's to make, so the run ends green with what it did and the reader
-   * relaunches it later rather than seeing red for a propagation delay.
-   */
-  private async waitUntilVerified(
-    win: BrowserWindow,
-    client: ResendApiClient,
-    id: string,
-  ): Promise<string | null> {
-    this.log(win, 'Demande de vérification à Resend…')
-    await client.verifyDomain(id)
-
-    const deadline = Date.now() + VERIFY_TIMEOUT_MS
-    this.log(win, 'Attente de la propagation DNS (jusqu\'à 3 minutes)…')
-
-    while (true) {
-      if (this.wasCancelled()) throw new DOMException('Aborted', 'AbortError')
-
-      await new Promise(resolve => setTimeout(resolve, VERIFY_POLL_INTERVAL_MS))
-      const domain = await client.getDomain(id)
-
-      if (domain.status === 'verified') {
-        this.log(win, 'Domaine vérifié par Resend — les envois sont possibles.', 'done')
-        return new Date().toISOString()
-      }
-
-      if (domain.status === 'failed') {
-        throw new Error(
-          "Resend a rejeté la vérification du domaine. Les enregistrements sont publiés mais ne lui parviennent pas : vérifiez-les dans « Configuration manuelle », puis relancez.",
-        )
-      }
-
-      if (Date.now() > deadline) {
-        this.log(
-          win,
-          "Resend n'a pas encore vu les enregistrements (statut : " +
-            domain.status +
-            '). C\'est normal, la propagation DNS peut prendre jusqu\'à 15 minutes — relancez cette étape dans quelques minutes pour terminer la vérification.',
-          'done',
-        )
-        return null
-      }
-
-      this.progress(win, 80)
-    }
   }
 }

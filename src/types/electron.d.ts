@@ -9,7 +9,11 @@ import type {
   SupabaseOrganizationSummary,
   SupabaseProjectSummary,
   SupabaseProjectVerification,
+  ResendDomainReadRequest,
+  ResendDomainSnapshot,
   ResendProvisionRequest,
+  ResendVerificationResult,
+  ResendVerifyRequest,
   SpaceshipProvisionRequest,
   SupabaseProvisionRequest,
   SupabaseSiteSetupRequest,
@@ -108,6 +112,8 @@ export interface ElectronAPI {
   startSupabaseSiteSetup: (req: SupabaseSiteSetupRequest) => Promise<void>
   startSpaceshipProvision: (req: SpaceshipProvisionRequest) => Promise<void>
   startResendProvision: (req: ResendProvisionRequest) => Promise<void>
+  verifyResendDomain: (req: ResendVerifyRequest) => Promise<ProvisionQueryResult<ResendVerificationResult>>
+  readResendDomain: (req: ResendDomainReadRequest) => Promise<ProvisionQueryResult<ResendDomainSnapshot>>
   checkCredentials: (req: CredentialCheckRequest) => Promise<CredentialCheckResult>
   listSupabaseOrganizations: (accessToken: string) => Promise<ProvisionQueryResult<SupabaseOrganizationSummary[]>>
   listSupabaseProjects: (accessToken: string) => Promise<ProvisionQueryResult<SupabaseProjectSummary[]>>

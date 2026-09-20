@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useApp } from './AppContext'
+import { forgetRefusal, rememberRefusal, wasRefused } from '../utils/credentialVerdicts'
+import type { CredentialService, CredentialState } from '../types/credentials'
 
 /**
  * What has been *done* in this session, as opposed to what has been *filled in*.
@@ -57,6 +59,14 @@ interface SessionContextType {
   setManualCheck: (key: ManualKey, checked: boolean) => void
   /** Ticks boxes on the reader's behalf — what a successful run just did. */
   confirmManual: (...keys: ManualKey[]) => void
+  /**
+   * What each provider answered about its key, the last time it was asked.
+   * Held here rather than on the page that asks, because the sidebar's tick
+   * and the steps downstream have to read the same verdict.
+   */
+  recordCredentialState: (service: CredentialService, state: CredentialState) => void
+  /** The provider has refused this key — as opposed to not having answered. */
+  isCredentialRefused: (service: CredentialService) => boolean
 }
 
 const SessionContext = createContext<SessionContextType | null>(null)
@@ -65,6 +75,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const { state } = useApp()
   const [runs, setRuns] = useState<Partial<Record<RunKey, boolean>>>({})
   const [manualChecks, setManualChecks] = useState<Partial<Record<ManualKey, boolean>>>({})
+  /**
+   * Only what a provider has actually answered. An entry is absent until one
+   * has, which is what lets a refusal remembered from a previous run of the
+   * app stand in the meantime instead of the cards reading as complete.
+   */
+  const [credentialStates, setCredentialStates] =
+    useState<Partial<Record<CredentialService, CredentialState>>>({})
 
   /**
    * What this session's facts are about: the configuration being edited, and
@@ -80,6 +97,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     subjectRef.current = subject
     setRuns({})
     setManualChecks({})
+    setCredentialStates({})
   }, [subject])
 
   const markRunDone = useCallback((key: RunKey) => {
@@ -113,12 +131,56 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  /**
+   * A refusal outlives the session it was learned in; an acceptance does not.
+   * Which way round matters: a key stored as working would keep a card green
+   * long after it stopped being true, whereas a refusal can only end by the
+   * key being changed — and a changed key no longer matches the fingerprint.
+   */
+  const recordCredentialState = useCallback(
+    (service: CredentialService, credentialState: CredentialState) => {
+      setCredentialStates(prev =>
+        prev[service] === credentialState ? prev : { ...prev, [service]: credentialState },
+      )
+      if (credentialState === 'invalid') rememberRefusal(state.config, service)
+      if (credentialState === 'valid') forgetRefusal(service)
+    },
+    [state.config],
+  )
+
+  /**
+   * An answer in hand settles it. Without one — the first render after a
+   * reload, or a page that never asks — a refusal remembered about this very
+   * key does, and `unknown` is left to mean what it says: nothing was learned,
+   * so nothing overrides what was known before.
+   */
+  const isCredentialRefused = useCallback(
+    (service: CredentialService) => {
+      const answered = credentialStates[service]
+      if (answered === 'invalid') return true
+      if (answered === 'valid') return false
+      return wasRefused(state.config, service)
+    },
+    [credentialStates, state.config],
+  )
+
   const isRunDone = useCallback((key: RunKey) => !!runs[key], [runs])
   const isManualChecked = useCallback((key: ManualKey) => !!manualChecks[key], [manualChecks])
 
   return (
     <SessionContext.Provider
-      value={{ runs, isRunDone, markRunDone, clearRun, manualChecks, isManualChecked, setManualCheck, confirmManual }}
+      value={{
+        runs,
+        isRunDone,
+        markRunDone,
+        clearRun,
+        manualChecks,
+        isManualChecked,
+        setManualCheck,
+        confirmManual,
+        recordCredentialState,
+        isCredentialRefused,
+      }}
     >
       {children}
     </SessionContext.Provider>

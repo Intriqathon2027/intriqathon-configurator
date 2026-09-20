@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { useCredentialCheck } from '../../hooks/useCredentialCheck'
+import { useSession } from '../../context/SessionContext'
 import type { CredentialCheckRequest, CredentialState } from '../../types/credentials'
 
 interface CredentialWarningProps {
@@ -26,12 +27,20 @@ interface CredentialWarningProps {
  */
 export function CredentialWarning({ request, message, onStateChange }: CredentialWarningProps) {
   const state = useCredentialCheck(request)
+  const { isCredentialRefused } = useSession()
 
   useEffect(() => {
     onStateChange?.(state)
   }, [state, onStateChange])
 
-  if (state !== 'invalid') return null
+  /**
+   * A refusal learned before this render counts too: the check takes a
+   * debounce and a round trip, and a box that appeared only after them would
+   * leave the reader a second of a card that looks fine — the very second in
+   * which they move on to the next step.
+   */
+  const refused = state === 'invalid' || (!!request && isCredentialRefused(request.service))
+  if (!refused) return null
 
   return (
     <div className="info-box warning">

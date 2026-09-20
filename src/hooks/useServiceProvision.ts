@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createProvisionBridge, type ProvisionBridge } from '../services/provisionBridge'
 import type {
   ProvisionService,
+  ResendDomainReadRequest,
   ResendProvisionRequest,
+  ResendVerifyRequest,
   SpaceshipProvisionRequest,
   SupabaseProvisionRequest,
   SupabaseSiteSetupRequest,
@@ -108,11 +110,29 @@ export function useServiceProvision(
     [bridge, run],
   )
 
+  /**
+   * Outside the run lifecycle on purpose: it starts nothing, so it leaves
+   * `status` and the log pane exactly as the last run left them.
+   */
+  const verifyResend = useCallback(
+    (req: ResendVerifyRequest) => bridge.verifyResendDomain(req),
+    [bridge],
+  )
+
+  /**
+   * Read-only, and outside the run lifecycle for the same reason: opening the
+   * step must not look like starting something.
+   */
+  const readResendDomain = useCallback(
+    (req: ResendDomainReadRequest) => bridge.readResendDomain(req),
+    [bridge],
+  )
+
   const cancel = useCallback(() => {
     void bridge.cancel(service)
     setStatus('idle')
     setProgress(0)
   }, [bridge, service])
 
-  return { status, logs, progress, error, startSupabase, startSiteSetup, startSpaceship, startResend, cancel }
+  return { status, logs, progress, error, startSupabase, startSiteSetup, startSpaceship, startResend, verifyResend, readResendDomain, cancel }
 }

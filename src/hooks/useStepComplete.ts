@@ -1,6 +1,9 @@
 import { useApp } from '../context/AppContext'
 import { useSession } from '../context/SessionContext'
 import { steps } from '../components/layout/steps'
+import type { CredentialService } from '../types/credentials'
+
+const CREDENTIAL_SERVICES: CredentialService[] = ['supabase', 'scaleway', 'spaceship', 'resend']
 
 /**
  * Whether a wizard step is finished — the rule the sidebar tick is drawn from.
@@ -15,13 +18,22 @@ import { steps } from '../components/layout/steps'
  */
 export function useStepComplete(): (step: number) => boolean {
   const { state } = useApp()
-  const { isRunDone, isManualChecked } = useSession()
+  const { isRunDone, isManualChecked, isCredentialRefused } = useSession()
 
   return (step: number): boolean => {
     const fields = steps[step]?.requiredFields ?? []
     const fieldsFilled = fields.every(key => (state.config[key] ?? '').trim() !== '')
 
     switch (step) {
+      /**
+       * Création de comptes — the fields being filled is half of it. A key its
+       * own provider refuses is not an account that has been set up, and a
+       * tick here would send the reader on to steps whose automations that
+       * very key is about to fail.
+       */
+      case 0:
+        return fieldsFilled && !CREDENTIAL_SERVICES.some(isCredentialRefused)
+
       // Configuration par API — four services, each with a manual half
       case 1: {
         // The automation creates and verifies the buckets; short of that, the
