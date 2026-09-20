@@ -70,108 +70,6 @@ export function OAuth2HelpContent() {
     },
   ];
 
-  const github: HelpFlowStep[] = [
-    {
-      key: "new",
-      title: "New OAuth App",
-      desc: isEn ? (
-        <>
-          Profile photo (top right) ➔ <code>Settings</code> ➔{" "}
-          <code>Developer settings</code> ➔ <code>OAuth Apps</code> ➔{" "}
-          <code>New OAuth App</code>.
-        </>
-      ) : (
-        <>
-          Photo de profil (haut droite) ➔ <code>Settings</code> ➔{" "}
-          <code>Developer settings</code> ➔ <code>OAuth Apps</code> ➔{" "}
-          <code>New OAuth App</code>.
-        </>
-      ),
-      url: "https://github.com/settings/applications/new",
-      linkLabel: isEn ? "Create the app" : "Créer l'app",
-    },
-    {
-      key: "urls",
-      title: isEn ? "Fill in the two URLs" : "Renseigner les deux URLs",
-      desc: isEn ? (
-        <>
-          Copy the <code>Homepage URL</code> and the{" "}
-          <code>Authorization callback URL</code> exactly as the form shows
-          them, then <code>Register application</code>.
-        </>
-      ) : (
-        <>
-          Recopiez la <code>Homepage URL</code> et l'
-          <code>Authorization callback URL</code> exactement comme le formulaire
-          les affiche, puis <code>Register application</code>.
-        </>
-      ),
-      copyValues: [
-        { value: `https://${domain}`, note: "Homepage URL" },
-        {
-          value: `https://${domain}/api/auth/github/callback`,
-          note: "Authorization callback URL",
-        },
-      ],
-    },
-    {
-      key: "creds",
-      title: isEn
-        ? "Copy the ID and generate the secret"
-        : "Copier l'ID et générer le secret",
-      desc: isEn ? (
-        <>
-          The Client ID sits on the app page. Click{" "}
-          <code>Generate a new client secret</code> for the secret — shown only
-          once.
-        </>
-      ) : (
-        <>
-          Le Client ID est affiché sur la page de l'app. Cliquez sur{" "}
-          <code>Generate a new client secret</code> pour le secret — affiché une
-          seule fois.
-        </>
-      ),
-      url: "https://github.com/settings/developers",
-    },
-    {
-      key: "org",
-      title: isEn ? "GitHub organization" : "Organisation GitHub",
-      desc: isEn ? (
-        <>
-          Team repositories go into a GitHub{" "}
-          <strong>organization named after your hackathon</strong>. Create it
-          beforehand — the platform looks it up, never creates it.
-        </>
-      ) : (
-        <>
-          Les dépôts des équipes atterrissent dans une{" "}
-          <strong>organisation GitHub portant le nom de votre hackathon</strong>
-          . Créez-la au préalable — la plateforme la recherche, elle ne la crée
-          jamais.
-        </>
-      ),
-      url: "https://github.com/account/organizations/new",
-      extra: (
-        <p className="help-note">
-          {isEn ? (
-            <>
-              At sign-in, the organizer must{" "}
-              <strong>grant the app access to that organization</strong> —
-              otherwise repository creation fails.
-            </>
-          ) : (
-            <>
-              À la connexion, l'organisateur doit{" "}
-              <strong>accorder à l'app l'accès à cette organisation</strong> —
-              sinon la création des dépôts échoue.
-            </>
-          )}
-        </p>
-      ),
-    },
-  ];
-
   const bot: HelpFlowStep[] = [
     {
       key: "bot",
@@ -280,6 +178,108 @@ export function OAuth2HelpContent() {
     },
   ];
 
+  const github: HelpFlowStep[] = [
+    {
+      key: "new",
+      title: "New OAuth App",
+      desc: isEn ? (
+        <>
+          Profile photo (top right) ➔ <code>Settings</code> ➔{" "}
+          <code>Developer settings</code> ➔ <code>OAuth Apps</code> ➔{" "}
+          <code>New OAuth App</code>.
+        </>
+      ) : (
+        <>
+          Photo de profil (haut droite) ➔ <code>Settings</code> ➔{" "}
+          <code>Developer settings</code> ➔ <code>OAuth Apps</code> ➔{" "}
+          <code>New OAuth App</code>.
+        </>
+      ),
+      url: "https://github.com/settings/applications/new",
+      linkLabel: isEn ? "Create the app" : "Créer l'app",
+    },
+    {
+      key: "urls",
+      title: isEn ? "Fill in the two URLs" : "Renseigner les deux URLs",
+      desc: isEn ? (
+        <>
+          Copy the <code>Homepage URL</code> and the{" "}
+          <code>Authorization callback URL</code> exactly as the form shows
+          them, then <code>Register application</code>.
+        </>
+      ) : (
+        <>
+          Recopiez la <code>Homepage URL</code> et l'
+          <code>Authorization callback URL</code> exactement comme le formulaire
+          les affiche, puis <code>Register application</code>.
+        </>
+      ),
+      copyValues: [
+        { value: `https://${domain}`, note: "Homepage URL" },
+        {
+          value: `https://${domain}/api/auth/github/callback`,
+          note: "Authorization callback URL",
+        },
+      ],
+    },
+    {
+      key: "creds",
+      title: isEn
+        ? "Copy the ID and generate the secret"
+        : "Copier l'ID et générer le secret",
+      desc: isEn ? (
+        <>
+          The Client ID sits on the app page. Click{" "}
+          <code>Generate a new client secret</code> for the secret — shown only
+          once.
+        </>
+      ) : (
+        <>
+          Le Client ID est affiché sur la page de l'app. Cliquez sur{" "}
+          <code>Generate a new client secret</code> pour le secret — affiché une
+          seule fois.
+        </>
+      ),
+      url: "https://github.com/settings/developers",
+    },
+    {
+      key: "org",
+      title: isEn ? "GitHub organization" : "Organisation GitHub",
+      desc: isEn ? (
+        <>
+          Team repositories go into a GitHub{" "}
+          <strong>organization named after your hackathon</strong>. Create it
+          beforehand — the platform looks it up, never creates it.
+        </>
+      ) : (
+        <>
+          Les dépôts des équipes atterrissent dans une{" "}
+          <strong>organisation GitHub portant le nom de votre hackathon</strong>
+          . Créez-la au préalable — la plateforme la recherche, elle ne la crée
+          jamais.
+        </>
+      ),
+      url: "https://github.com/account/organizations/new",
+      extra: (
+        <p className="help-note">
+          {isEn ? (
+            <>
+              At sign-in, the organizer must{" "}
+              <strong>grant the app access to that organization</strong> —
+              otherwise repository creation fails.
+            </>
+          ) : (
+            <>
+              À la connexion, l'organisateur doit{" "}
+              <strong>accorder à l'app l'accès à cette organisation</strong> —
+              sinon la création des dépôts échoue.
+            </>
+          )}
+        </p>
+      ),
+    },
+  ];
+
   return (
     <>
       <HelpService
@@ -291,19 +291,19 @@ export function OAuth2HelpContent() {
       </HelpService>
 
       <HelpService
-        id="svc-github"
-        icon={<Shield size={15} />}
-        title="GitHub OAuth2"
-      >
-        <HelpFlow steps={github} />
-      </HelpService>
-
-      <HelpService
         id="svc-bot"
         icon={<Shield size={15} />}
         title={isEn ? "Discord Bot" : "Bot Discord"}
       >
         <HelpFlow steps={bot} />
+      </HelpService>
+
+      <HelpService
+        id="svc-github"
+        icon={<Shield size={15} />}
+        title="GitHub OAuth2"
+      >
+        <HelpFlow steps={github} />
       </HelpService>
     </>
   );

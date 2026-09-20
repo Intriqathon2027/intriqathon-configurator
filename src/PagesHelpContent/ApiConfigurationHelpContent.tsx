@@ -40,6 +40,25 @@ export function ApiConfigurationHelpContent() {
         </>
       ),
       url: BUCKETS_URL,
+      extra: (
+        <p className="help-note">
+          {isEn ? (
+            <>
+              Nothing about a bucket reaches your configuration, so the card
+              asks Supabase instead:{" "}
+              <strong>the box below ticks itself</strong> once the five exist,
+              and unticks if one is renamed or deleted.
+            </>
+          ) : (
+            <>
+              Rien d'un bucket n'atterrit dans votre configuration : la carte le
+              demande donc à Supabase.{" "}
+              <strong>La case ci-dessous se coche d'elle-même</strong> dès que
+              les cinq existent, et se décoche si l'un est renommé ou supprimé.
+            </>
+          )}
+        </p>
+      ),
       copyValues: STORAGE_BUCKETS.map((b) => ({
         value: b.name,
         note: b.isPublic ? (
@@ -219,6 +238,159 @@ export function ApiConfigurationHelpContent() {
         </>
       ),
       url: "https://console.scaleway.com/instance/servers",
+      extra: (
+        <p className="help-note">
+          {isEn ? (
+            <>
+              An address typed here names no server on its own, so the card
+              looks for it among your instances and{" "}
+              <strong>ticks the box below when it finds one</strong>. It never
+              unticks it: the search covers the zone this app creates instances
+              in, and yours may live elsewhere.
+            </>
+          ) : (
+            <>
+              Une adresse saisie ici ne désigne aucun serveur par elle-même : la
+              carte la cherche parmi vos instances et{" "}
+              <strong>coche la case ci-dessous si elle la trouve</strong>. Elle
+              ne la décoche jamais : la recherche porte sur la zone où cette
+              application crée ses instances, et la vôtre peut être ailleurs.
+            </>
+          )}
+        </p>
+      ),
+    },
+  ];
+
+  const resend: HelpFlowStep[] = [
+    {
+      key: "add",
+      title: isEn ? "Add the sending domain" : "Ajouter le domaine d'envoi",
+      desc: isEn ? (
+        <>
+          <code>Domains</code> (left menu) ➔ <code>Add Domain</code>. Use a
+          dedicated subdomain, and pick the region closest to your participants.
+        </>
+      ) : (
+        <>
+          <code>Domains</code> (menu gauche) ➔ <code>Add Domain</code>. Utilisez
+          un sous-domaine dédié, et choisissez la région la plus proche de vos
+          participants.
+        </>
+      ),
+      url: "https://resend.com/domains",
+      copyValues: [
+        {
+          value: mailSubdomain,
+          note: isEn ? "sending subdomain" : "sous-domaine d'envoi",
+        },
+      ],
+    },
+    {
+      key: "records",
+      title: isEn
+        ? "Publish the records it asks for"
+        : "Publier les enregistrements demandés",
+      desc: isEn ? (
+        <>
+          Resend asks for one MX and several TXT records (DKIM, SPF), which only
+          exist once the domain does — the DKIM key is minted with it. When
+          Spaceship holds the zone,{" "}
+          <strong>the run publishes them itself</strong>. At any other registrar
+          it stops once they are known, and they appear in the{" "}
+          <strong>step 4 table</strong> alongside the deployment's own records,
+          to be copied across.
+        </>
+      ) : (
+        <>
+          Resend demande un enregistrement MX et des TXT (DKIM, SPF), qui
+          n'existent qu'une fois le domaine créé — la clé DKIM est générée avec
+          lui. Quand Spaceship détient la zone,{" "}
+          <strong>l'automatisation les publie elle-même</strong>. Chez un autre
+          registrar, elle s'arrête une fois qu'ils sont connus, et ils
+          apparaissent dans le <strong>tableau de l'étape 4</strong> avec ceux
+          du déploiement, à recopier.
+        </>
+      ),
+      extra: (
+        <ul className="help-note">
+          <li>
+            {isEn ? (
+              <>
+                The <code>Host</code> field takes the name without the domain:{" "}
+                <code>{mailSubdomain}</code> is written{" "}
+                <code>{mailHost}</code>. The table already shows them that way.
+              </>
+            ) : (
+              <>
+                Le champ <code>Host</code> attend le nom sans le domaine :{" "}
+                <code>{mailSubdomain}</code> s'écrit <code>{mailHost}</code>. Le
+                tableau les affiche déjà sous cette forme.
+              </>
+            )}
+          </li>
+          <li>
+            {isEn ? (
+              <>
+                Added the subdomain at Resend a moment ago?{" "}
+                <strong>Refresh from Resend</strong> (step 4) reads its records
+                back — nothing here can guess a DKIM key.
+              </>
+            ) : (
+              <>
+                Sous-domaine ajouté à l'instant chez Resend ?{" "}
+                <strong>Actualiser depuis Resend</strong> (étape 4) relit ses
+                enregistrements — rien ici ne peut deviner une clé DKIM.
+              </>
+            )}
+          </li>
+        </ul>
+      ),
+    },
+    {
+      key: "verify",
+      title: isEn ? "Verify the domain" : "Vérifier le domaine",
+      desc: isEn ? (
+        <>
+          Resend's dashboard checks on its own schedule, with no button to ask
+          it sooner — a domain can sit at <code>Pending</code> for hours.{" "}
+          <strong>Re-check Resend verification</strong>, in step 4's manual
+          configuration, asks for the check now.{" "}
+          <strong>Until the domain turns Verified, every send fails.</strong>
+        </>
+      ) : (
+        <>
+          Le tableau de bord Resend vérifie de lui-même, à son rythme, sans
+          bouton pour le presser — un domaine peut rester <code>Pending</code>{" "}
+          des heures. <strong>Relancer la vérification Resend</strong>, dans la
+          configuration manuelle de l'étape 4, demande le contrôle tout de
+          suite.{" "}
+          <strong>
+            Tant que le domaine n'est pas Verified, les envois échouent.
+          </strong>
+        </>
+      ),
+      url: "https://resend.com/domains",
+      extra: (
+        <p className="help-note">
+          {isEn ? (
+            <>
+              The run does not wait for it: once the records are published and
+              the check requested, <strong>the step is finished</strong> and the
+              card says propagation is under way. DNS can take up to fifteen
+              minutes — carry on with the next step and come back to it.
+            </>
+          ) : (
+            <>
+              L'automatisation ne l'attend pas : une fois les enregistrements
+              publiés et le contrôle demandé,{" "}
+              <strong>l'étape est terminée</strong> et la carte indique que la
+              propagation est en cours. Le DNS peut prendre jusqu'à quinze
+              minutes — passez à la suite et revenez-y.
+            </>
+          )}
+        </p>
+      ),
     },
   ];
 
@@ -359,79 +531,24 @@ export function ApiConfigurationHelpContent() {
               </>
             )}
           </li>
+          <li>
+            {isEn ? (
+              <>
+                The run reads the zone back afterwards, Resend's records
+                included: <strong>anything missing is published again</strong>,
+                and the box below is ticked or unticked from what it found.
+              </>
+            ) : (
+              <>
+                L'automatisation relit ensuite la zone, enregistrements Resend
+                compris : <strong>ce qui manque est republié</strong>, et la
+                case ci-dessous est cochée ou décochée selon ce qu'elle y
+                trouve.
+              </>
+            )}
+          </li>
         </ul>
       ),
-    },
-  ];
-
-  const resend: HelpFlowStep[] = [
-    {
-      key: "add",
-      title: isEn ? "Add the sending domain" : "Ajouter le domaine d'envoi",
-      desc: isEn ? (
-        <>
-          <code>Domains</code> (left menu) ➔ <code>Add Domain</code>. Use a
-          dedicated subdomain, and pick the region closest to your participants.
-        </>
-      ) : (
-        <>
-          <code>Domains</code> (menu gauche) ➔ <code>Add Domain</code>. Utilisez
-          un sous-domaine dédié, et choisissez la région la plus proche de vos
-          participants.
-        </>
-      ),
-      url: "https://resend.com/domains",
-      copyValues: [
-        {
-          value: mailSubdomain,
-          note: isEn ? "sending subdomain" : "sous-domaine d'envoi",
-        },
-      ],
-    },
-    {
-      key: "records",
-      title: isEn
-        ? "Copy the records into Spaceship"
-        : "Copier les enregistrements dans Spaceship",
-      desc: isEn ? (
-        <>
-          Resend displays one MX and several TXT records (DKIM, SPF). Copy them{" "}
-          <strong>character for character</strong> into{" "}
-          <code>Advanced DNS</code>, dropping the domain from each host:{" "}
-          <code>{mailSubdomain}</code> becomes <code>{mailHost}</code>.
-        </>
-      ) : (
-        <>
-          Resend affiche un enregistrement MX et des TXT (DKIM, SPF).
-          Recopiez-les <strong>à l'identique</strong> dans{" "}
-          <code>Advanced DNS</code>, en retirant le domaine de chaque hôte :{" "}
-          <code>{mailSubdomain}</code> devient <code>{mailHost}</code>.
-        </>
-      ),
-    },
-    {
-      key: "verify",
-      title: isEn ? "Verify the domain" : "Vérifier le domaine",
-      desc: isEn ? (
-        <>
-          Resend's dashboard checks on its own schedule, with no button to ask
-          it sooner — a domain can sit at <code>Pending</code> for hours. The
-          card's <strong>Re-check verification</strong> asks for the check now.{" "}
-          <strong>Until the domain turns Verified, every send fails.</strong>
-        </>
-      ) : (
-        <>
-          Le tableau de bord Resend vérifie de lui-même, à son rythme, sans
-          bouton pour le presser — un domaine peut rester <code>Pending</code>{" "}
-          des heures. Le bouton{" "}
-          <strong>Relancer la vérification</strong> de la carte demande la
-          vérification tout de suite.{" "}
-          <strong>
-            Tant que le domaine n'est pas Verified, les envois échouent.
-          </strong>
-        </>
-      ),
-      url: "https://resend.com/domains",
     },
   ];
 
@@ -453,16 +570,16 @@ export function ApiConfigurationHelpContent() {
         <HelpFlow steps={scaleway} />
       </HelpService>
 
+      <HelpService id="svc-resend" icon={<Mail size={15} />} title="Resend">
+        <HelpFlow steps={resend} />
+      </HelpService>
+
       <HelpService
         id="svc-spaceship"
         icon={<Globe size={15} />}
         title="Spaceship"
       >
         <HelpFlow steps={spaceship} />
-      </HelpService>
-
-      <HelpService id="svc-resend" icon={<Mail size={15} />} title="Resend">
-        <HelpFlow steps={resend} />
       </HelpService>
     </>
   );

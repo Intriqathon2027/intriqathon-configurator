@@ -480,8 +480,8 @@ export function ConfigSite() {
               }
               desc={
                 isEn
-                  ? "SQL Editor ➔ paste and Run. This grants the default privileges the app needs on the public schema."
-                  : "SQL Editor ➔ coller puis Run. Octroie les permissions par défaut dont l'application a besoin sur le schéma public."
+                  ? "SQL Editor ➔ paste and Run. This grants the default privileges the app needs on the public schema. The box below is read back from the project: it ticks itself once the privileges are held, however they got there."
+                  : "SQL Editor ➔ coller puis Run. Octroie les permissions par défaut dont l'application a besoin sur le schéma public. La case ci-dessous est relue depuis le projet : elle se coche d'elle-même dès que les permissions sont en place, quelle qu'en soit la manière."
               }
             >
               <SqlBlock sql={SQL_COMMANDS} />
@@ -503,6 +503,11 @@ export function ConfigSite() {
                 isEn
                   ? "2. Other Supabase actions"
                   : "2. Autres actions Supabase"
+              }
+              desc={
+                isEn
+                  ? "The four of them are read back from the project too — the box ticks itself once all four hold, and unticks if one is turned off again in the dashboard."
+                  : "Les quatre sont également relus depuis le projet — la case se coche dès qu'ils sont tous en place, et se décoche si l'un d'eux est redésactivé dans le dashboard."
               }
             >
               <HelpFlow steps={supabaseFinalSteps(isEn)} />

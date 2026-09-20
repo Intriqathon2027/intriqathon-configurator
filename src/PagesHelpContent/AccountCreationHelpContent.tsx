@@ -35,18 +35,114 @@ export function AccountCreationHelpContent() {
       ),
       url: "https://supabase.com/dashboard/account/tokens",
       extra: (
+        <ul className="help-note">
+          <li>
+            {isEn ? (
+              <>
+                The token carries <strong>full access to the account</strong> —
+                every organization, every project. Keep it in this vault and
+                nowhere else.
+              </>
+            ) : (
+              <>
+                Le jeton donne un <strong>accès complet au compte</strong> —
+                toutes les organisations, tous les projets. Conservez-le dans ce
+                coffre et nulle part ailleurs.
+              </>
+            )}
+          </li>
+          <li>
+            {isEn ? (
+              <>
+                Generating a new one <strong>revokes the previous one</strong>,
+                so an older value pasted here comes back refused — the card
+                stays grey and step 2 keeps its button locked.
+              </>
+            ) : (
+              <>
+                En générer un nouveau <strong>révoque le précédent</strong> :
+                une ancienne valeur collée ici revient refusée — la carte reste
+                grise et l'étape 2 garde son bouton verrouillé.
+              </>
+            )}
+          </li>
+        </ul>
+      ),
+    },
+  ];
+
+  const scaleway: HelpFlowStep[] = [
+    {
+      key: "account",
+      title: isEn ? "Create a Scaleway account" : "Créer un compte Scaleway",
+      desc: isEn
+        ? "Sign up on console.scaleway.com and confirm your email."
+        : "Inscrivez-vous sur console.scaleway.com et confirmez votre email.",
+      url: "https://console.scaleway.com/register",
+      extra: (
         <p className="help-note">
           {isEn ? (
             <>
-              The token carries <strong>full access to the account</strong> —
-              every organization, every project. Keep it in this vault and
-              nowhere else.
+              <strong>Add a payment method</strong> during onboarding, or via{" "}
+              <code>Billing</code> ➔ <code>Payment and billing</code>. Without
+              it, step 2 cannot create the instance.
             </>
           ) : (
             <>
-              Le jeton donne un <strong>accès complet au compte</strong> —
-              toutes les organisations, tous les projets. Conservez-le dans ce
-              coffre et nulle part ailleurs.
+              <strong>Ajoutez un moyen de paiement</strong> pendant
+              l'onboarding, ou via <code>Billing</code> ➔{" "}
+              <code>Payment and billing</code>. Sans lui, l'étape 2 ne peut pas
+              créer l'instance.
+            </>
+          )}
+        </p>
+      ),
+    },
+    {
+      key: "apikey",
+      title: isEn ? "Generate an API key" : "Générer une clé API",
+      desc: isEn ? (
+        <>
+          Profile menu (top right) ➔ <code>IAM &amp; API keys</code> ➔{" "}
+          <code>API keys</code> tab ➔ <code>Generate API key</code>.
+        </>
+      ) : (
+        <>
+          Menu de profil (haut droite) ➔ <code>IAM &amp; API keys</code> ➔
+          onglet <code>API keys</code> ➔ <code>Generate API key</code>.
+        </>
+      ),
+      url: "https://console.scaleway.com/iam/api-keys",
+    },
+    {
+      key: "project",
+      title: isEn ? "Copy the Project ID" : "Copier le Project ID",
+      desc: isEn ? (
+        <>
+          <code>Organization</code> ➔ <code>Projects</code> ➔ your project. The
+          instance will be created inside it.
+        </>
+      ) : (
+        <>
+          <code>Organization</code> ➔ <code>Projects</code> ➔ votre projet.
+          C'est là que l'instance sera créée.
+        </>
+      ),
+      url: "https://console.scaleway.com/organization/projects",
+      extra: (
+        <p className="help-note">
+          {isEn ? (
+            <>
+              Only the <strong>secret key</strong> is checked against Scaleway.
+              A Project ID that does not exist is a different mistake, and the
+              step 2 run names it with the context that makes it fixable.
+            </>
+          ) : (
+            <>
+              Seule la <strong>clé secrète</strong> est contrôlée auprès de
+              Scaleway. Un Project ID inexistant est une autre erreur, que
+              l'automatisation de l'étape 2 signale avec le contexte qui permet
+              de la corriger.
             </>
           )}
         </p>
@@ -78,6 +174,24 @@ export function AccountCreationHelpContent() {
         </>
       ),
       url: "https://resend.com/api-keys",
+      extra: (
+        <p className="help-note">
+          {isEn ? (
+            <>
+              It needs <strong>Full access</strong>: a sending-only key cannot
+              create or verify a domain, and Resend refuses it. The card checks
+              the key as you paste it and greys itself if it comes back refused.
+            </>
+          ) : (
+            <>
+              Elle doit être en <strong>Full access</strong> : une clé d'envoi
+              seul ne peut ni créer ni vérifier un domaine, et Resend la refuse.
+              La carte contrôle la clé dès qu'elle est collée et se grise si
+              elle revient refusée.
+            </>
+          )}
+        </p>
+      ),
     },
   ];
 
@@ -143,79 +257,22 @@ export function AccountCreationHelpContent() {
               Enable at least the <strong>domains:read</strong>,{" "}
               <strong>dnsrecords:read</strong> and{" "}
               <strong>dnsrecords:write</strong> scopes — without them the DNS
-              records cannot be created for you.
+              records cannot be created for you. The card
+              <strong> checks the key and the secret together</strong>: until
+              both are pasted, it says nothing.
             </>
           ) : (
             <>
               Activez au minimum les scopes <strong>domains:read</strong>,{" "}
               <strong>dnsrecords:read</strong> et{" "}
               <strong>dnsrecords:write</strong> — sans eux, les enregistrements
-              DNS ne peuvent pas être créés automatiquement.
+              DNS ne peuvent pas être créés automatiquement. La carte
+              <strong> contrôle la clé et le secret ensemble</strong> : tant que
+              les deux ne sont pas collés, elle ne dit rien.
             </>
           )}
         </p>
       ),
-    },
-  ];
-
-  const scaleway: HelpFlowStep[] = [
-    {
-      key: "account",
-      title: isEn ? "Create a Scaleway account" : "Créer un compte Scaleway",
-      desc: isEn
-        ? "Sign up on console.scaleway.com and confirm your email."
-        : "Inscrivez-vous sur console.scaleway.com et confirmez votre email.",
-      url: "https://console.scaleway.com/register",
-      extra: (
-        <p className="help-note">
-          {isEn ? (
-            <>
-              <strong>Add a payment method</strong> during onboarding, or via{" "}
-              <code>Billing</code> ➔ <code>Payment and billing</code>. Without
-              it, step 2 cannot create the instance.
-            </>
-          ) : (
-            <>
-              <strong>Ajoutez un moyen de paiement</strong> pendant
-              l'onboarding, ou via <code>Billing</code> ➔{" "}
-              <code>Payment and billing</code>. Sans lui, l'étape 2 ne peut pas
-              créer l'instance.
-            </>
-          )}
-        </p>
-      ),
-    },
-    {
-      key: "apikey",
-      title: isEn ? "Generate an API key" : "Générer une clé API",
-      desc: isEn ? (
-        <>
-          Profile menu (top right) ➔ <code>IAM &amp; API keys</code> ➔{" "}
-          <code>API keys</code> tab ➔ <code>Generate API key</code>.
-        </>
-      ) : (
-        <>
-          Menu de profil (haut droite) ➔ <code>IAM &amp; API keys</code> ➔
-          onglet <code>API keys</code> ➔ <code>Generate API key</code>.
-        </>
-      ),
-      url: "https://console.scaleway.com/iam/api-keys",
-    },
-    {
-      key: "project",
-      title: isEn ? "Copy the Project ID" : "Copier le Project ID",
-      desc: isEn ? (
-        <>
-          <code>Organization</code> ➔ <code>Projects</code> ➔ your project. The
-          instance will be created inside it.
-        </>
-      ) : (
-        <>
-          <code>Organization</code> ➔ <code>Projects</code> ➔ votre projet.
-          C'est là que l'instance sera créée.
-        </>
-      ),
-      url: "https://console.scaleway.com/organization/projects",
     },
   ];
 
@@ -229,6 +286,14 @@ export function AccountCreationHelpContent() {
         <HelpFlow steps={supabase} />
       </HelpService>
 
+      <HelpService
+        id="svc-scaleway"
+        icon={<Server size={15} />}
+        title="Scaleway"
+      >
+        <HelpFlow steps={scaleway} />
+      </HelpService>
+
       <HelpService id="svc-resend" icon={<Mail size={15} />} title="Resend">
         <HelpFlow steps={resend} />
       </HelpService>
@@ -239,14 +304,6 @@ export function AccountCreationHelpContent() {
         title="Spaceship"
       >
         <HelpFlow steps={spaceship} />
-      </HelpService>
-
-      <HelpService
-        id="svc-scaleway"
-        icon={<Server size={15} />}
-        title="Scaleway"
-      >
-        <HelpFlow steps={scaleway} />
       </HelpService>
     </>
   );
