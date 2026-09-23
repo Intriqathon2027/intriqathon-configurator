@@ -1,3 +1,5 @@
+import { ensurePgBouncerFlag } from '../shared/pgbouncer'
+
 // ─── Env Content Generator ────────────────────────────────────────────────────
 
 export function generateEnvContent(config: Record<string, string>): string {
@@ -9,7 +11,7 @@ SUPABASE_ANON_KEY=${config.SUPABASE_ANON_KEY}
 SUPABASE_SERVICE_ROLE_KEY=${config.SUPABASE_SERVICE_ROLE_KEY}
 
 # Database
-DATABASE_URL=${config.DATABASE_URL}
+DATABASE_URL=${ensurePgBouncerFlag(config.DATABASE_URL ?? '')}
 DIRECT_URL=${config.DIRECT_URL}
 
 # Discord Keys

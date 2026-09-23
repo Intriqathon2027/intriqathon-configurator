@@ -1172,6 +1172,22 @@ var SupabaseApiClient = class {
 	}
 };
 //#endregion
+//#region src/shared/pgbouncer.ts
+/**
+* Prisma needs `pgbouncer=true` on any URL that goes through Supabase's
+* transaction-mode pooler (port 6543), or prepared statements collide across
+* pooled connections. Session mode and direct connections (5432) must not carry
+* it. Idempotent: a URL that already has a `pgbouncer` parameter, whatever its
+* value, is left as it is.
+*/
+var TRANSACTION_POOLER_PORT = /:6543\//;
+var HAS_PGBOUNCER_PARAM = /[?&]pgbouncer=/i;
+function ensurePgBouncerFlag(url) {
+	const trimmed = url.trim();
+	if (!TRANSACTION_POOLER_PORT.test(trimmed) || HAS_PGBOUNCER_PARAM.test(trimmed)) return url;
+	return `${trimmed}${trimmed.includes("?") ? "&" : "?"}pgbouncer=true`;
+}
+//#endregion
 //#region src/electron/services/supabase/connectionStrings.ts
 /**
 * Building DATABASE_URL and DIRECT_URL.
@@ -1214,7 +1230,7 @@ function buildPostgresUrls({ ref, password, pooler, databaseHost }) {
 	const user = transaction.db_user || `postgres.${ref}`;
 	const dbName = transaction.db_name || "postgres";
 	return {
-		databaseUrl: buildUrl(user, password, transaction.db_host, transaction.db_port ?? 6543, dbName),
+		databaseUrl: ensurePgBouncerFlag(buildUrl(user, password, transaction.db_host, transaction.db_port ?? 6543, dbName)),
 		directUrl: session?.db_host ? buildUrl(session.db_user || user, password, session.db_host, session.db_port ?? SESSION_PORT, session.db_name || dbName) : buildUrl(user, password, transaction.db_host, SESSION_PORT, dbName)
 	};
 }
