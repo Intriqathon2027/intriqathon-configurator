@@ -23,5 +23,10 @@ export const ACCOUNT_REQUIRED_FIELDS: Record<AccountService, (keyof Config)[]> =
 }
 
 export function isAccountComplete(config: Config, service: AccountService): boolean {
+  // The Spaceship account itself becomes optional once another registrar is
+  // handling DNS — only the domain name still matters to the rest of the wizard.
+  if (service === 'spaceship' && config.USE_OTHER_DOMAIN_PROVIDER === 'true') {
+    return !!config.DOMAIN
+  }
   return ACCOUNT_REQUIRED_FIELDS[service].every(field => !!config[field])
 }

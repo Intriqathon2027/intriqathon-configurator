@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Zap, BookOpen } from 'lucide-react'
 import { WizardLayout } from '../components/layout/WizardLayout'
-import { DeployAutoTab } from '../components/deploy/DeployAutoTab.tsx'
-import { DeployManualTab } from '../components/deploy/DeployManualTab.tsx'
+import { DeployAutoTab } from './Deploy/DeployAutoTab.tsx'
+import { DeployManualTab } from './Deploy/DeployManualTab.tsx'
 import { useApp } from '../context/AppContext'
 
 type DeployTab = 'auto' | 'manual'

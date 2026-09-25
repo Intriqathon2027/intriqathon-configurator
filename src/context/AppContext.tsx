@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useReducer, useEffect, useState, type ReactNode } from 'react'
+import React, { createContext, useContext, useReducer, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Language } from '../types/i18n'
 import { translations } from '../i18n/translations'
-import { steps } from '../components/layout/steps'
 import { FONT_SCALE_KEY, clampFontScale, loadFontScale } from '../utils/fontScale'
 import type { SshKeyInfo } from '../types/electron'
 import { deriveProjectRef, withEffectiveProjectRef } from '../shared/supabaseProject'
@@ -14,6 +13,13 @@ export interface Config {
   DOMAIN: string
   SPACESHIP_API_KEY: string
   SPACESHIP_API_SECRET: string
+  /**
+   * 'true' when the reader will manage DNS at another registrar than
+   * Spaceship. The domain itself is still needed — only the Spaceship
+   * account fields become optional, and step 3 shows its manual DNS
+   * configuration directly instead of gating it behind that account.
+   */
+  USE_OTHER_DOMAIN_PROVIDER: string
 
   // Account Creation — Supabase
   SUPABASE_ACCESS_TOKEN: string
@@ -46,6 +52,30 @@ export interface Config {
 
   // Account Creation — Resend
   RESEND_API_KEY: string
+  /**
+   * The subdomain Resend sends from. Pre-filled with `mail.<domain>` — the
+   * convention the rest of the wizard assumes — but editable: a domain whose
+   * `mail.` subdomain is already taken by a mailbox provider needs another one,
+   * and every DNS record and sender address derives from this value.
+   */
+  MAIL_SUBDOMAIN: string
+
+  /**
+   * The domain Resend created for that subdomain. Not part of the .env — it is
+   * what stops a second run from creating a second domain on the account.
+   */
+  RESEND_DOMAIN_ID: string
+  /**
+   * What Resend asks to be published, as a JSON `DnsRecord[]`. Only known once
+   * its API has been asked — the DKIM key is minted with the domain — and kept
+   * so the records survive a reopen, which is what the reader copies from when
+   * another registrar holds the zone.
+   */
+  RESEND_DNS_RECORDS: string
+  /** When Resend last reported the domain verified (ISO date). */
+  RESEND_DOMAIN_VERIFIED_AT: string
+  /** Set when a run asked Resend to verify and left DNS propagation to finish. */
+  RESEND_VERIFICATION_PENDING_SINCE: string
 
   // Account Creation — Scaleway
   SCW_SECRET_KEY: string
@@ -98,6 +128,7 @@ const defaultConfig: Config = {
   DOMAIN: '',
   SPACESHIP_API_KEY: '',
   SPACESHIP_API_SECRET: '',
+  USE_OTHER_DOMAIN_PROVIDER: '',
   SUPABASE_ACCESS_TOKEN: '',
   SUPABASE_DB_PASSWORD: '',
   SUPABASE_PROJECT_REF: '',
@@ -108,6 +139,11 @@ const defaultConfig: Config = {
   SUPABASE_PROJECT_NAME: 'intriqathon',
   SUPABASE_REGION: 'eu-west-3',
   RESEND_API_KEY: '',
+  MAIL_SUBDOMAIN: '',
+  RESEND_DOMAIN_ID: '',
+  RESEND_DNS_RECORDS: '',
+  RESEND_DOMAIN_VERIFIED_AT: '',
+  RESEND_VERIFICATION_PENDING_SINCE: '',
   SCW_SECRET_KEY: '',
   SCW_DEFAULT_PROJECT_ID: '',
   DEPLOY_PATH: '',
@@ -129,6 +165,16 @@ const defaultConfig: Config = {
   BOT_TOKEN: '',
   DEV_SERVER_ID: '',
   GUILD_ID: '',
+}
+
+/** The sending subdomain a domain implies, before anyone edits it. */
+function mailSubdomainFor(domain: string): string {
+  return domain ? `mail.${domain}` : ''
+}
+
+/** The sender address a sending subdomain implies. */
+function senderFor(subdomain: string): string {
+  return subdomain ? `Hackathon Team <onboarding@${subdomain}>` : ''
 }
 
 // ============================================================
@@ -171,7 +217,6 @@ type Action =
   | { type: 'STOP_CONFIG' }
   | { type: 'SET_THEME'; theme: ThemePreference }
   | { type: 'SET_FONT_SCALE'; scale: number }
-  | { type: 'MARK_STEP_DONE'; step: number }
   | { type: 'SET_VAULT_STATUS'; exists: boolean; unlocked: boolean }
   | { type: 'VAULT_UNLOCKED'; config?: Partial<Config> }
   | { type: 'VAULT_LOCKED' }
@@ -188,23 +233,17 @@ interface AppState {
   theme: ThemePreference
   /** Multiplier applied to every typography token. 1 is the design default. */
   fontScale: number
-  /** Steps validated by an action (deployment, docker restart) rather than by form fields. */
-  actionSteps: number[]
+  /**
+   * Bumped every time a whole configuration is loaded, replaced or reset —
+   * opening a saved file, importing one, starting a new one, unlocking the
+   * vault. What is being configured has changed, and anything remembered about
+   * the previous one (a run that succeeded, a box ticked) describes a project
+   * nobody is looking at any more.
+   */
+  configGeneration: number
   /** Vault encryption state */
   isVaultUnlocked: boolean
   vaultExists: boolean | null
-}
-
-const ACTION_STEPS_KEY = 'intriqathon-action-steps'
-
-function loadActionSteps(): number[] {
-  try {
-    const raw = localStorage.getItem(ACTION_STEPS_KEY)
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed.filter((n): n is number => typeof n === 'number') : []
-  } catch {
-    return []
-  }
 }
 
 const initialState: AppState = {
@@ -214,7 +253,7 @@ const initialState: AppState = {
   hasStarted: false,
   theme: loadThemePreference(),
   fontScale: loadFontScale(),
-  actionSteps: loadActionSteps(),
+  configGeneration: 0,
   isVaultUnlocked: false,
   vaultExists: null,
 }
@@ -244,9 +283,10 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         config: withEffectiveProjectRef({ ...state.config, ...action.config }),
+        configGeneration: state.configGeneration + 1,
       }
     case 'RESET_CONFIG':
-      return { ...state, config: defaultConfig, actionSteps: [] }
+      return { ...state, config: defaultConfig, configGeneration: state.configGeneration + 1 }
     case 'START_CONFIG':
       return { ...state, hasStarted: true }
     case 'STOP_CONFIG':
@@ -255,9 +295,6 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, theme: action.theme }
     case 'SET_FONT_SCALE':
       return { ...state, fontScale: clampFontScale(action.scale) }
-    case 'MARK_STEP_DONE':
-      if (state.actionSteps.includes(action.step)) return state
-      return { ...state, actionSteps: [...state.actionSteps, action.step] }
     case 'SET_VAULT_STATUS':
       return { ...state, vaultExists: action.exists, isVaultUnlocked: action.unlocked }
     case 'VAULT_UNLOCKED':
@@ -268,6 +305,7 @@ function reducer(state: AppState, action: Action): AppState {
         config: action.config
           ? withEffectiveProjectRef({ ...state.config, ...action.config })
           : state.config,
+        configGeneration: state.configGeneration + 1,
       }
     case 'VAULT_LOCKED':
       return { ...state, isVaultUnlocked: false }
@@ -308,9 +346,6 @@ interface AppContextType {
   setFontScale: (scale: number) => void
   /** The theme actually applied — 'system' resolved against the OS setting. */
   resolvedTheme: ResolvedTheme
-  /** True when every requirement of the given step is satisfied. */
-  isStepComplete: (step: number) => boolean
-  markStepDone: (step: number) => void
   /** Vault encryption methods */
   isVaultUnlocked: boolean
   vaultExists: boolean | null
@@ -380,21 +415,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
     checkVault()
   }, [])
 
-  // Auto-fill FROM_EMAIL when DOMAIN changes
-  useEffect(() => {
-    if (state.config.DOMAIN && !state.config.FROM_EMAIL.includes('@')) {
-      dispatch({
-        type: 'SET_FIELD',
-        key: 'FROM_EMAIL',
-        value: `Hackathon Team <onboarding@mail.${state.config.DOMAIN}>`,
-      })
-    }
-  }, [state.config.DOMAIN])
+  /**
+   * The sending subdomain and the sender address follow the domain — until one
+   * of them is edited, after which it is left alone.
+   *
+   * "Edited" is decided by comparison, not by a flag: a value that still equals
+   * what would have been derived from the *previous* domain is one nobody
+   * touched, so it is re-derived; anything else is the reader's own and stays.
+   * A flag could not have answered this after a reload, where the config comes
+   * back from the vault with no record of who wrote which field.
+   */
+  const derivedRef = useRef({
+    domain: initialState.config.DOMAIN,
+    subdomain: initialState.config.MAIL_SUBDOMAIN,
+  })
 
-  // Persist action-validated steps
   useEffect(() => {
-    localStorage.setItem(ACTION_STEPS_KEY, JSON.stringify(state.actionSteps))
-  }, [state.actionSteps])
+    const domain = state.config.DOMAIN
+    const previous = derivedRef.current
+    const patch: Partial<Config> = {}
+
+    const subdomainUntouched = !state.config.MAIL_SUBDOMAIN
+      || state.config.MAIL_SUBDOMAIN === mailSubdomainFor(previous.domain)
+    const nextSubdomain = subdomainUntouched && domain
+      ? mailSubdomainFor(domain)
+      : state.config.MAIL_SUBDOMAIN
+
+    if (nextSubdomain !== state.config.MAIL_SUBDOMAIN) patch.MAIL_SUBDOMAIN = nextSubdomain
+
+    // The sender address follows whichever subdomain is now in force.
+    const fromUntouched = !state.config.FROM_EMAIL.includes('@')
+      || state.config.FROM_EMAIL === senderFor(previous.subdomain)
+      || (!!previous.domain && state.config.FROM_EMAIL === senderFor(mailSubdomainFor(previous.domain)))
+    if (fromUntouched && nextSubdomain) {
+      const nextSender = senderFor(nextSubdomain)
+      if (nextSender !== state.config.FROM_EMAIL) patch.FROM_EMAIL = nextSender
+    }
+
+    derivedRef.current = { domain, subdomain: nextSubdomain }
+    if (Object.keys(patch).length > 0) dispatch({ type: 'SET_FIELDS', patch })
+  }, [state.config.DOMAIN, state.config.MAIL_SUBDOMAIN, state.config.FROM_EMAIL])
 
   // Apply the theme, following the OS appearance while the preference is 'system'
   useEffect(() => {
@@ -545,16 +605,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_THEME', theme })
   }
 
-  const markStepDone = (step: number) => {
-    dispatch({ type: 'MARK_STEP_DONE', step })
-  }
-
-  const isStepComplete = (step: number): boolean => {
-    const fields = steps[step]?.requiredFields ?? []
-    if (fields.length === 0) return state.actionSteps.includes(step)
-    return fields.every(key => (state.config[key] ?? '').trim() !== '')
-  }
-
   const hasSavedConfig = Object.entries(state.config).some(([k, v]) => k !== 'ALLOWED_EMAILS' && v !== '')
 
   return (
@@ -576,8 +626,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTheme,
       setFontScale,
       resolvedTheme,
-      isStepComplete,
-      markStepDone,
       isVaultUnlocked: state.isVaultUnlocked,
       vaultExists: state.vaultExists,
       unlockVault,

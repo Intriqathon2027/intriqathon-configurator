@@ -945,10 +945,10 @@ var STORAGE_BUCKETS = [
 //#endregion
 //#region src/electron/services/supabase/SupabaseApiClient.ts
 var MANAGEMENT_BASE = "https://api.supabase.com";
-var MAX_ATTEMPTS = 4;
-var BASE_BACKOFF_MS = 1e3;
+var MAX_ATTEMPTS$2 = 4;
+var BASE_BACKOFF_MS$2 = 1e3;
 /** Rate limiting is per user (~60 req/min); `Retry-After` says how long to wait. */
-var RETRYABLE_STATUS = new Set([
+var RETRYABLE_STATUS$2 = new Set([
 	429,
 	500,
 	502,
@@ -968,7 +968,7 @@ var GENERIC_DETAILS = new Set([
 	"not found",
 	"bad request"
 ]);
-function explainStatus(status) {
+function explainStatus$2(status) {
 	switch (status) {
 		case 401: return "Jeton d'accès Supabase refusé. Il est bien formé mais Supabase ne le reconnaît pas : vérifiez qu'il n'a pas été révoqué ou régénéré, et qu'il a été copié en entier depuis Account ➔ Access Tokens.";
 		case 403: return "Accès refusé par Supabase — le jeton n'a pas les droits nécessaires sur cette organisation, ou une limite de plan est atteinte.";
@@ -982,7 +982,7 @@ var SupabaseApiError = class extends Error {
 	url;
 	detail;
 	constructor(status, url, detail) {
-		const explanation = explainStatus(status);
+		const explanation = explainStatus$2(status);
 		const informative = detail && !GENERIC_DETAILS.has(detail.trim().toLowerCase());
 		super(explanation ? informative ? `${explanation} (${detail})` : explanation : detail ? `HTTP ${status} — ${detail}` : `HTTP ${status} sur ${url}`);
 		this.name = "SupabaseApiError";
@@ -991,7 +991,7 @@ var SupabaseApiError = class extends Error {
 		this.detail = detail;
 	}
 };
-function sleep(ms, signal) {
+function sleep$2(ms, signal) {
 	return new Promise((resolve, reject) => {
 		if (signal?.aborted) return reject(new DOMException("Aborted", "AbortError"));
 		const timer = setTimeout(() => {
@@ -1010,7 +1010,7 @@ function sleep(ms, signal) {
 * plain text. Pull out whatever is readable so the card shows the provider's
 * own wording ("project limit reached") rather than a bare status code.
 */
-function extractMessage(raw) {
+function extractMessage$2(raw) {
 	if (!raw) return "";
 	try {
 		const parsed = JSON.parse(raw);
@@ -1030,7 +1030,7 @@ var SupabaseApiClient = class {
 		this.accessToken = opts.accessToken.trim();
 		this.signal = opts.signal;
 		this.fetchImpl = opts.fetchImpl ?? globalThis.fetch;
-		this.sleepImpl = opts.sleepImpl ?? sleep;
+		this.sleepImpl = opts.sleepImpl ?? sleep$2;
 	}
 	buildUrl(path, opts) {
 		const url = new URL(path, opts.baseUrl ?? MANAGEMENT_BASE);
@@ -1046,7 +1046,7 @@ var SupabaseApiClient = class {
 		};
 		if (opts.body !== void 0) headers["Content-Type"] = "application/json";
 		let lastError = null;
-		for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+		for (let attempt = 1; attempt <= MAX_ATTEMPTS$2; attempt++) {
 			const response = await this.fetchImpl(url, {
 				method,
 				headers,
@@ -1059,11 +1059,11 @@ var SupabaseApiClient = class {
 				return text ? JSON.parse(text) : null;
 			}
 			if (opts.tolerate?.includes(response.status)) return null;
-			const detail = extractMessage(await response.text().catch(() => ""));
+			const detail = extractMessage$2(await response.text().catch(() => ""));
 			lastError = new SupabaseApiError(response.status, url, detail);
-			if (!RETRYABLE_STATUS.has(response.status) || attempt === MAX_ATTEMPTS) throw lastError;
+			if (!RETRYABLE_STATUS$2.has(response.status) || attempt === MAX_ATTEMPTS$2) throw lastError;
 			const retryAfter = Number(response.headers.get("retry-after"));
-			const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : BASE_BACKOFF_MS * 2 ** (attempt - 1);
+			const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : BASE_BACKOFF_MS$2 * 2 ** (attempt - 1);
 			await this.sleepImpl(waitMs, this.signal);
 		}
 		throw lastError ?? new SupabaseApiError(0, url, "Échec inconnu");
@@ -1172,6 +1172,22 @@ var SupabaseApiClient = class {
 	}
 };
 //#endregion
+//#region src/shared/pgbouncer.ts
+/**
+* Prisma needs `pgbouncer=true` on any URL that goes through Supabase's
+* transaction-mode pooler (port 6543), or prepared statements collide across
+* pooled connections. Session mode and direct connections (5432) must not carry
+* it. Idempotent: a URL that already has a `pgbouncer` parameter, whatever its
+* value, is left as it is.
+*/
+var TRANSACTION_POOLER_PORT = /:6543\//;
+var HAS_PGBOUNCER_PARAM = /[?&]pgbouncer=/i;
+function ensurePgBouncerFlag(url) {
+	const trimmed = url.trim();
+	if (!TRANSACTION_POOLER_PORT.test(trimmed) || HAS_PGBOUNCER_PARAM.test(trimmed)) return url;
+	return `${trimmed}${trimmed.includes("?") ? "&" : "?"}pgbouncer=true`;
+}
+//#endregion
 //#region src/electron/services/supabase/connectionStrings.ts
 /**
 * Building DATABASE_URL and DIRECT_URL.
@@ -1214,7 +1230,7 @@ function buildPostgresUrls({ ref, password, pooler, databaseHost }) {
 	const user = transaction.db_user || `postgres.${ref}`;
 	const dbName = transaction.db_name || "postgres";
 	return {
-		databaseUrl: buildUrl(user, password, transaction.db_host, transaction.db_port ?? 6543, dbName),
+		databaseUrl: ensurePgBouncerFlag(buildUrl(user, password, transaction.db_host, transaction.db_port ?? 6543, dbName)),
 		directUrl: session?.db_host ? buildUrl(session.db_user || user, password, session.db_host, session.db_port ?? SESSION_PORT, session.db_name || dbName) : buildUrl(user, password, transaction.db_host, SESSION_PORT, dbName)
 	};
 }
@@ -1349,7 +1365,7 @@ var Redactor = class {
 };
 //#endregion
 //#region src/electron/services/SupabaseProvisionService.ts
-var SERVICE$1 = "supabase";
+var SERVICE$3 = "supabase";
 /** A fresh project reports COMING_UP for a minute or two before it answers. */
 var READY_POLL_INTERVAL_MS = 5e3;
 var READY_TIMEOUT_MS = 6 * 6e4;
@@ -1365,14 +1381,14 @@ var SupabaseProvisionService = class {
 	}
 	log(win, message, level = "info") {
 		win.webContents.send("provision:log", {
-			service: SERVICE$1,
+			service: SERVICE$3,
 			message: this.redactor.redact(message),
 			level
 		});
 	}
 	progress(win, value) {
 		win.webContents.send("provision:progress", {
-			service: SERVICE$1,
+			service: SERVICE$3,
 			value
 		});
 	}
@@ -1428,13 +1444,15 @@ var SupabaseProvisionService = class {
 		try {
 			const ref = req.mode === "create" ? await this.createProject(win, client, req) : await this.adoptProject(win, client, req);
 			if (req.stopAfterProject) {
+				const panelKey = await this.resolvePanelServiceKey(win, client, ref);
 				this.progress(win, 100);
 				this.log(win, "Projet prêt. Les clés et les buckets seront récupérés à l'étape 2.", "done");
 				win.webContents.send("provision:done", {
-					service: SERVICE$1,
+					service: SERVICE$3,
 					patch: {
 						...req.mode === "create" ? { SUPABASE_CREATED_PROJECT_REF: ref } : { SUPABASE_SELECTED_PROJECT_REF: ref },
-						SUPABASE_URL: projectUrl(ref)
+						SUPABASE_URL: projectUrl(ref),
+						...panelKey ? { SUPABASE_PANEL_SERVICE_KEY: panelKey } : {}
 					}
 				});
 				return;
@@ -1447,23 +1465,24 @@ var SupabaseProvisionService = class {
 				SUPABASE_URL: projectUrl(ref),
 				SUPABASE_ANON_KEY: keys.anon,
 				SUPABASE_SERVICE_ROLE_KEY: keys.service,
+				...keys.panel ? { SUPABASE_PANEL_SERVICE_KEY: keys.panel } : {},
 				...urls
 			};
 			this.progress(win, 100);
 			this.log(win, "Configuration Supabase terminée.", "done");
 			win.webContents.send("provision:done", {
-				service: SERVICE$1,
+				service: SERVICE$3,
 				patch
 			});
 		} catch (err) {
 			if (this.wasCancelled()) {
 				this.log(win, "Configuration annulée.", "info");
-				win.webContents.send("provision:cancelled", { service: SERVICE$1 });
+				win.webContents.send("provision:cancelled", { service: SERVICE$3 });
 			} else {
 				const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
 				this.log(win, message, "error");
 				win.webContents.send("provision:error", {
-					service: SERVICE$1,
+					service: SERVICE$3,
 					message: this.redactor.redact(message)
 				});
 			}
@@ -1563,10 +1582,57 @@ var SupabaseProvisionService = class {
 		this.redactor.add(pair.anon.value, pair.service.value);
 		this.log(win, `Clés récupérées — anon : ${describeKeyFormat(pair.anon.format)}, service : ${describeKeyFormat(pair.service.format)}.`, "done");
 		this.progress(win, 60);
+		/**
+		* The browser panel needs the JWT one specifically. When the service key
+		* above already is legacy, that is the same value and nothing more is
+		* asked of the API; otherwise the listing just fetched is searched for it.
+		*/
+		const panel = pair.service.format === "legacy" ? pair.service.value : findLegacyServiceKey(keys);
+		if (panel) this.redactor.add(panel);
 		return {
 			anon: pair.anon.value,
-			service: pair.service.value
+			service: pair.service.value,
+			panel
 		};
+	}
+	/**
+	* The `service_role` key in JWT format, or null when the project offers none.
+	*
+	* `config.<domain>` is a browser app querying the Data API with whatever
+	* service key it is handed, and Supabase answers 401 to a `sb_secret_…` key
+	* on any request carrying an Origin — so the legacy format is the only one
+	* that works there. A project with the legacy keys switched off gets them
+	* switched back on, the same cheap repair `resolveKeys` performs.
+	*
+	* Anything that goes wrong is reported and swallowed: the project itself is
+	* provisioned either way, and failing the run over an auxiliary lookup would
+	* cost the reader the step they actually asked for.
+	*/
+	async resolvePanelServiceKey(win, client, ref) {
+		try {
+			this.log(win, "Récupération de la clé service_role legacy (pour le panneau de configuration)…");
+			let key = findLegacyServiceKey(await client.listApiKeys(ref));
+			if (!key) {
+				const legacy = await client.getLegacyKeysEnabled(ref);
+				if (legacy && !legacy.enabled) {
+					this.log(win, "Clés JWT legacy désactivées — réactivation…");
+					await client.setLegacyKeysEnabled(ref, true);
+					key = findLegacyServiceKey(await client.listApiKeys(ref));
+				}
+			}
+			if (!key) {
+				this.log(win, "Aucune clé service_role legacy sur ce projet — elle pourra être récupérée depuis le dashboard.", "error");
+				return null;
+			}
+			this.redactor.add(key);
+			this.log(win, "Clé service_role legacy récupérée.", "done");
+			return key;
+		} catch (err) {
+			if (this.wasCancelled()) throw err;
+			const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
+			this.log(win, `Clé service_role legacy indisponible : ${this.redactor.redact(message)}`, "error");
+			return null;
+		}
 	}
 	async buildUrls(win, client, ref, dbPassword) {
 		this.log(win, "Récupération des URLs Postgres…");
@@ -1653,6 +1719,12 @@ var REALTIME_CHECK_SQL = `SELECT
       AND schemaname = 'public'
       AND lower(tablename) = lower('${REALTIME_TABLE}')
   ) AS already_published;`;
+/**
+* Whether the public schema holds anything at all — the cheapest form of the
+* check above, for the wait that precedes the run.
+*/
+var PUBLIC_TABLE_COUNT_SQL = `SELECT count(*)::int AS public_tables
+FROM pg_tables WHERE schemaname = 'public';`;
 /** The public tables, to name them when the expected one is not among them. */
 var PUBLIC_TABLES_SQL = `SELECT tablename
 FROM pg_tables
@@ -1685,6 +1757,30 @@ BEGIN
   END LOOP;
 END $$;`;
 /**
+* Whether the privileges `GRANTS_SQL` hands out are in fact held — the read-only
+* half of that block, for the box that claims it was run.
+*
+* Asked of the roles rather than of the grant statements: a reader who applied
+* the same privileges some other way has done the thing the box says, and the
+* point is what is true of the schema, not how it got that way.
+*/
+var GRANTS_CHECK_SQL = `SELECT
+  (SELECT count(*)::int FROM pg_tables WHERE schemaname = 'public') AS public_tables,
+  (
+    has_schema_privilege('anon', 'public', 'USAGE')
+    AND has_schema_privilege('authenticated', 'public', 'USAGE')
+    AND has_schema_privilege('service_role', 'public', 'USAGE')
+  ) AS schema_granted,
+  NOT EXISTS (
+    SELECT 1 FROM pg_tables t
+    WHERE t.schemaname = 'public'
+      AND NOT (
+        has_table_privilege('anon', format('public.%I', t.tablename), 'SELECT')
+        AND has_table_privilege('authenticated', format('public.%I', t.tablename), 'SELECT')
+        AND has_table_privilege('service_role', format('public.%I', t.tablename), 'SELECT')
+      )
+  ) AS tables_granted;`;
+/**
 * Adds `public` to the Data API's exposed schemas without dropping the ones
 * already there (`graphql_public` in particular). Returns `null` when the list
 * already covers it — nothing to PATCH.
@@ -1696,7 +1792,15 @@ function withPublicSchema(current) {
 }
 //#endregion
 //#region src/electron/services/SupabaseSiteSetupService.ts
-var SERVICE = "supabase-site";
+var SERVICE$2 = "supabase-site";
+/**
+* How long the run will wait for a deployment's migrations to land. Prisma
+* applies them as the stack comes up, which is seconds after the deploy step
+* reports success — but the containers are still settling, and a reader who
+* moves straight on to this step arrives first.
+*/
+var MIGRATION_POLL_INTERVAL_MS = 4e3;
+var MIGRATION_TIMEOUT_MS = 2 * 6e4;
 /**
 * The tail end of the Supabase setup: what has to be true of the project *after*
 * the deployment has migrated the database — privileges, the exposed schema,
@@ -1722,14 +1826,14 @@ var SupabaseSiteSetupService = class {
 	}
 	log(win, message, level = "info") {
 		win.webContents.send("provision:log", {
-			service: SERVICE,
+			service: SERVICE$2,
 			message: this.redactor.redact(message),
 			level
 		});
 	}
 	progress(win, value) {
 		win.webContents.send("provision:progress", {
-			service: SERVICE,
+			service: SERVICE$2,
 			value
 		});
 	}
@@ -1755,6 +1859,8 @@ var SupabaseSiteSetupService = class {
 			this.log(win, `Projet ${project.name} (${project.ref}) — configuration finale…`);
 			const pending = [];
 			this.checkpoint();
+			await this.awaitMigratedTables(win, client, req);
+			this.checkpoint();
 			await this.applyGrants(win, client, req.ref);
 			this.checkpoint();
 			await this.exposePublicSchema(win, client, req.ref);
@@ -1770,7 +1876,7 @@ var SupabaseSiteSetupService = class {
 			this.progress(win, 100);
 			this.log(win, "Configuration du site Supabase terminée.", "done");
 			win.webContents.send("provision:done", {
-				service: SERVICE,
+				service: SERVICE$2,
 				patch: {
 					SUPABASE_SITE_SETUP_AT: (/* @__PURE__ */ new Date()).toISOString(),
 					...panelServiceKey ? { SUPABASE_PANEL_SERVICE_KEY: panelServiceKey } : {}
@@ -1779,18 +1885,52 @@ var SupabaseSiteSetupService = class {
 		} catch (err) {
 			if (this.wasCancelled()) {
 				this.log(win, "Configuration annulée.", "info");
-				win.webContents.send("provision:cancelled", { service: SERVICE });
+				win.webContents.send("provision:cancelled", { service: SERVICE$2 });
 			} else {
 				const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
 				this.log(win, message, "error");
 				win.webContents.send("provision:error", {
-					service: SERVICE,
+					service: SERVICE$2,
 					message: this.redactor.redact(message)
 				});
 			}
 		} finally {
 			this.controller = null;
 		}
+	}
+	/**
+	* Waits for the tables the deployment creates, when one has just run.
+	*
+	* Every step below is about tables: the grants apply to the ones that exist
+	* at the time, Realtime needs its own, RLS covers them all. Run against a
+	* schema the migrations have not filled yet, the whole thing completes on an
+	* empty database and reports a Realtime it could not configure — which is
+	* why running it a second time, a minute later, has always been the fix.
+	* This is that minute, spent inside the run instead of by the reader.
+	*
+	* Only when a deployment is known to have happened in this session. Without
+	* one an empty schema is not a race but a step that has not been done, and
+	* saying so at once beats a minute of waiting for tables nobody created.
+	*/
+	async awaitMigratedTables(win, client, req) {
+		const count = async () => {
+			const [row] = await client.runQuery(req.ref, PUBLIC_TABLE_COUNT_SQL);
+			return row?.public_tables ?? 0;
+		};
+		if (await count() > 0) return;
+		if (!req.awaitMigrations) return;
+		this.log(win, "Schéma public encore vide — attente des tables créées par le déploiement (jusqu'à 2 minutes)…");
+		const deadline = Date.now() + MIGRATION_TIMEOUT_MS;
+		while (Date.now() < deadline) {
+			await new Promise((resolve) => setTimeout(resolve, MIGRATION_POLL_INTERVAL_MS));
+			this.checkpoint();
+			const tables = await count();
+			if (tables > 0) {
+				this.log(win, `${tables} table(s) trouvée(s) — configuration du projet.`, "done");
+				return;
+			}
+		}
+		this.log(win, "Toujours aucune table dans le schéma public — poursuite de la configuration.");
 	}
 	async applyGrants(win, client, ref) {
 		this.log(win, "Application des privilèges sur le schéma public…");
@@ -1904,6 +2044,866 @@ var SupabaseSiteSetupService = class {
 	}
 };
 //#endregion
+//#region src/shared/dnsRecords.ts
+var DNS_TTL = 3600;
+/**
+* Spaceship's Host field takes the name *without* the domain — `@` for the
+* apex, `config` for the admin panel — which is also what its API documents
+* ("name of resource record excluding domain name part"). Pasting the full
+* hostname there creates `config.domain.fr.domain.fr`, a record that resolves
+* for nobody and looks right in the table.
+*
+* Also applied to what Resend hands back, which is relative to the registered
+* domain already — running it through here costs nothing and covers the case
+* where it answers with a fully qualified name instead.
+*/
+function hostPart(hostname, domain) {
+	const name = hostname.trim().replace(/\.$/, "");
+	if (!name || !domain || name === domain) return "@";
+	return name.endsWith(`.${domain}`) ? name.slice(0, -(domain.length + 1)) : name;
+}
+/**
+* The records that belong to the deployment itself: the site, the admin panel
+* and the DMARC policy for the sending subdomain. Resend's own records are not
+* in here — they only exist once its API has been asked for them.
+*/
+function buildInfraDnsRecords(domain, ipv4, mailSubdomain) {
+	return [
+		{
+			type: "TXT",
+			host: `_dmarc.${hostPart(mailSubdomain, domain)}`,
+			answer: "v=DMARC1;p=none;",
+			ttl: DNS_TTL
+		},
+		{
+			type: "A",
+			host: "@",
+			answer: ipv4,
+			ttl: DNS_TTL
+		},
+		{
+			type: "A",
+			host: "config",
+			answer: ipv4,
+			ttl: DNS_TTL
+		}
+	];
+}
+//#endregion
+//#region src/electron/services/spaceship/SpaceshipApiClient.ts
+var SPACESHIP_BASE = "https://spaceship.dev/api";
+var MAX_ATTEMPTS$1 = 4;
+var BASE_BACKOFF_MS$1 = 1e3;
+var PAGE_SIZE = 500;
+/** Same reasoning as the Supabase client: only these are worth retrying. */
+var RETRYABLE_STATUS$1 = new Set([
+	429,
+	500,
+	502,
+	503,
+	504
+]);
+function explainStatus$1(status) {
+	switch (status) {
+		case 401: return "Clé API Spaceship refusée. Vérifiez la clé et le secret copiés depuis l'API Manager de Spaceship (étape 1) — un secret n'est affiché qu'à sa création.";
+		case 403: return "Accès refusé par Spaceship — la clé API n'a pas les permissions nécessaires. Activez `dnsrecords:read` et `dnsrecords:write` sur la clé, et vérifiez que le domaine appartient bien à ce compte.";
+		case 404: return "Domaine introuvable chez Spaceship. Vérifiez le nom de domaine de l'étape 1 : il doit être enregistré sur ce compte.";
+		case 429: return "Trop de requêtes envoyées à Spaceship. Patientez quelques minutes avant de relancer.";
+		default: return null;
+	}
+}
+var SpaceshipApiError = class extends Error {
+	status;
+	constructor(status, url, detail) {
+		const explanation = explainStatus$1(status);
+		super(explanation ? detail ? `${explanation} (${detail})` : explanation : detail ? `HTTP ${status} — ${detail}` : `HTTP ${status} sur ${url}`);
+		this.name = "SpaceshipApiError";
+		this.status = status;
+	}
+};
+function extractMessage$1(raw) {
+	if (!raw) return "";
+	try {
+		const parsed = JSON.parse(raw);
+		if (typeof parsed === "string") return parsed;
+		const msg = parsed?.detail ?? parsed?.message ?? parsed?.error;
+		if (typeof msg === "string") return msg;
+		if (Array.isArray(parsed?.data)) {
+			const details = parsed.data.map((d) => [d.field, d.details].filter(Boolean).join(": ")).filter(Boolean);
+			if (details.length > 0) return details.join(" ; ");
+		}
+	} catch {}
+	return raw.slice(0, 300);
+}
+function sleep$1(ms, signal) {
+	return new Promise((resolve, reject) => {
+		if (signal?.aborted) return reject(new DOMException("Aborted", "AbortError"));
+		const timer = setTimeout(() => {
+			signal?.removeEventListener("abort", onAbort);
+			resolve();
+		}, ms);
+		const onAbort = () => {
+			clearTimeout(timer);
+			reject(new DOMException("Aborted", "AbortError"));
+		};
+		signal?.addEventListener("abort", onAbort, { once: true });
+	});
+}
+/** Our shape onto the one the API takes, with the value under the right key. */
+function toSpaceshipItem(record) {
+	const item = {
+		type: record.type,
+		name: record.host,
+		ttl: record.ttl
+	};
+	switch (record.type) {
+		case "A":
+		case "AAAA":
+			item.address = record.answer;
+			break;
+		case "CNAME":
+			item.cname = record.answer;
+			break;
+		case "MX":
+			item.exchange = record.answer;
+			item.preference = record.priority ?? 10;
+			break;
+		default: item.value = record.answer;
+	}
+	return item;
+}
+var SpaceshipApiClient = class {
+	apiKey;
+	apiSecret;
+	signal;
+	fetchImpl;
+	sleepImpl;
+	constructor(opts) {
+		this.apiKey = opts.apiKey.trim();
+		this.apiSecret = opts.apiSecret.trim();
+		this.signal = opts.signal;
+		this.fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+		this.sleepImpl = opts.sleepImpl ?? sleep$1;
+	}
+	async request(method, path, body) {
+		const url = `${SPACESHIP_BASE}${path}`;
+		let lastError = null;
+		for (let attempt = 1; attempt <= MAX_ATTEMPTS$1; attempt++) {
+			const response = await this.fetchImpl(url, {
+				method,
+				headers: {
+					"X-API-Key": this.apiKey,
+					"X-API-Secret": this.apiSecret,
+					"Content-Type": "application/json",
+					Accept: "application/json"
+				},
+				body: body === void 0 ? void 0 : JSON.stringify(body),
+				signal: this.signal
+			});
+			if (response.ok || response.status === 204) {
+				if (response.status === 204) return null;
+				const text = await response.text();
+				return text ? JSON.parse(text) : null;
+			}
+			const detail = extractMessage$1(await response.text().catch(() => ""));
+			lastError = new SpaceshipApiError(response.status, url, detail);
+			if (!RETRYABLE_STATUS$1.has(response.status) || attempt === MAX_ATTEMPTS$1) throw lastError;
+			const retryAfter = Number(response.headers.get("retry-after"));
+			const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : BASE_BACKOFF_MS$1 * 2 ** (attempt - 1);
+			await this.sleepImpl(waitMs, this.signal);
+		}
+		throw lastError ?? new SpaceshipApiError(0, url, "Échec inconnu");
+	}
+	/** Cheap authenticated read — used to tell a bad key from a bad domain. */
+	async listDomains() {
+		return (await this.request("GET", "/v1/domains?take=1&skip=0"))?.items ?? [];
+	}
+	async listRecords(domain) {
+		const all = [];
+		let skip = 0;
+		let total = Number.POSITIVE_INFINITY;
+		while (skip < total) {
+			const page = await this.request("GET", `/v1/dns/records/${encodeURIComponent(domain)}?take=${PAGE_SIZE}&skip=${skip}`);
+			const items = page?.items ?? [];
+			all.push(...items);
+			total = page?.total ?? all.length;
+			skip += items.length;
+			if (items.length === 0) break;
+		}
+		return all;
+	}
+	/**
+	* Writes the records, replacing whatever occupies the same name and type.
+	*
+	* The PUT alone does not do that: sending an A record for a name that
+	* already has one leaves both in the zone, and a second run would have the
+	* apex pointing at two addresses — the old instance and the new one. So the
+	* conflicting records are deleted first, which is also what makes a re-run
+	* after the IPv4 changes land on the right answer.
+	*
+	* Only the names this run is writing are touched; anything else the reader
+	* keeps on the domain is left alone.
+	*/
+	async saveRecords(domain, records) {
+		const items = records.map(toSpaceshipItem);
+		const wanted = new Set(items.map((item) => `${item.name.toLowerCase()}|${item.type.toUpperCase()}`));
+		const conflicting = (await this.listRecords(domain)).filter((item) => wanted.has(`${item.name.toLowerCase()}|${item.type.toUpperCase()}`));
+		if (conflicting.length > 0) await this.request("DELETE", `/v1/dns/records/${encodeURIComponent(domain)}`, conflicting);
+		await this.request("PUT", `/v1/dns/records/${encodeURIComponent(domain)}`, {
+			force: true,
+			items
+		});
+	}
+};
+//#endregion
+//#region src/electron/services/SpaceshipProvisionService.ts
+var SERVICE$1 = "spaceship";
+/**
+* Publishes the deployment's own DNS records on the domain: the site, the
+* admin panel and the DMARC policy. What Resend needs is not built here —
+* those records only exist once its API has been asked for them, and the
+* Resend run publishes them itself — but they are checked over on the way
+* past, and put back if the zone has lost them.
+*/
+var SpaceshipProvisionService = class {
+	controller = null;
+	redactor = new Redactor();
+	isRunning() {
+		return this.controller !== null;
+	}
+	cancel() {
+		this.controller?.abort();
+		this.controller = null;
+	}
+	log(win, message, level = "info") {
+		win.webContents.send("provision:log", {
+			service: SERVICE$1,
+			message: this.redactor.redact(message),
+			level
+		});
+	}
+	progress(win, value) {
+		win.webContents.send("provision:progress", {
+			service: SERVICE$1,
+			value
+		});
+	}
+	wasCancelled() {
+		return this.controller?.signal.aborted ?? false;
+	}
+	async start(win, req) {
+		this.cancel();
+		this.controller = new AbortController();
+		this.redactor = new Redactor().add(req.apiKey, req.apiSecret);
+		const client = new SpaceshipApiClient({
+			apiKey: req.apiKey,
+			apiSecret: req.apiSecret,
+			signal: this.controller.signal
+		});
+		try {
+			if (!req.domain) throw new Error("Nom de domaine non renseigné.");
+			if (!req.ipv4) throw new Error("IPv4 de l'instance inconnue — lancez l'étape Scaleway avant de publier les enregistrements DNS.");
+			const records = buildInfraDnsRecords(req.domain, req.ipv4, req.mailSubdomain);
+			this.progress(win, 10);
+			this.log(win, `Enregistrements à publier sur ${req.domain} :`);
+			for (const record of records) this.log(win, `  ${record.type}  ${record.host}  ➔  ${record.answer}`);
+			this.progress(win, 35);
+			this.log(win, "Écriture chez Spaceship (les enregistrements de même nom sont remplacés)…");
+			await client.saveRecords(req.domain, records);
+			this.progress(win, 75);
+			await this.verifyWritten(win, client, req.domain, records);
+			await this.restoreResendRecords(win, client, req.domain, req.resendRecords ?? []);
+			this.progress(win, 100);
+			this.log(win, "Enregistrements DNS publiés.", "done");
+			win.webContents.send("provision:done", {
+				service: SERVICE$1,
+				patch: {}
+			});
+		} catch (err) {
+			if (this.wasCancelled()) {
+				this.log(win, "Configuration annulée.", "info");
+				win.webContents.send("provision:cancelled", { service: SERVICE$1 });
+			} else {
+				const message = err instanceof SpaceshipApiError || err instanceof Error ? err.message : String(err);
+				this.log(win, message, "error");
+				win.webContents.send("provision:error", {
+					service: SERVICE$1,
+					message: this.redactor.redact(message)
+				});
+			}
+		} finally {
+			this.controller = null;
+		}
+	}
+	/**
+	* A second look at what Resend asked for, while the zone is already open.
+	*
+	* Those records are published by the Resend run, not this one, so they are
+	* normally here already and this does nothing but say so. It exists for the
+	* cases where they are not: a run that failed midway, a record deleted by
+	* hand at the registrar, a zone restored from an older state. The symptom is
+	* always the same and always distant — mail that silently stops being
+	* delivered — so the cheapest moment to catch it is the one where the zone is
+	* being read anyway.
+	*
+	* Never the source of truth for their *content*: what is republished is what
+	* Resend last handed back, which the step above keeps current.
+	*/
+	async restoreResendRecords(win, client, domain, resendRecords) {
+		if (resendRecords.length === 0) return;
+		this.log(win, "Contrôle des enregistrements demandés par Resend…");
+		const existing = await client.listRecords(domain);
+		const present = new Set(existing.map((item) => `${item.name.toLowerCase().replace(/\.$/, "")}|${item.type.toUpperCase()}`));
+		const missing = resendRecords.filter((record) => !present.has(`${record.host.toLowerCase()}|${record.type}`));
+		if (missing.length === 0) {
+			this.log(win, `Enregistrements Resend en place (${resendRecords.length}).`, "done");
+			return;
+		}
+		this.log(win, `Enregistrements Resend absents de la zone (${missing.length}) — republication :`);
+		for (const record of missing) this.log(win, `  ${record.type}  ${record.host}`);
+		await client.saveRecords(domain, missing);
+		await this.verifyWritten(win, client, domain, missing);
+	}
+	/**
+	* Reads the zone back. A write that returns 2xx and leaves nothing behind is
+	* the failure worth catching here — half-configured DNS that reads as done
+	* would send the reader on to Resend, which then cannot verify anything.
+	*
+	* The check is on name and type, not on the value: what a zone hands back is
+	* normalised (a TXT comes back quoted, a name may be fully qualified), and a
+	* comparison that trips over punctuation would fail runs that worked. The
+	* values are logged instead, so they can be read at a glance.
+	*/
+	async verifyWritten(win, client, domain, records) {
+		this.log(win, "Relecture de la zone…");
+		const existing = await client.listRecords(domain);
+		const present = new Set(existing.map((item) => `${item.name.toLowerCase().replace(/\.$/, "")}|${item.type.toUpperCase()}`));
+		const missing = records.filter((record) => !present.has(`${record.host.toLowerCase()}|${record.type}`));
+		if (missing.length > 0) throw new Error(`Enregistrements absents de la zone après écriture : ${missing.map((r) => `${r.type} ${r.host}`).join(", ")}. Ajoutez-les à la main depuis « Configuration manuelle ».`);
+		this.progress(win, 90);
+		this.log(win, `Zone relue — ${records.length} enregistrement(s) en place.`, "done");
+	}
+};
+//#endregion
+//#region src/electron/services/resend/ResendApiClient.ts
+var RESEND_BASE = "https://api.resend.com";
+var MAX_ATTEMPTS = 4;
+var BASE_BACKOFF_MS = 1e3;
+var RETRYABLE_STATUS = new Set([
+	429,
+	500,
+	502,
+	503,
+	504
+]);
+function explainStatus(status) {
+	switch (status) {
+		case 401: return "Clé API Resend refusée. Vérifiez la clé copiée depuis resend.com/api-keys (étape 1) — elle n'est affichée qu'à sa création.";
+		case 403: return "Accès refusé par Resend — la clé API est en lecture seule ou restreinte. Il en faut une avec les droits « Full access » pour créer et vérifier un domaine.";
+		case 404: return "Domaine introuvable chez Resend.";
+		case 422: return "Resend a refusé le domaine. Un sous-domaine déjà enregistré sur un autre compte Resend, ou un nom mal formé, sont les deux causes habituelles.";
+		case 429: return "Trop de requêtes envoyées à Resend. Patientez une minute avant de relancer.";
+		default: return null;
+	}
+}
+var ResendApiError = class extends Error {
+	status;
+	constructor(status, url, detail) {
+		const explanation = explainStatus(status);
+		super(explanation ? detail ? `${explanation} (${detail})` : explanation : detail ? `HTTP ${status} — ${detail}` : `HTTP ${status} sur ${url}`);
+		this.name = "ResendApiError";
+		this.status = status;
+	}
+};
+function extractMessage(raw) {
+	if (!raw) return "";
+	try {
+		const parsed = JSON.parse(raw);
+		if (typeof parsed === "string") return parsed;
+		const msg = parsed?.message ?? parsed?.error?.message ?? parsed?.name;
+		if (typeof msg === "string") return msg;
+	} catch {}
+	return raw.slice(0, 300);
+}
+function sleep(ms, signal) {
+	return new Promise((resolve, reject) => {
+		if (signal?.aborted) return reject(new DOMException("Aborted", "AbortError"));
+		const timer = setTimeout(() => {
+			signal?.removeEventListener("abort", onAbort);
+			resolve();
+		}, ms);
+		const onAbort = () => {
+			clearTimeout(timer);
+			reject(new DOMException("Aborted", "AbortError"));
+		};
+		signal?.addEventListener("abort", onAbort, { once: true });
+	});
+}
+var ResendApiClient = class {
+	apiKey;
+	signal;
+	fetchImpl;
+	sleepImpl;
+	constructor(opts) {
+		this.apiKey = opts.apiKey.trim();
+		this.signal = opts.signal;
+		this.fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+		this.sleepImpl = opts.sleepImpl ?? sleep;
+	}
+	async request(method, path, body) {
+		const url = `${RESEND_BASE}${path}`;
+		let lastError = null;
+		for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+			const response = await this.fetchImpl(url, {
+				method,
+				headers: {
+					Authorization: `Bearer ${this.apiKey}`,
+					"Content-Type": "application/json",
+					Accept: "application/json"
+				},
+				body: body === void 0 ? void 0 : JSON.stringify(body),
+				signal: this.signal
+			});
+			if (response.ok) {
+				if (response.status === 204) return null;
+				const text = await response.text();
+				return text ? JSON.parse(text) : null;
+			}
+			const detail = extractMessage(await response.text().catch(() => ""));
+			lastError = new ResendApiError(response.status, url, detail);
+			if (!RETRYABLE_STATUS.has(response.status) || attempt === MAX_ATTEMPTS) throw lastError;
+			const retryAfter = Number(response.headers.get("retry-after"));
+			const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : BASE_BACKOFF_MS * 2 ** (attempt - 1);
+			await this.sleepImpl(waitMs, this.signal);
+		}
+		throw lastError ?? new ResendApiError(0, url, "Échec inconnu");
+	}
+	async listDomains() {
+		return (await this.request("GET", "/domains"))?.data ?? [];
+	}
+	/** The creation response is the only one that carries the records straight away. */
+	async createDomain(name, region) {
+		const created = await this.request("POST", "/domains", {
+			name,
+			...region ? { region } : {}
+		});
+		if (!created) throw new ResendApiError(0, "/domains", "Réponse vide");
+		return created;
+	}
+	async getDomain(id) {
+		const domain = await this.request("GET", `/domains/${id}`);
+		if (!domain) throw new ResendApiError(0, `/domains/${id}`, "Réponse vide");
+		return domain;
+	}
+	/** Asks Resend to look at the DNS now; the check itself runs asynchronously. */
+	async verifyDomain(id) {
+		await this.request("POST", `/domains/${id}/verify`);
+	}
+};
+//#endregion
+//#region src/electron/services/ResendProvisionService.ts
+var SERVICE = "resend";
+/**
+* The standalone check answers a button pressed by someone watching, so it is
+* held to seconds. The run itself no longer waits at all: Resend puts DNS
+* propagation at up to fifteen minutes, which is nothing a card held open can
+* shorten.
+*/
+var CHECK_POLL_INTERVAL_MS = 5e3;
+var CHECK_TIMEOUT_MS = 25e3;
+/**
+* Creates the sending subdomain on Resend, publishes the records it asks for,
+* and asks it to verify them.
+*
+* The records are the reason this run exists: they are not knowable in
+* advance — the DKIM key is minted with the domain — so nothing can publish
+* them until Resend has been asked. When the domain lives at Spaceship this
+* run publishes them itself; at any other registrar it stops once they are
+* known and leaves them on screen to be copied.
+*/
+var ResendProvisionService = class {
+	controller = null;
+	redactor = new Redactor();
+	isRunning() {
+		return this.controller !== null;
+	}
+	cancel() {
+		this.controller?.abort();
+		this.controller = null;
+	}
+	log(win, message, level = "info") {
+		win.webContents.send("provision:log", {
+			service: SERVICE,
+			message: this.redactor.redact(message),
+			level
+		});
+	}
+	progress(win, value) {
+		win.webContents.send("provision:progress", {
+			service: SERVICE,
+			value
+		});
+	}
+	wasCancelled() {
+		return this.controller?.signal.aborted ?? false;
+	}
+	async start(win, req) {
+		this.cancel();
+		this.controller = new AbortController();
+		this.redactor = new Redactor().add(req.apiKey, req.spaceshipApiKey, req.spaceshipApiSecret);
+		const client = new ResendApiClient({
+			apiKey: req.apiKey,
+			signal: this.controller.signal
+		});
+		try {
+			if (!req.mailSubdomain) throw new Error("Sous-domaine d'envoi non renseigné (étape 1).");
+			const domain = await this.resolveDomain(win, client, req);
+			const records = this.normaliseRecords(domain.records ?? [], req.domain);
+			if (records.length === 0) throw new Error("Resend n'a renvoyé aucun enregistrement DNS pour ce domaine. Ouvrez resend.com/domains pour les relever à la main.");
+			this.progress(win, 40);
+			this.log(win, `Enregistrements demandés par Resend (${records.length}) :`);
+			for (const record of records) this.log(win, `  ${record.type}  ${record.host}  ➔  ${this.shorten(record.answer)}`);
+			const patch = {
+				RESEND_DOMAIN_ID: domain.id,
+				RESEND_DNS_RECORDS: JSON.stringify(records)
+			};
+			if (!req.spaceshipApiKey || !req.spaceshipApiSecret) {
+				this.progress(win, 100);
+				this.log(win, "Domaine créé chez Resend. Publiez les enregistrements ci-dessus chez votre registrar, puis relancez pour lancer la vérification.", "done");
+				win.webContents.send("provision:done", {
+					service: SERVICE,
+					patch
+				});
+				return;
+			}
+			await this.publishRecords(win, req, records);
+			/**
+			* The run ends here, at the moment the waiting would start.
+			*
+			* Everything an automation can do is done: the domain exists, the
+			* records are published, and Resend has been asked to look. What
+			* remains is DNS propagation, which its own documentation puts at up to
+			* fifteen minutes and which no amount of holding the card open makes
+			* faster. Reported as pending instead, so the reader moves on to the
+			* next step and comes back to a card that confirms itself.
+			*/
+			if (domain.status === "verified") {
+				this.log(win, "Domaine déjà vérifié par Resend — les envois sont possibles.", "done");
+				patch.RESEND_DOMAIN_VERIFIED_AT = (/* @__PURE__ */ new Date()).toISOString();
+				patch.RESEND_VERIFICATION_PENDING_SINCE = "";
+			} else {
+				this.log(win, "Demande de vérification à Resend…");
+				await client.verifyDomain(domain.id);
+				patch.RESEND_VERIFICATION_PENDING_SINCE = (/* @__PURE__ */ new Date()).toISOString();
+				this.log(win, "Vérification demandée. La propagation DNS peut prendre jusqu'à 15 minutes : cette étape est terminée, Resend confirmera de son côté. Inutile d'attendre ici — « Relancer la vérification Resend » redemandera le contrôle.", "done");
+			}
+			this.progress(win, 100);
+			win.webContents.send("provision:done", {
+				service: SERVICE,
+				patch
+			});
+		} catch (err) {
+			if (this.wasCancelled()) {
+				this.log(win, "Configuration annulée.", "info");
+				win.webContents.send("provision:cancelled", { service: SERVICE });
+			} else {
+				const message = err instanceof ResendApiError || err instanceof SpaceshipApiError || err instanceof Error ? err.message : String(err);
+				this.log(win, message, "error");
+				win.webContents.send("provision:error", {
+					service: SERVICE,
+					message: this.redactor.redact(message)
+				});
+			}
+		} finally {
+			this.controller = null;
+		}
+	}
+	/**
+	* The sending domain as Resend holds it now — read-only, and deliberately
+	* not a verification: this runs when the step is merely opened, and asking
+	* for a check on every visit would be a request the reader never made.
+	*
+	* Resolved by name rather than by the saved id, because the id is the very
+	* thing that goes stale: a domain deleted from the dashboard and added again
+	* has a new one, and a domain simply deleted has none. The account's own
+	* listing is the only thing that can settle either.
+	*/
+	async readDomain(req) {
+		const client = new ResendApiClient({ apiKey: req.apiKey });
+		const listed = (await client.listDomains()).find((d) => d.name === req.mailSubdomain);
+		if (!listed) return { exists: false };
+		const domain = await client.getDomain(listed.id);
+		return {
+			exists: true,
+			domainId: domain.id,
+			status: domain.status,
+			records: this.normaliseRecords(domain.records ?? [], req.domain)
+		};
+	}
+	/**
+	* Asks Resend to look at the DNS now, and reports what it sees.
+	*
+	* Nothing is created and nothing is published: this is the button pressed
+	* once the records are in place at the registrar, which the dashboard itself
+	* offers no equivalent of — Resend's own check runs on its schedule, and a
+	* domain can sit at `pending` for hours waiting for it. Separate from
+	* `start` so re-checking never risks a second domain or a re-publish.
+	*/
+	async verifyOnly(req) {
+		const client = new ResendApiClient({ apiKey: req.apiKey });
+		const id = await this.findDomainId(client, req);
+		await client.verifyDomain(id);
+		const deadline = Date.now() + CHECK_TIMEOUT_MS;
+		let status = (await client.getDomain(id)).status;
+		while (status !== "verified" && status !== "failed" && Date.now() < deadline) {
+			await new Promise((resolve) => setTimeout(resolve, CHECK_POLL_INTERVAL_MS));
+			status = (await client.getDomain(id)).status;
+		}
+		return {
+			domainId: id,
+			status,
+			...status === "verified" ? { verifiedAt: (/* @__PURE__ */ new Date()).toISOString() } : {}
+		};
+	}
+	/**
+	* The domain to check. An id saved by an earlier run is the direct route,
+	* but it names a domain that may have been deleted from the dashboard since
+	* — and a domain added there by hand has no id here at all — so both fall
+	* back to resolving it by name.
+	*/
+	async findDomainId(client, req) {
+		if (req.domainId) try {
+			return (await client.getDomain(req.domainId)).id;
+		} catch {}
+		const known = (await client.listDomains()).find((d) => d.name === req.mailSubdomain);
+		if (!known) throw new Error(`${req.mailSubdomain} n'est pas (ou plus) enregistré sur ce compte Resend. Lancez l'étape pour le créer, ou ajoutez-le depuis resend.com/domains.`);
+		return known.id;
+	}
+	async resolveDomain(win, client, req) {
+		this.progress(win, 10);
+		if (req.domainId) try {
+			const known = await client.getDomain(req.domainId);
+			this.log(win, `Domaine ${known.name} déjà créé — réutilisation.`);
+			return known;
+		} catch (err) {
+			if (this.wasCancelled()) throw err;
+			this.log(win, "Le domaine enregistré précédemment est introuvable — nouvelle recherche.");
+		}
+		this.log(win, `Recherche de ${req.mailSubdomain} sur le compte Resend…`);
+		const existing = (await client.listDomains()).find((d) => d.name === req.mailSubdomain);
+		if (existing) {
+			this.log(win, `Domaine trouvé (${existing.status}) — récupération des enregistrements.`);
+			return client.getDomain(existing.id);
+		}
+		this.log(win, `Création du domaine ${req.mailSubdomain}…`);
+		const created = await client.createDomain(req.mailSubdomain);
+		this.log(win, "Domaine créé.", "done");
+		return created;
+	}
+	/**
+	* Resend's records onto the shape the rest of the wizard uses. Its `name` is
+	* relative to the registered domain already, but is run through `hostPart`
+	* anyway so a fully qualified one would not produce `x.domain.fr.domain.fr`.
+	* Its `ttl` is the string "Auto", so ours is used instead.
+	*/
+	normaliseRecords(records, domain) {
+		return records.map((record) => ({
+			type: record.type.toUpperCase(),
+			host: hostPart(record.name, domain),
+			answer: record.value,
+			ttl: DNS_TTL,
+			...record.priority !== void 0 ? { priority: record.priority } : {}
+		}));
+	}
+	/** A DKIM value runs to a few hundred characters — unreadable in a log pane. */
+	shorten(value) {
+		return value.length > 60 ? `${value.slice(0, 57)}…` : value;
+	}
+	async publishRecords(win, req, records) {
+		this.log(win, `Publication des enregistrements chez Spaceship sur ${req.domain}…`);
+		await new SpaceshipApiClient({
+			apiKey: req.spaceshipApiKey,
+			apiSecret: req.spaceshipApiSecret,
+			signal: this.controller?.signal
+		}).saveRecords(req.domain, records);
+		this.progress(win, 60);
+		this.log(win, "Enregistrements publiés.", "done");
+	}
+};
+//#endregion
+//#region src/electron/services/CredentialCheckService.ts
+/**
+* A key is checked on every edit, so the probe has to be the cheapest
+* authenticated read each provider offers, and it must not retry: a key being
+* typed is wrong most of the way through, and hammering four APIs with
+* backoff for every keystroke would earn the reader a rate limit for their
+* trouble. The debounce lives in the renderer; this just answers once.
+*/
+var TIMEOUT_MS = 8e3;
+/** What refusing a key looks like nearly everywhere. */
+var REFUSED = [401, 403];
+/** Only a refusal is conclusive. Anything else leaves the key unjudged. */
+function classify(status, refused) {
+	if (status >= 200 && status < 300) return { state: "valid" };
+	if (refused.includes(status)) return { state: "invalid" };
+	return { state: "unknown" };
+}
+/**
+* Which statuses mean "refused" is the provider's business, hence the
+* parameter: the probe is a bare GET carrying nothing but the credentials, so
+* whatever a provider rejects about it, it is rejecting the key.
+*/
+async function probe(url, headers, refused = REFUSED) {
+	try {
+		return classify((await fetch(url, {
+			method: "GET",
+			headers: {
+				Accept: "application/json",
+				...headers
+			},
+			signal: AbortSignal.timeout(TIMEOUT_MS)
+		})).status, refused);
+	} catch {
+		return { state: "unknown" };
+	}
+}
+function checkCredentials(req) {
+	switch (req.service) {
+		case "supabase": return probe("https://api.supabase.com/v1/organizations", { Authorization: `Bearer ${req.accessToken.trim()}` });
+		/**
+		* The IAM listing rather than a project lookup: this answers for the
+		* secret key alone, which is what the reader is being warned about. A
+		* wrong project ID is a different mistake, and the Scaleway run reports it
+		* with the context that makes it fixable.
+		*/
+		case "scaleway": return probe("https://api.scaleway.com/iam/v1alpha1/ssh-keys?page_size=1", { "X-Auth-Token": req.secretKey.trim() });
+		case "spaceship": return probe("https://spaceship.dev/api/v1/domains?take=1&skip=0", {
+			"X-API-Key": req.apiKey.trim(),
+			"X-API-Secret": req.apiSecret.trim()
+		});
+		/**
+		* 400 as well as the usual pair: Resend answers a key it does not accept
+		* with `400 {"message":"API key is invalid"}`, not the 401 every other
+		* provider here sends. Left out, its refusal read as "nothing learned" and
+		* the card stayed silent on a key that could never work.
+		*/
+		case "resend": return probe("https://api.resend.com/domains", { Authorization: `Bearer ${req.apiKey.trim()}` }, [400, ...REFUSED]);
+	}
+}
+//#endregion
+//#region src/electron/services/ManualCheckService.ts
+var SCALEWAY_ZONE = "fr-par-1";
+/**
+* Answers, for each box the wizard asks the reader to tick, whether the thing
+* it claims is true right now.
+*
+* The boxes exist because these steps leave nothing in the config — a bucket, a
+* DNS record, a Realtime publication all live at the provider — so the tick was
+* the only state there was, and it stayed ticked long after someone deleted the
+* bucket. Every provider here can be asked directly, so it is.
+*
+* Each answer is `undefined` until it is known. That distinction is the whole
+* safety of this: a provider that could not be reached, a credential that is
+* missing, a call that failed — none of them are grounds for unticking a box
+* the reader ticked, and only a clear "no" from the provider is.
+*/
+var ManualCheckService = class {
+	async read(req) {
+		const [buckets, instance, dnsRecords, site] = await Promise.all([
+			this.settle(() => this.readBuckets(req)),
+			this.settle(() => this.readInstance(req)),
+			this.settle(() => this.readDnsRecords(req)),
+			this.settle(() => this.readSiteSetup(req))
+		]);
+		return {
+			buckets,
+			instance,
+			dnsRecords,
+			siteGrants: site?.grants,
+			siteSettings: site?.settings
+		};
+	}
+	/** A probe that throws has learned nothing, which is not the same as "no". */
+	async settle(probe) {
+		try {
+			return await probe();
+		} catch {
+			return;
+		}
+	}
+	async readBuckets(req) {
+		if (!req.supabase?.accessToken || !req.supabase.ref) return void 0;
+		const client = new SupabaseApiClient({ accessToken: req.supabase.accessToken });
+		const existing = new Set((await client.listBuckets(req.supabase.ref)).map((b) => b.name));
+		return STORAGE_BUCKETS.every((bucket) => existing.has(bucket.name));
+	}
+	/**
+	* An instance answering at that address. The box says the IPv4 belongs to a
+	* server that was really launched, which is exactly what the listing settles
+	* — and what a value typed by hand never did.
+	*
+	* Only ever answers "yes". The listing covers one zone, the one this app
+	* creates instances in, so finding the address proves the claim while not
+	* finding it may only mean the reader's server lives somewhere else. Unticking
+	* on that would be taking a guess away from someone who knew better.
+	*/
+	async readInstance(req) {
+		if (!req.scaleway?.secretKey || !req.scaleway.ipv4) return void 0;
+		const zone = req.scaleway.zone || SCALEWAY_ZONE;
+		const response = await fetch(`https://api.scaleway.com/instance/v1/zones/${zone}/servers?per_page=100`, { headers: {
+			"X-Auth-Token": req.scaleway.secretKey.trim(),
+			Accept: "application/json"
+		} });
+		if (!response.ok) return void 0;
+		const { servers } = await response.json();
+		if (!servers) return void 0;
+		const wanted = req.scaleway.ipv4.trim();
+		return servers.some((server) => server.public_ip?.address === wanted || (server.public_ips ?? []).some((ip) => ip.address === wanted)) ? true : void 0;
+	}
+	/**
+	* Every record the table shows, present in the zone. Matched on name and
+	* type rather than value, for the same reason the Spaceship run's read-back
+	* is: a zone normalises what it stores, and a comparison that tripped over
+	* quoting would untick a box that is perfectly true.
+	*/
+	async readDnsRecords(req) {
+		const spaceship = req.spaceship;
+		if (!spaceship?.apiKey || !spaceship.apiSecret || !spaceship.domain) return void 0;
+		if (spaceship.records.length === 0) return void 0;
+		const existing = await new SpaceshipApiClient({
+			apiKey: spaceship.apiKey,
+			apiSecret: spaceship.apiSecret
+		}).listRecords(spaceship.domain);
+		const present = new Set(existing.map((item) => `${item.name.toLowerCase().replace(/\.$/, "")}|${item.type.toUpperCase()}`));
+		return spaceship.records.every((record) => present.has(`${record.host.toLowerCase()}|${record.type}`));
+	}
+	/**
+	* The two halves of "Configuration du site", read rather than applied: the
+	* grants the SQL block hands out, and the four settings the run flips.
+	*
+	* Both are answered from one client so the project is fetched once. An empty
+	* schema leaves them unanswered rather than false — a database the
+	* deployment has not migrated says nothing about work the reader did or did
+	* not do.
+	*/
+	async readSiteSetup(req) {
+		if (!req.supabase?.accessToken || !req.supabase.ref) return void 0;
+		const { accessToken, ref } = req.supabase;
+		const client = new SupabaseApiClient({ accessToken });
+		const [grantRow] = await client.runQuery(ref, GRANTS_CHECK_SQL);
+		if (!grantRow || grantRow.public_tables === 0) return void 0;
+		const [realtime] = await client.runQuery(ref, REALTIME_CHECK_SQL);
+		const pendingRls = await client.runQuery(ref, RLS_PENDING_SQL);
+		const postgrest = await client.getPostgrestConfig(ref);
+		const auth = await client.getAuthConfig(ref);
+		const exposed = (postgrest.db_schema ?? "").split(",").map((s) => s.trim()).includes(REQUIRED_EXPOSED_SCHEMA);
+		return {
+			grants: grantRow.schema_granted && grantRow.tables_granted,
+			settings: exposed && !!realtime?.already_published && !!auth.mailer_autoconfirm && pendingRls.length === 0
+		};
+	}
+};
+//#endregion
 //#region src/electron/ipc/provisionHandlers.ts
 /**
 * IPC surface for the "Configuration par API" automations.
@@ -1916,6 +2916,9 @@ var SupabaseSiteSetupService = class {
 function registerProvisionHandlers(getWin) {
 	const supabase = new SupabaseProvisionService();
 	const supabaseSite = new SupabaseSiteSetupService();
+	const spaceship = new SpaceshipProvisionService();
+	const resend = new ResendProvisionService();
+	const manualChecks = new ManualCheckService();
 	const requireWin = () => {
 		const win = getWin();
 		if (!win) throw new Error("No active window");
@@ -1966,9 +2969,81 @@ function registerProvisionHandlers(getWin) {
 			};
 		}
 	});
+	ipcMain.handle("provision:spaceship:start", (_event, req) => {
+		spaceship.start(requireWin(), req);
+	});
+	ipcMain.handle("provision:resend:start", (_event, req) => {
+		resend.start(requireWin(), req);
+	});
+	/**
+	* A read of the sending domain, for a step being opened. Read-only: it asks
+	* Resend nothing but what it already holds.
+	*/
+	ipcMain.handle("provision:resend:read-domain", async (_event, req) => {
+		try {
+			return {
+				success: true,
+				data: await resend.readDomain(req)
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: err instanceof Error ? err.message : String(err)
+			};
+		}
+	});
+	/**
+	* The standalone verification. Answers a promise rather than streaming over
+	* `provision:*`: it is a question about one domain, not a run, and the card
+	* that asked is waiting on the answer.
+	*/
+	ipcMain.handle("provision:resend:verify", async (_event, req) => {
+		try {
+			return {
+				success: true,
+				data: await resend.verifyOnly(req)
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: err instanceof Error ? err.message : String(err)
+			};
+		}
+	});
+	/**
+	* What the manual checkboxes claim, checked against the providers. Read-only
+	* throughout: it runs when a step is opened, and must never be the thing
+	* that changes a configuration.
+	*/
+	ipcMain.handle("provision:checks:read", async (_event, req) => {
+		try {
+			return {
+				success: true,
+				data: await manualChecks.read(req)
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: err instanceof Error ? err.message : String(err)
+			};
+		}
+	});
+	/**
+	* Answers for one key, on demand. Read-only and retry-free by design — it
+	* runs on every edit of the account page, not as part of a run.
+	*/
+	ipcMain.handle("credentials:check", async (_event, req) => {
+		try {
+			return await checkCredentials(req);
+		} catch {
+			return { state: "unknown" };
+		}
+	});
 	ipcMain.handle("provision:cancel", (_event, service) => {
 		if (service === "supabase") supabase.cancel();
 		if (service === "supabase-site") supabaseSite.cancel();
+		if (service === "spaceship") spaceship.cancel();
+		if (service === "resend") resend.cancel();
 	});
 }
 //#endregion

@@ -1,242 +1,154 @@
-import { useState, useRef } from 'react'
-import { Database, Mail, Globe, Server, Info, AlertTriangle, Cpu, MemoryStick, HardDrive, Monitor, FolderPlus } from 'lucide-react'
-import toast from 'react-hot-toast'
-import { WizardLayout } from '../components/layout/WizardLayout'
-import { ServiceConfigBlock } from '../components/ui/ServiceConfigBlock'
-import { FormField } from '../components/ui/FormField'
-import { CopyRow, CopyChip } from '../components/ui/CopyBlock'
-import { ExternalLinkBtn } from '../components/ui/ExternalLinkBtn'
-import { useApp } from '../context/AppContext'
-import { FieldHelpSections } from '../components/ui/HelpSection'
-import { IconRowList, type IconRowItem } from '../components/ui/IconRowList'
-import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
-import { HelpService } from '../components/ui/HelpService'
-import { useScalewayInstance } from '../hooks/useScalewayInstance'
-import { SshKeySelector, type SshKeySelectorHandle } from '../components/ui/SshKeySelector'
-import type { SshKeyInfo } from '../types/electron'
-import { useServiceProvision } from '../hooks/useServiceProvision'
-import { STORAGE_BUCKETS } from '../shared/supabaseBuckets'
-import { isAccountComplete } from '../utils/serviceCompletion'
-import type { Config } from '../context/AppContext'
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Database,
+  Mail,
+  Globe,
+  Server,
+  Info,
+  AlertTriangle,
+  Cpu,
+  MemoryStick,
+  HardDrive,
+  Monitor,
+  RefreshCw,
+} from "lucide-react";
+import toast from "react-hot-toast";
+import { WizardLayout } from "../components/layout/WizardLayout";
+import { ServiceConfigBlock } from "../components/ui/ServiceConfigBlock";
+import { FormField } from "../components/ui/FormField";
+import { CopyRow, CopyChip } from "../components/ui/CopyBlock";
+import { ExternalLinkBtn } from "../components/ui/ExternalLinkBtn";
+import { useApp } from "../context/AppContext";
+import { IconRowList, type IconRowItem } from "../components/ui/IconRowList";
+import { useScalewayInstance } from "../hooks/useScalewayInstance";
+import {
+  SshKeySelector,
+  type SshKeySelectorHandle,
+} from "../components/ui/SshKeySelector";
+import type { SshKeyInfo } from "../types/electron";
+import { useServiceProvision } from "../hooks/useServiceProvision";
+import { useSession, type RunKey } from "../context/SessionContext";
+import { ManualCheck } from "../components/ui/ManualCheck";
+import { ManualSection } from "../components/ui/ManualSection";
+import { DnsTable } from "../components/ui/DnsTable";
+import { STORAGE_BUCKETS } from "../shared/supabaseBuckets";
+import { buildInfraDnsRecords, type DnsRecord } from "../shared/dnsRecords";
+import {
+  BUCKETS_URL,
+  RESEND_DOMAINS_URL,
+  SPACESHIP_LAUNCHPAD_URL,
+  SPACESHIP_DNS_HELP_URL,
+} from "../shared/apiConfigLinks";
+import { isAccountComplete } from "../utils/serviceCompletion";
+import type { Config } from "../context/AppContext";
+import { ApiConfigurationHelpContent } from "../PagesHelpContent/ApiConfigurationHelpContent";
 
-type Status = 'idle' | 'running' | 'done' | 'error'
-
-const BUCKETS_URL = 'https://supabase.com/dashboard/project/_/storage/buckets'
-
-function HelpContent() {
-  const { state, config } = useApp()
-  const isEn = state.language === 'en'
-  const domain = config.DOMAIN || 'votredomaine.fr'
-
-  const supabase: HelpFlowStep[] = [
-    {
-      key: 'buckets',
-      title: isEn ? 'Create the storage buckets' : 'Créer les buckets de stockage',
-      desc: isEn
-        ? <><code>Storage</code> (left sidebar) ➔ <code>New bucket</code>. The app reads and writes <strong>five separate buckets</strong> — create them all, exactly with these names.</>
-        : <><code>Storage</code> (barre latérale gauche) ➔ <code>New bucket</code>. L'application lit et écrit dans <strong>cinq buckets distincts</strong> — créez-les tous, avec exactement ces noms.</>,
-      url: BUCKETS_URL,
-      copyValues: STORAGE_BUCKETS.map(b => ({
-        value: b.name,
-        note: b.isPublic
-          ? <>{isEn ? 'tick ' : 'cochez '}<strong>Public bucket</strong> — {isEn ? b.en : b.fr}</>
-          : <>{isEn ? 'private — ' : 'privé — '}{isEn ? b.en : b.fr}</>,
-      })),
-    },
-    {
-      key: 'connect',
-      title: 'Connect to your project',
-      desc: isEn
-        ? <>The <strong>Connect</strong> button at the top of the project header opens the <em>Connect to your project</em> panel — the fastest way to collect the connection values. <code>App Frameworks</code> shows the Project URL and the publishable/anon key; <code>ORMs</code> shows the two Postgres URLs.</>
-        : <>Le bouton <strong>Connect</strong>, en haut de l'en-tête du projet, ouvre le panneau <em>Connect to your project</em> — c'est le chemin le plus court pour récupérer les valeurs de connexion. L'onglet <code>App Frameworks</code> affiche la Project URL et la clé publishable/anon ; l'onglet <code>ORMs</code> affiche les deux URLs Postgres.</>,
-      url: 'https://supabase.com/dashboard/project/_?showConnect=true',
-      linkLabel: isEn ? 'Open Connect' : 'Ouvrir Connect',
-      extra: (
-        <p className="help-note">
-          {isEn
-            ? 'In the ORMs tab: Transaction mode (port 6543) is DATABASE_URL, Session mode (port 5432) is DIRECT_URL. Both come with a [YOUR-PASSWORD] placeholder to replace with the database password you chose in step 1.'
-            : "Dans l'onglet ORMs : Transaction mode (port 6543) correspond à DATABASE_URL, Session mode (port 5432) à DIRECT_URL. Les deux contiennent un [YOUR-PASSWORD] à remplacer par le mot de passe de base de données choisi à l'étape 1."}
-        </p>
-      ),
-    },
-    {
-      key: 'keys',
-      title: isEn ? 'Copy the API keys' : 'Copier les clés API',
-      desc: isEn
-        ? <><code>Project Settings</code> ➔ <code>API Keys</code>. The deployment expects the JWT-format legacy keys: open the <code>Legacy API keys</code> tab and copy <code>anon public</code> and <code>service_role</code>.</>
-        : <><code>Project Settings</code> ➔ <code>API Keys</code>. Le déploiement attend les clés legacy au format JWT : ouvrez l'onglet <code>Legacy API keys</code> et copiez <code>anon public</code> et <code>service_role</code>.</>,
-      url: 'https://supabase.com/dashboard/project/_/settings/api-keys',
-      extra: (
-        <p className="help-note">
-          {isEn
-            ? 'The service_role key bypasses RLS — it stays on the server, never in the browser and never in a commit.'
-            : "La clé service_role contourne les règles RLS : elle reste côté serveur, jamais dans le navigateur ni dans un commit."}
-        </p>
-      ),
-    },
-  ]
-
-  const scaleway: HelpFlowStep[] = [
-    {
-      key: 'create',
-      title: 'Create an Instance',
-      desc: isEn
-        ? <><code>Console</code> ➔ <code>Compute</code> ➔ <code>Instances</code> ➔ <code>Create Instance</code>, in the Project whose ID you filled in at step 1.</>
-        : <><code>Console</code> ➔ <code>Compute</code> ➔ <code>Instances</code> ➔ <code>Create Instance</code>, dans le Projet dont vous avez renseigné l'ID à l'étape 1.</>,
-      url: 'https://console.scaleway.com/instance/servers',
-    },
-    {
-      key: 'settings',
-      title: isEn ? 'Set the mandatory options' : 'Renseigner les options obligatoires',
-      desc: isEn
-        ? 'The whole stack (backend, front, config app, bot, Postgres tooling, Grafana, Prometheus) runs on this single machine.'
-        : "Toute la stack (backend, front, app de config, bot, outils Postgres, Grafana, Prometheus) tourne sur cette seule machine.",
-      extra: (
-        <ul className="help-note">
-          <li><strong>Image :</strong> Ubuntu 24.04 LTS</li>
-          <li><strong>{isEn ? 'Specs' : 'Ressources'} :</strong> {isEn ? 'at least' : 'au minimum'} 4 vCPU / 16 {isEn ? 'GB' : 'Go'} RAM</li>
-          <li><strong>{isEn ? 'Storage' : 'Stockage'} :</strong> block storage 10 {isEn ? 'GB' : 'Go'}+</li>
-          <li><strong>{isEn ? 'Network' : 'Réseau'} :</strong> {isEn ? 'enable a public IPv4' : 'activer une IPv4 publique'}</li>
-          <li><strong>{isEn ? 'Security' : 'Sécurité'} :</strong> {isEn ? 'add your SSH public key' : 'ajouter votre clé publique SSH'}</li>
-        </ul>
-      ),
-      copyValues: [{ value: 'cat ~/.ssh/id_ed25519.pub', note: isEn ? 'prints your public key' : 'affiche votre clé publique' }],
-    },
-    {
-      key: 'ipv4',
-      title: isEn ? 'Copy the public IPv4' : "Copier l'IPv4 publique",
-      desc: isEn
-        ? <><code>Instances</code> ➔ your instance ➔ <code>Overview</code>. Every DNS A record points at it, and the deployment SSHes into it.</>
-        : <><code>Instances</code> ➔ votre instance ➔ <code>Overview</code>. Tous les enregistrements DNS A pointent dessus, et c'est là que le déploiement se connecte en SSH.</>,
-      url: 'https://console.scaleway.com/instance/servers',
-    },
-  ]
-
-  const spaceship: HelpFlowStep[] = [
-    {
-      key: 'launchpad',
-      title: 'Launchpad',
-      desc: isEn
-        ? <>Everything in Spaceship is reached through the <strong>Launchpad</strong>, its app launcher: the <code>Launchpad</code> button in the top navigation bar, or the <code>/</code> or <code>⌘ K</code> shortcut. Type <code>Domain Portfolio</code> to open the list of your domains.</>
-        : <>Tout, chez Spaceship, passe par le <strong>Launchpad</strong>, son lanceur d'applications : bouton <code>Launchpad</code> dans la barre de navigation, ou raccourci <code>/</code> ou <code>⌘ K</code>. Tapez <code>Domain Portfolio</code> pour ouvrir la liste de vos domaines.</>,
-      url: 'https://www.spaceship.com/application/launchpad/',
-      linkLabel: 'Launchpad',
-    },
-    {
-      key: 'dns',
-      title: 'Advanced DNS',
-      desc: isEn
-        ? <><code>Domain Portfolio</code> ➔ click <code>{domain}</code> ➔ <code>Manage</code> ➔ <code>Advanced DNS</code>. This is where the records below are added.</>
-        : <><code>Domain Portfolio</code> ➔ cliquez sur <code>{domain}</code> ➔ <code>Manage</code> ➔ <code>Advanced DNS</code>. C'est ici que s'ajoutent les enregistrements ci-dessous.</>,
-      url: 'https://www.spaceship.com/application/domain-portfolio/',
-      linkLabel: 'Domain Portfolio',
-    },
-    {
-      key: 'records',
-      title: isEn ? 'Add the DNS records' : 'Ajouter les enregistrements DNS',
-      desc: isEn
-        ? <>Two A records pointing at the Scaleway IPv4 — the site and the admin panel — plus the MX and TXT records Resend hands you below.</>
-        : <>Deux enregistrements A vers l'IPv4 Scaleway — le site et le panneau admin — plus les enregistrements MX et TXT fournis par Resend ci-dessous.</>,
-      copyValues: [
-        { value: domain, note: isEn ? 'A record — the site' : 'Enregistrement A — le site' },
-        { value: `config.${domain}`, note: isEn ? 'A record — the admin panel' : "Enregistrement A — le panneau d'administration" },
-      ],
-      extra: (
-        <p className="help-note">
-          {isEn
-            ? 'Propagation can take a few minutes; HTTPS certificates are only issued once the A records resolve.'
-            : "La propagation peut prendre quelques minutes ; les certificats HTTPS ne sont émis qu'une fois les enregistrements A résolus."}
-        </p>
-      ),
-    },
-  ]
-
-  const resend: HelpFlowStep[] = [
-    {
-      key: 'add',
-      title: isEn ? 'Add the sending domain' : "Ajouter le domaine d'envoi",
-      desc: isEn
-        ? <><code>Domains</code> (left menu) ➔ <code>Add Domain</code>. Use a dedicated subdomain, and pick the region closest to your participants.</>
-        : <><code>Domains</code> (menu gauche) ➔ <code>Add Domain</code>. Utilisez un sous-domaine dédié, et choisissez la région la plus proche de vos participants.</>,
-      url: 'https://resend.com/domains',
-      copyValues: [{ value: `mail.${domain}`, note: isEn ? 'sending subdomain' : "sous-domaine d'envoi" }],
-    },
-    {
-      key: 'records',
-      title: isEn ? 'Copy the records into Spaceship' : 'Copier les enregistrements dans Spaceship',
-      desc: isEn
-        ? <>Resend then displays a MX record and TXT records (DKIM, SPF). Copy them character for character into <code>Advanced DNS</code> on Spaceship.</>
-        : <>Resend affiche alors un enregistrement MX et des enregistrements TXT (DKIM, SPF). Recopiez-les à l'identique dans <code>Advanced DNS</code> chez Spaceship.</>,
-    },
-    {
-      key: 'verify',
-      title: isEn ? 'Verify the domain' : 'Vérifier le domaine',
-      desc: isEn
-        ? <>Back on Resend, click <code>Verify DNS Records</code> and wait for the domain to turn <strong>Verified</strong>. Until then, every send fails.</>
-        : <>De retour sur Resend, cliquez sur <code>Verify DNS Records</code> et attendez que le domaine passe en <strong>Verified</strong>. Tant que ce n'est pas le cas, les envois échouent.</>,
-      url: 'https://resend.com/domains',
-    },
-  ]
-
-  return (
-    <>
-      <HelpService id="svc-supabase" icon={<Database size={15} />} title="Supabase">
-        <HelpFlow steps={supabase} />
-        <FieldHelpSections step={1} group="SUPABASE" />
-      </HelpService>
-
-      <HelpService id="svc-scaleway" icon={<Server size={15} />} title="Scaleway">
-        <HelpFlow steps={scaleway} />
-        <FieldHelpSections step={1} group="SCALEWAY" />
-      </HelpService>
-
-      <HelpService id="svc-spaceship" icon={<Globe size={15} />} title="Spaceship">
-        <HelpFlow steps={spaceship} />
-      </HelpService>
-
-      <HelpService id="svc-resend" icon={<Mail size={15} />} title="Resend">
-        <HelpFlow steps={resend} />
-        <FieldHelpSections step={1} group="RESEND" />
-      </HelpService>
-    </>
-  )
-}
+type Status = "idle" | "running" | "done" | "error";
 
 export function ApiConfiguration() {
-  const { t, config, setField, setFields, saveConfig, state } = useApp()
-  const isEn = state.language === 'en'
+  const { t, config, setField, setFields, saveConfig, state } = useApp();
+  const {
+    isRunDone,
+    markRunDone,
+    clearRun,
+    isManualChecked,
+    confirmManual,
+    setManualCheck,
+    isCredentialRefused,
+  } = useSession();
+  const isEn = state.language === "en";
+  const resendKeyRefused = isCredentialRefused("resend");
 
   // The automation pre-fills the very same fields the manual fallback edits, so
   // a partial or wrong result can always be corrected by hand afterwards.
   const applyPatch = (patch: Record<string, string>) => {
-    const typed = patch as Partial<Config>
-    setFields(typed)
+    const typed = patch as Partial<Config>;
+    setFields(typed);
     // Values obtained from a provider are worth persisting immediately: they
     // may not be retrievable a second time (a secret key is revealed once).
     // The patch is passed explicitly — `saveConfig` alone would write the
     // pre-dispatch config and drop everything that was just retrieved.
-    void saveConfig(typed)
-  }
+    void saveConfig(typed);
+  };
 
-  const supabase = useServiceProvision('supabase', applyPatch)
+  const supabase = useServiceProvision("supabase", applyPatch);
+  const spaceship = useServiceProvision("spaceship", applyPatch);
+  const resend = useServiceProvision("resend", applyPatch);
 
-  const domain = config.DOMAIN || '<DOMAIN>'
-  const ipv4 = config.IPV4_INSTANCE || '<IPV4_INSTANCE>'
-  const mailSubdomain = `mail.${domain}`
+  const domain = config.DOMAIN || "<DOMAIN>";
+  const ipv4 = config.IPV4_INSTANCE || "<IPV4_INSTANCE>";
+  const mailSubdomain = config.MAIL_SUBDOMAIN || `mail.${domain}`;
 
-  const dnsRecords = [
-    { type: 'TXT', host: `_dmarc.mail.${domain}`, answer: 'v=DMARC1;p=none;', ttl: 'Auto' },
-    { type: 'A', host: domain, answer: ipv4, ttl: 'Auto' },
-    { type: 'A', host: `config.${domain}`, answer: ipv4, ttl: 'Auto' },
-  ]
+  // The very records the Spaceship run publishes — one list, so what is read
+  // here and what is written there can never drift apart.
+  const dnsRecords = buildInfraDnsRecords(domain, ipv4, mailSubdomain);
 
+  /**
+   * What Resend asked for, as its run brought them back. Nothing can know them
+   * in advance: the DKIM key is minted with the domain. Until the run has been,
+   * the card shows the subdomain alone.
+   */
+  const resendRecords = useMemo<DnsRecord[]>(() => {
+    /**
+     * A refused key makes what is on file unusable rather than merely old: the
+     * DKIM value was minted for a domain on an account this key can no longer
+     * reach, and nothing here can tell whether that domain still exists. The
+     * records are dropped rather than shown — the card then says where to read
+     * the real ones — and they come back of their own accord if the key does.
+     */
+    if (resendKeyRefused) return [];
+    if (!config.RESEND_DNS_RECORDS) return [];
+    try {
+      return JSON.parse(config.RESEND_DNS_RECORDS) as DnsRecord[];
+    } catch {
+      return [];
+    }
+  }, [config.RESEND_DNS_RECORDS, resendKeyRefused]);
+
+  /**
+   * One table, at the registrar. The deployment's own records and the ones
+   * Resend asks for are pasted into the same form in the same sitting, so they
+   * are read from one list — splitting them put half the DNS work inside a
+   * card about a mail service. Resend's half is absent until its run has been:
+   * nothing can know a DKIM key before the domain that mints it exists.
+   */
+  const allDnsRecords = [...dnsRecords, ...resendRecords];
+
+  const dnsLabels = {
+    type: t("step4.dns.type"),
+    host: t("step4.dns.host"),
+    answer: t("step4.dns.answer"),
+    ttl: t("step4.dns.ttl"),
+    copy: t("btn.copy"),
+    copyRow: isEn ? "Copy the whole row" : "Copier la ligne entière",
+  };
 
   const specs: IconRowItem[] = [
-    { key: 'cpu', icon: <Cpu size={15} />, label: 'CPU', text: t('step1.spec.cpu') },
-    { key: 'ram', icon: <MemoryStick size={15} />, label: 'RAM', text: t('step1.spec.ram') },
-    { key: 'os', icon: <Monitor size={15} />, label: 'OS', text: t('step1.spec.os') },
-    { key: 'storage', icon: <HardDrive size={15} />, label: 'Stockage', text: t('step1.spec.storage') },
-  ]
+    {
+      key: "cpu",
+      icon: <Cpu size={15} />,
+      label: "CPU",
+      text: t("step1.spec.cpu"),
+    },
+    {
+      key: "ram",
+      icon: <MemoryStick size={15} />,
+      label: "RAM",
+      text: t("step1.spec.ram"),
+    },
+    {
+      key: "os",
+      icon: <Monitor size={15} />,
+      label: "OS",
+      text: t("step1.spec.os"),
+    },
+    {
+      key: "storage",
+      icon: <HardDrive size={15} />,
+      label: "Stockage",
+      text: t("step1.spec.storage"),
+    },
+  ];
 
   // Completion checks — a block turns green once its values are all filled in,
   // whether they came from the automation or from the manual fallback fields.
@@ -246,22 +158,40 @@ export function ApiConfiguration() {
     config.SUPABASE_SERVICE_ROLE_KEY &&
     config.DATABASE_URL &&
     config.DIRECT_URL
-  )
-  const isScalewayComplete = !!config.IPV4_INSTANCE
-  const isResendComplete = !!(config.FROM_EMAIL && config.ALLOWED_EMAILS)
+  );
+  const isScalewayComplete = !!config.IPV4_INSTANCE;
+  const isResendComplete = !!(config.FROM_EMAIL && config.ALLOWED_EMAILS);
+  const usesOtherDomainProvider = config.USE_OTHER_DOMAIN_PROVIDER === "true";
+
+  /**
+   * What the checkboxes carry, per block. These steps leave nothing in the
+   * config — a bucket, a DNS record and a verified sending domain all live at
+   * the provider — so the tick is the whole state, and it colours the block the
+   * way a successful run does.
+   */
+  const supabaseManualDone =
+    isManualChecked("supabase-buckets") && isSupabaseComplete;
+  /**
+   * An IPv4 typed by hand names no instance the app has ever seen — only a run
+   * that produced one, or the reader's own word for it, does. Without this the
+   * block reads as done the moment any address sits in the field, and the
+   * Spaceship and Resend steps downstream would point DNS at it without
+   * anyone having confirmed a server actually answers there.
+   */
+  const scalewayManualDone =
+    isManualChecked("scaleway-instance") && isScalewayComplete;
+  const spaceshipManualDone = isManualChecked("spaceship-dns");
+  const resendManualDone =
+    isManualChecked("resend-subdomain") && isResendComplete;
 
   // Supabase copies its Postgres URLs out with `[YOUR-PASSWORD]` still in them;
   // both fields offer to substitute the database password on the spot.
   const pwFill = {
-    token: '[YOUR-PASSWORD]',
-    label: t('apiConfig.supabase.pwFill.label'),
-    inputPlaceholder: t('apiConfig.supabase.pwFill.placeholder'),
-    btnLabel: t('apiConfig.supabase.pwFill.btn'),
-  }
-
-  // Not yet automated — these three still run on the manual fallback.
-  const [spaceshipStatus] = useState<Status>('idle')
-  const [resendStatus] = useState<Status>('idle')
+    token: "[YOUR-PASSWORD]",
+    label: t("apiConfig.supabase.pwFill.label"),
+    inputPlaceholder: t("apiConfig.supabase.pwFill.placeholder"),
+    btnLabel: t("apiConfig.supabase.pwFill.btn"),
+  };
 
   const {
     status: scalewayStatus,
@@ -269,58 +199,280 @@ export function ApiConfiguration() {
     progress: scwProgress,
     start: startScaleway,
     cancel: cancelScaleway,
-  } = useScalewayInstance()
+  } = useScalewayInstance();
 
-  const { selectedSshKey } = useApp()
-  const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
+  const { selectedSshKey } = useApp();
+  const sshSelectorRef = useRef<SshKeySelectorHandle>(null);
+  const [verifyingResend, setVerifyingResend] = useState(false);
+  const [syncingResend, setSyncingResend] = useState(false);
 
   const statusLabels = {
-    done: t('apiConfig.status.done'),
-    running: t('apiConfig.status.running'),
-    error: t('apiConfig.status.error'),
-  }
+    done: t("apiConfig.status.done"),
+    running: t("apiConfig.status.running"),
+    error: t("apiConfig.status.error"),
+  };
 
-  const handleStartScaleway = async (keyToUse: SshKeyInfo | null = selectedSshKey) => {
+  /**
+   * How a block reads, from what was run and what is still there.
+   *
+   * A run that succeeded earlier in this session keeps its block green after
+   * the page is remounted — leaving step 2 and coming back resets the hooks,
+   * not what happened.
+   *
+   * But "it ran" is not the same claim as "it holds": a value cleared or a box
+   * unticked in the manual configuration afterwards undoes what the run
+   * established, and a block left green on the strength of history alone would
+   * be reporting a state nobody could point at any more. So `holds` has the
+   * last word over `done` — and only over `done`: a run in flight still says
+   * so, and a failure keeps its message.
+   */
+  const blockStatus = (live: Status, key: RunKey, holds: boolean): Status => {
+    if (!holds) return live === "done" ? "idle" : live;
+    return live === "idle" && isRunDone(key) ? "done" : live;
+  };
+
+  const supabaseStatus = blockStatus(
+    supabase.status,
+    "api-supabase",
+    supabaseManualDone,
+  );
+  const scwStatus = blockStatus(
+    scalewayStatus,
+    "api-scaleway",
+    scalewayManualDone,
+  );
+  const spaceshipStatus = blockStatus(
+    spaceship.status,
+    "api-spaceship",
+    spaceshipManualDone,
+  );
+  /**
+   * Resend is not held to its checkbox: that one says the subdomain is
+   * *verified*, which a run that handed the propagation back cannot claim yet.
+   * What it is held to is the values it needs to send anything at all.
+   */
+  const resendStatus = blockStatus(
+    resend.status,
+    "api-resend",
+    isResendComplete,
+  );
+
+  useEffect(() => {
+    if (supabase.status !== "done") return;
+    markRunDone("api-supabase");
+    // The run created and verified the five buckets: the box states a fact that
+    // is now true, so it is ticked rather than left for the reader to repeat.
+    confirmManual("supabase-buckets");
+  }, [supabase.status]);
+
+  useEffect(() => {
+    if (scalewayStatus !== "done") return;
+    markRunDone("api-scaleway");
+    // The run created the instance and read its IP back from Scaleway itself:
+    // what the box asks the reader to confirm is already established.
+    confirmManual("scaleway-instance");
+  }, [scalewayStatus]);
+
+  useEffect(() => {
+    if (spaceship.status !== "done") return;
+    markRunDone("api-spaceship");
+    // The run published those exact records and read the zone back to prove it.
+    confirmManual("spaceship-dns");
+  }, [spaceship.status]);
+
+  /**
+   * The Resend box says the subdomain is added *and verified*, so it is only
+   * ticked once Resend has said so itself. A run that published the records
+   * and ran out of patience waiting for DNS to propagate has still done its
+   * job — it just cannot claim that one.
+   */
+  useEffect(() => {
+    if (resend.status !== "done") return;
+    markRunDone("api-resend");
+    if (config.RESEND_DOMAIN_VERIFIED_AT) confirmManual("resend-subdomain");
+  }, [resend.status, config.RESEND_DOMAIN_VERIFIED_AT]);
+
+  /**
+   * What Resend holds, reconciled against what is on file, whenever the step
+   * is opened or its key or subdomain changes.
+   *
+   * The records were written by a run that has long since finished, and
+   * nothing about a domain deleted from the dashboard afterwards reaches this
+   * app on its own: without this, the table went on offering a DKIM line for a
+   * domain that no longer exists. Only an answer from Resend clears anything —
+   * a failed call says the account could not be reached, not that it is empty.
+   */
+  /**
+   * `visible` is for the syncs the reader asked for — the refresh button, and
+   * opening the panel — which say they are working. The one that runs on
+   * arrival stays quiet: nobody asked, and announcing it would be one more
+   * thing flickering on a page that has just loaded.
+   */
+  const syncResendDomain = async (visible = false) => {
+    // A key the provider refuses can answer nothing about the domain, and the
+    // records are already being disregarded on that account.
+    if (!config.RESEND_API_KEY || !config.DOMAIN || resendKeyRefused) return;
+
+    if (visible) setSyncingResend(true);
+    try {
+      const res = await resend.readResendDomain({
+        apiKey: config.RESEND_API_KEY,
+        domain: config.DOMAIN,
+        mailSubdomain,
+      });
+      if (!res.success || !res.data) return;
+      const snapshot = res.data;
+
+      if (!snapshot.exists) {
+        // Nothing on file describes anything any more, and the tick claiming
+        // a verified subdomain is the least true part of it.
+        if (
+          !config.RESEND_DOMAIN_ID &&
+          !config.RESEND_DNS_RECORDS &&
+          !config.RESEND_DOMAIN_VERIFIED_AT &&
+          !config.RESEND_VERIFICATION_PENDING_SINCE
+        )
+          return;
+        applyPatch({
+          RESEND_DOMAIN_ID: "",
+          RESEND_DNS_RECORDS: "",
+          RESEND_DOMAIN_VERIFIED_AT: "",
+          RESEND_VERIFICATION_PENDING_SINCE: "",
+        });
+        clearRun("api-resend");
+        setManualCheck("resend-subdomain", false);
+        return;
+      }
+
+      // It exists: what it asks for now replaces what it asked for then.
+      const records = JSON.stringify(snapshot.records ?? []);
+      const patch: Record<string, string> = {};
+      if (snapshot.domainId && snapshot.domainId !== config.RESEND_DOMAIN_ID)
+        patch.RESEND_DOMAIN_ID = snapshot.domainId;
+      if (records !== config.RESEND_DNS_RECORDS)
+        patch.RESEND_DNS_RECORDS = records;
+
+      const verified = snapshot.status === "verified";
+      if (verified) {
+        if (!config.RESEND_DOMAIN_VERIFIED_AT)
+          patch.RESEND_DOMAIN_VERIFIED_AT = new Date().toISOString();
+        // The wait is over, however it ended.
+        if (config.RESEND_VERIFICATION_PENDING_SINCE)
+          patch.RESEND_VERIFICATION_PENDING_SINCE = "";
+        confirmManual("resend-subdomain");
+      } else if (config.RESEND_DOMAIN_VERIFIED_AT) {
+        patch.RESEND_DOMAIN_VERIFIED_AT = "";
+        setManualCheck("resend-subdomain", false);
+      }
+
+      if (Object.keys(patch).length > 0) applyPatch(patch);
+    } finally {
+      if (visible) setSyncingResend(false);
+    }
+  };
+
+  /**
+   * The boxes, put to the providers that would know.
+   *
+   * They exist because these steps leave nothing behind here — a bucket, a
+   * server, a DNS record all live at the provider — which also meant a tick
+   * survived the thing it vouched for being deleted. Each answer stands on its
+   * own: an unanswered one leaves the box exactly as the reader left it.
+   */
+  const syncManualChecks = async () => {
+    const res = await resend.readManualChecks({
+      ...(config.SUPABASE_ACCESS_TOKEN && config.SUPABASE_PROJECT_REF
+        ? {
+            supabase: {
+              accessToken: config.SUPABASE_ACCESS_TOKEN,
+              ref: config.SUPABASE_PROJECT_REF,
+            },
+          }
+        : {}),
+      ...(config.SCW_SECRET_KEY && config.IPV4_INSTANCE
+        ? { scaleway: { secretKey: config.SCW_SECRET_KEY, ipv4: config.IPV4_INSTANCE } }
+        : {}),
+      ...(!usesOtherDomainProvider &&
+      config.SPACESHIP_API_KEY &&
+      config.SPACESHIP_API_SECRET &&
+      config.DOMAIN
+        ? {
+            spaceship: {
+              apiKey: config.SPACESHIP_API_KEY,
+              apiSecret: config.SPACESHIP_API_SECRET,
+              domain: config.DOMAIN,
+              records: allDnsRecords,
+            },
+          }
+        : {}),
+    });
+
+    if (!res.success || !res.data) return;
+    const { buckets, instance, dnsRecords } = res.data;
+    if (buckets !== undefined) setManualCheck("supabase-buckets", buckets);
+    if (instance !== undefined) setManualCheck("scaleway-instance", instance);
+    if (dnsRecords !== undefined) setManualCheck("spaceship-dns", dnsRecords);
+  };
+
+  useEffect(() => {
+    void syncResendDomain();
+  }, [config.RESEND_API_KEY, config.DOMAIN, mailSubdomain, resendKeyRefused]);
+
+  useEffect(() => {
+    void syncManualChecks();
+  }, [
+    config.SUPABASE_PROJECT_REF,
+    config.IPV4_INSTANCE,
+    config.DOMAIN,
+    config.RESEND_DNS_RECORDS,
+  ]);
+
+  const handleStartScaleway = async (
+    keyToUse: SshKeyInfo | null = selectedSshKey,
+  ) => {
     if (!config.SCW_SECRET_KEY || !config.SCW_DEFAULT_PROJECT_ID) {
       toast.error(
         isEn
-          ? 'Please provide your Scaleway Secret Key and Project ID in step 1.'
-          : "Veuillez renseigner votre clé secrète Scaleway et votre Project ID à l'étape 1."
-      )
-      return
+          ? "Please provide your Scaleway Secret Key and Project ID in step 1."
+          : "Veuillez renseigner votre clé secrète Scaleway et votre Project ID à l'étape 1.",
+      );
+      return;
     }
 
     if (!keyToUse) {
-      sshSelectorRef.current?.openModal()
+      sshSelectorRef.current?.openModal();
       toast(
         isEn
-          ? 'Please select an SSH key, then click Launch.'
-          : 'Veuillez choisir une clé SSH, puis cliquez sur Lancer.'
-      )
-      return
+          ? "Please select an SSH key, then click Launch."
+          : "Veuillez choisir une clé SSH, puis cliquez sur Lancer.",
+      );
+      return;
     }
 
     const res = await startScaleway({
       secretKey: config.SCW_SECRET_KEY,
       projectId: config.SCW_DEFAULT_PROJECT_ID,
       sshPublicKey: keyToUse.publicKey,
-      sshKeyName: keyToUse.name || 'intriqathon-key',
-    })
+      sshKeyName: keyToUse.name || "intriqathon-key",
+    });
 
     if (res.success && res.ipv4) {
-      setField('IPV4_INSTANCE', res.ipv4)
+      setField("IPV4_INSTANCE", res.ipv4);
       toast.success(
         isEn
           ? `Scaleway instance ready! IP: ${res.ipv4}`
-          : `Instance Scaleway prête ! IP : ${res.ipv4}`
-      )
+          : `Instance Scaleway prête ! IP : ${res.ipv4}`,
+      );
       if (window.electronAPI?.vaultSave) {
-        await window.electronAPI.vaultSave({ ...config, IPV4_INSTANCE: res.ipv4 })
+        await window.electronAPI.vaultSave({
+          ...config,
+          IPV4_INSTANCE: res.ipv4,
+        });
       }
     } else if (res.error) {
-      toast.error(res.error, { duration: 6000 })
+      toast.error(res.error, { duration: 6000 });
     }
-  }
+  };
 
   /**
    * What each automation needs before it can run.
@@ -332,75 +484,173 @@ export function ApiConfiguration() {
    * fields below it: when the chain is stuck, filling them in by hand is the
    * way forward.
    */
-  const supabaseLock = !config.SUPABASE_ACCESS_TOKEN
-    ? t('apiConfig.locked.supabaseToken')
-    : !config.SUPABASE_DB_PASSWORD
-      ? t('apiConfig.locked.supabasePassword')
-      : !isAccountComplete(config, 'supabase')
-        ? t('apiConfig.locked.accountSupabase')
-        : null
+  /**
+   * A key its own provider has refused locks the run as firmly as a missing
+   * one: the automation would open with the same refusal, several seconds and
+   * one red card later. Checked after the fields, so the reader is told what
+   * is missing before being told what is wrong.
+   */
+  const refused = t("apiConfig.locked.credentialRefused");
 
-  const scalewayLock = !config.SCW_SECRET_KEY || !config.SCW_DEFAULT_PROJECT_ID
-    ? t('apiConfig.locked.scalewayKeys')
-    : !isAccountComplete(config, 'scaleway')
-      ? t('apiConfig.locked.accountScaleway')
-      : null
+  const supabaseLock = !config.SUPABASE_ACCESS_TOKEN
+    ? t("apiConfig.locked.supabaseToken")
+    : !config.SUPABASE_DB_PASSWORD
+      ? t("apiConfig.locked.supabasePassword")
+      : !isAccountComplete(config, "supabase")
+        ? t("apiConfig.locked.accountSupabase")
+        : isCredentialRefused("supabase")
+          ? refused
+          : null;
+
+  const scalewayLock =
+    !config.SCW_SECRET_KEY || !config.SCW_DEFAULT_PROJECT_ID
+      ? t("apiConfig.locked.scalewayKeys")
+      : !isAccountComplete(config, "scaleway")
+        ? t("apiConfig.locked.accountScaleway")
+        : isCredentialRefused("scaleway")
+          ? refused
+          : null;
 
   const spaceshipLock = !config.DOMAIN
-    ? t('apiConfig.locked.needsDomain')
-    : !isAccountComplete(config, 'spaceship')
-      ? t('apiConfig.locked.accountSpaceship')
-      : !config.IPV4_INSTANCE
-        ? t('apiConfig.locked.needsIpv4')
-        : null
+    ? t("apiConfig.locked.needsDomain")
+    : !isAccountComplete(config, "spaceship")
+      ? t("apiConfig.locked.accountSpaceship")
+      : isCredentialRefused("spaceship")
+        ? refused
+        : !config.IPV4_INSTANCE
+          ? t("apiConfig.locked.needsIpv4")
+          : null;
 
-  const resendLock = !isAccountComplete(config, 'resend')
-    ? t('apiConfig.locked.accountResend')
-    : !config.DOMAIN
-      ? t('apiConfig.locked.needsDomain')
-      : !config.IPV4_INSTANCE
-        ? t('apiConfig.locked.needsDns')
-        : null
+  const resendLock = !isAccountComplete(config, "resend")
+    ? t("apiConfig.locked.accountResend")
+    : resendKeyRefused
+      ? refused
+      : !config.DOMAIN
+        ? t("apiConfig.locked.needsDomain")
+        : !config.IPV4_INSTANCE
+          ? t("apiConfig.locked.needsDns")
+          : null;
 
   const handleStartSupabase = () => {
-    if (supabaseLock) return
+    if (supabaseLock) return;
     void supabase.startSupabase({
       accessToken: config.SUPABASE_ACCESS_TOKEN,
       dbPassword: config.SUPABASE_DB_PASSWORD,
-      mode: config.SUPABASE_PROJECT_MODE === 'create' ? 'create' : 'existing',
+      mode: config.SUPABASE_PROJECT_MODE === "create" ? "create" : "existing",
       // Present once a project has been resolved — reusing it is what stops a
       // second click from creating a second project.
       ref: config.SUPABASE_PROJECT_REF || undefined,
       projectName: config.SUPABASE_PROJECT_NAME,
       organizationSlug: config.SUPABASE_ORG_SLUG,
       regionCode: config.SUPABASE_REGION,
-    })
-  }
+    });
+  };
 
-  const handleStart = (service: string) => {
-    console.log(`Starting ${service} config...`)
-  }
+  const handleStartSpaceship = () => {
+    if (spaceshipLock) return;
+    void spaceship.startSpaceship({
+      apiKey: config.SPACESHIP_API_KEY,
+      apiSecret: config.SPACESHIP_API_SECRET,
+      domain: config.DOMAIN,
+      // Straight from the Scaleway step: this is the address the apex and the
+      // admin panel are about to point at.
+      ipv4: config.IPV4_INSTANCE,
+      mailSubdomain,
+      // Published by the Resend run, checked over by this one: the zone is
+      // open anyway, and a DKIM line gone missing is otherwise only noticed
+      // when mail stops arriving.
+      resendRecords,
+    });
+  };
 
-  const handleCancel = (service: string) => {
-    console.log(`Cancelling ${service} config...`)
-  }
+  /**
+   * The check on its own, once the records are finally in place at the
+   * registrar. Resend's dashboard has no equivalent — its own check runs on a
+   * schedule, and a domain sits at `pending` until it comes round — so this
+   * button is the only way to ask for one now. It publishes nothing and
+   * creates nothing, which is what separates it from a re-run.
+   */
+  const handleVerifyResend = async () => {
+    setVerifyingResend(true);
+    try {
+      const res = await resend.verifyResend({
+        apiKey: config.RESEND_API_KEY,
+        mailSubdomain,
+        domainId: config.RESEND_DOMAIN_ID || undefined,
+      });
+
+      if (!res.success || !res.data) {
+        toast.error(res.error ?? t("apiConfig.resend.verify.failed"), {
+          duration: 7000,
+        });
+        return;
+      }
+
+      const { domainId, status, verifiedAt } = res.data;
+      // The id can have been re-resolved by name — the saved one names a
+      // domain that may since have been deleted from the dashboard.
+      applyPatch({
+        RESEND_DOMAIN_ID: domainId,
+        ...(verifiedAt
+          ? {
+              RESEND_DOMAIN_VERIFIED_AT: verifiedAt,
+              RESEND_VERIFICATION_PENDING_SINCE: "",
+            }
+          : {}),
+      });
+
+      if (verifiedAt) {
+        confirmManual("resend-subdomain");
+        toast.success(t("apiConfig.resend.verify.verified"));
+      } else {
+        toast(`${t("apiConfig.resend.verify.pending")} (${status})`, {
+          duration: 7000,
+        });
+      }
+    } finally {
+      setVerifyingResend(false);
+    }
+  };
+
+  const handleStartResend = () => {
+    if (resendLock) return;
+    void resend.startResend({
+      apiKey: config.RESEND_API_KEY,
+      domain: config.DOMAIN,
+      mailSubdomain,
+      // Present from the second run on — what stops a second domain from being
+      // created on the account.
+      domainId: config.RESEND_DOMAIN_ID || undefined,
+      /**
+       * Only when Spaceship holds the zone. Handed over, the run publishes
+       * what Resend asks for by itself; withheld, it stops once the records
+       * are known and they are shown below for the other registrar.
+       */
+      ...(usesOtherDomainProvider
+        ? {}
+        : {
+            spaceshipApiKey: config.SPACESHIP_API_KEY,
+            spaceshipApiSecret: config.SPACESHIP_API_SECRET,
+          }),
+    });
+  };
 
   return (
     <WizardLayout
-      title={t('apiConfig.title')}
-      description={t('apiConfig.desc')}
-      helpContent={<HelpContent />}
+      title={t("apiConfig.title")}
+      description={t("apiConfig.desc")}
+      helpContent={<ApiConfigurationHelpContent />}
     >
       <div className="api-config-list">
-        
         {/* Supabase */}
         <ServiceConfigBlock
           stepNumber={1}
           serviceName="SUPABASE"
           serviceIcon={<Database size={18} color="var(--color-primary-text)" />}
-          description={t('apiConfig.supabase.desc')}
-          status={supabase.status}
-          isComplete={isSupabaseComplete}
+          description={t("apiConfig.supabase.desc")}
+          status={supabaseStatus}
+          isComplete={supabaseManualDone}
+          manuallyConfirmed={supabaseManualDone}
           logs={supabase.logs}
           progress={supabase.progress}
           locked={!!supabaseLock}
@@ -408,49 +658,119 @@ export function ApiConfiguration() {
           errorMessage={supabase.error}
           onStart={handleStartSupabase}
           onCancel={supabase.cancel}
-          btnStartLabel={t('apiConfig.btnStart')}
-          btnRetryLabel={t('apiConfig.btnRetry')}
-          btnCancelLabel={t('apiConfig.btnCancel')}
+          btnStartLabel={t("apiConfig.btnStart")}
+          btnRetryLabel={t("apiConfig.btnRetry")}
+          btnRerunLabel={t("apiConfig.btnRerun")}
+          btnCancelLabel={t("apiConfig.btnCancel")}
           statusLabels={statusLabels}
           helpAnchor="svc-supabase"
-          helpHint={t('apiConfig.supabase.helpHint')}
-          manualLabel={t('apiConfig.manualConfig')}
+          helpHint={t("apiConfig.supabase.helpHint")}
+          manualLabel={t("apiConfig.manualConfig")}
         >
           <div className="form-section">
             {/* The buckets have to exist before anything is uploaded — same
                 walkthrough as the help panel, kept at hand in the card. */}
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FolderPlus size={16} color="var(--color-primary-text)" />
-                {t('apiConfig.supabase.buckets.title')}
-              </div>
-              <p className="text-muted" style={{ margin: '0 0 12px', fontSize: 'var(--font-size-base)', lineHeight: 1.5 }}>
-                {t('apiConfig.supabase.buckets.desc')}
-              </p>
+            <ManualSection
+              title={t("apiConfig.supabase.buckets.title")}
+              desc={t("apiConfig.supabase.buckets.desc")}
+            >
               <ul className="bucket-list">
-                {STORAGE_BUCKETS.map(b => (
+                {STORAGE_BUCKETS.map((b) => (
                   <li key={b.name}>
                     <CopyChip value={b.name} />
                     <span className="bucket-list__note">
-                      {b.isPublic
-                        ? <><strong>{t('apiConfig.supabase.buckets.public')}</strong> — {isEn ? b.en : b.fr}</>
-                        : <>{t('apiConfig.supabase.buckets.private')} — {isEn ? b.en : b.fr}</>}
+                      {b.isPublic ? (
+                        <>
+                          <strong>
+                            {t("apiConfig.supabase.buckets.public")}
+                          </strong>{" "}
+                          — {isEn ? b.en : b.fr}
+                        </>
+                      ) : (
+                        <>
+                          {t("apiConfig.supabase.buckets.private")} —{" "}
+                          {isEn ? b.en : b.fr}
+                        </>
+                      )}
                     </span>
                   </li>
                 ))}
               </ul>
-              <div className="link-buttons-row" style={{ margin: '12px 0 20px' }}>
-                <ExternalLinkBtn url={BUCKETS_URL} label={t('apiConfig.supabase.buckets.btn')} />
+              <div className="link-buttons-row">
+                <ExternalLinkBtn
+                  url={BUCKETS_URL}
+                  label={t("apiConfig.supabase.buckets.btn")}
+                />
               </div>
-            </div>
+              {/* The buckets leave nothing in the config — without this box,
+                  nothing downstream can tell they exist. */}
+              <ManualCheck
+                checkKey="supabase-buckets"
+                label={
+                  isEn
+                    ? `The ${STORAGE_BUCKETS.length} buckets exist, with these exact names`
+                    : `Les ${STORAGE_BUCKETS.length} buckets sont créés, avec exactement ces noms`
+                }
+              />
+            </ManualSection>
 
-            <FormField id="supabase-url" label={t('apiConfig.supabase.url')} value={config.SUPABASE_URL} onChange={v => setField('SUPABASE_URL', v)} placeholder="https://xyz.supabase.co" />
-            <FormField id="supabase-anon" label={t('apiConfig.supabase.anonKey')} value={config.SUPABASE_ANON_KEY} onChange={v => setField('SUPABASE_ANON_KEY', v)} placeholder="eyJhbG..." multiline />
-            <FormField id="supabase-service" label={t('apiConfig.supabase.serviceKey')} value={config.SUPABASE_SERVICE_ROLE_KEY} onChange={v => setField('SUPABASE_SERVICE_ROLE_KEY', v)} placeholder="eyJhbG..." type="password" multiline />
-            <FormField id="database-url" label={t('apiConfig.supabase.databaseUrl')} value={config.DATABASE_URL} onChange={v => setField('DATABASE_URL', v)} placeholder="postgresql://..." type="password" multiline tokenFill={pwFill} />
-            <FormField id="direct-url" label={t('apiConfig.supabase.directUrl')} value={config.DIRECT_URL} onChange={v => setField('DIRECT_URL', v)} placeholder="postgresql://..." type="password" multiline tokenFill={pwFill} />
-
-
+            <ManualSection
+              title={isEn ? "Connection values" : "Valeurs de connexion"}
+              desc={
+                isEn
+                  ? "From the project: the Connect panel for the URL and the Postgres URLs, Project Settings ➔ API Keys for the keys."
+                  : "Depuis le projet : le panneau Connect pour l'URL et les URLs Postgres, Project Settings ➔ API Keys pour les clés."
+              }
+            >
+              <FormField
+                id="supabase-url"
+                label={t("apiConfig.supabase.url")}
+                value={config.SUPABASE_URL}
+                onChange={(v) => setField("SUPABASE_URL", v)}
+                placeholder="https://xyz.supabase.co"
+              />
+              <FormField
+                id="supabase-anon"
+                label={t("apiConfig.supabase.anonKey")}
+                value={config.SUPABASE_ANON_KEY}
+                onChange={(v) => setField("SUPABASE_ANON_KEY", v)}
+                placeholder="eyJhbG..."
+                multiline
+                rows={2}
+              />
+              <FormField
+                id="supabase-service"
+                label={t("apiConfig.supabase.serviceKey")}
+                value={config.SUPABASE_SERVICE_ROLE_KEY}
+                onChange={(v) => setField("SUPABASE_SERVICE_ROLE_KEY", v)}
+                placeholder="eyJhbG..."
+                type="password"
+                multiline
+                rows={2}
+              />
+              <FormField
+                id="database-url"
+                label={t("apiConfig.supabase.databaseUrl")}
+                value={config.DATABASE_URL}
+                onChange={(v) => setField("DATABASE_URL", v)}
+                placeholder="postgresql://..."
+                type="password"
+                multiline
+                rows={2}
+                tokenFill={pwFill}
+              />
+              <FormField
+                id="direct-url"
+                label={t("apiConfig.supabase.directUrl")}
+                value={config.DIRECT_URL}
+                onChange={(v) => setField("DIRECT_URL", v)}
+                placeholder="postgresql://..."
+                type="password"
+                multiline
+                rows={2}
+                tokenFill={pwFill}
+              />
+            </ManualSection>
           </div>
         </ServiceConfigBlock>
 
@@ -459,137 +779,270 @@ export function ApiConfiguration() {
           stepNumber={2}
           serviceName="SCALEWAY"
           serviceIcon={<Server size={18} color="var(--color-primary-text)" />}
-          description={t('apiConfig.scaleway.desc')}
-          status={scalewayStatus}
-          isComplete={isScalewayComplete}
+          description={t("apiConfig.scaleway.desc")}
+          status={scwStatus}
+          isComplete={scalewayManualDone}
+          manuallyConfirmed={scalewayManualDone}
           locked={!!scalewayLock}
           lockedReason={scalewayLock ?? undefined}
           onStart={() => handleStartScaleway()}
           onCancel={cancelScaleway}
           logs={scwLogs}
           progress={scwProgress}
-          btnStartLabel={t('apiConfig.btnStart')}
-          btnCancelLabel={t('apiConfig.btnCancel')}
+          btnStartLabel={t("apiConfig.btnStart")}
+          btnRerunLabel={t("apiConfig.btnRerun")}
+          btnCancelLabel={t("apiConfig.btnCancel")}
           statusLabels={statusLabels}
           helpAnchor="svc-scaleway"
-          helpHint={t('apiConfig.scaleway.helpHint')}
-          manualLabel={t('apiConfig.manualConfig')}
+          helpHint={t("apiConfig.scaleway.helpHint")}
+          extra={
+            <SshKeySelector
+              ref={sshSelectorRef}
+              label={
+                isEn ? "Authentication SSH key" : "Clé SSH d'authentification"
+              }
+            />
+          }
+          manualLabel={t("apiConfig.manualConfig")}
         >
           <div className="form-section">
-            <SshKeySelector ref={sshSelectorRef} />
+            <div className="manual-section__body">
+              <FormField
+                id="ipv4"
+                label={t("apiConfig.spaceship.ipv4")}
+                value={config.IPV4_INSTANCE}
+                onChange={(v) => setField("IPV4_INSTANCE", v)}
+                placeholder="198.51.100.1"
+              />
 
-            <FormField id="ipv4" label={t('apiConfig.spaceship.ipv4')} value={config.IPV4_INSTANCE} onChange={v => setField('IPV4_INSTANCE', v)} placeholder="198.51.100.1" />
-
-            <div style={{ fontWeight: 600, marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Server size={16} color="var(--color-primary-text)" />
-              {t('step1.specs.title')}
+              <ManualCheck
+                checkKey="scaleway-instance"
+                label={
+                  isEn
+                    ? "This IP matches an instance that was actually launched"
+                    : "Cette IP correspond à une instance qui a bien été lancée"
+                }
+              />
             </div>
-            <IconRowList className="icon-row-list--spaced" items={specs} />
+
+            <ManualSection title={t("step1.specs.title")}>
+              <IconRowList items={specs} />
+            </ManualSection>
           </div>
         </ServiceConfigBlock>
 
-        {/* Spaceship */}
+        {/* Resend — before Spaceship, because the records it asks for cannot
+            be known until its domain exists: the DKIM key is minted with it.
+            The run publishes them itself when Spaceship holds the zone.
+            Nothing DNS is shown here: what it asked for is published, or
+            copied, at the registrar — the step below. */}
         <ServiceConfigBlock
           stepNumber={3}
-          serviceName="SPACESHIP"
-          serviceIcon={<Globe size={18} color="var(--color-primary-text)" />}
-          description={t('apiConfig.spaceship.desc')}
-          status={spaceshipStatus}
-          locked={!!spaceshipLock}
-          lockedReason={spaceshipLock ?? undefined}
-          onStart={() => handleStart('Spaceship')}
-          onCancel={() => handleCancel('Spaceship')}
-          btnStartLabel={t('apiConfig.btnStart')}
-          btnCancelLabel={t('apiConfig.btnCancel')}
-          statusLabels={statusLabels}
-          helpAnchor="svc-spaceship"
-          helpHint={t('apiConfig.spaceship.helpHint')}
-          manualLabel={t('apiConfig.manualConfig')}
-        >
-          <div className="form-section">
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Info size={16} color="var(--color-primary-text)" />
-                {t('step4.dns.title')}
-              </div>
-              <p className="text-muted" style={{ margin: '0 0 12px', fontSize: 'var(--font-size-base)', lineHeight: 1.5 }}>
-                {t('apiConfig.spaceship.dnsPath')}
-              </p>
-              <div className="link-buttons-row" style={{ marginBottom: '16px' }}>
-                <ExternalLinkBtn url="https://www.spaceship.com/application/launchpad/" label="Launchpad" />
-                <ExternalLinkBtn url="https://www.spaceship.com/application/domain-portfolio/" label="Domain Portfolio" />
-              </div>
-              <table className="dns-table">
-                <thead>
-                  <tr>
-                    <th>{t('step4.dns.type')}</th>
-                    <th>{t('step4.dns.host')}</th>
-                    <th>{t('step4.dns.answer')}</th>
-                    <th>{t('step4.dns.ttl')}</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dnsRecords.map((rec, i) => (
-                    <tr key={i}>
-                      <td><span style={{ fontWeight: 600, color: 'var(--color-primary-text)' }}>{rec.type}</span></td>
-                      <td>{rec.host}</td>
-                      <td>{rec.answer}</td>
-                      <td>{rec.ttl}</td>
-                      <td>
-                        <button
-                          className="btn btn-copy"
-                          onClick={() => navigator.clipboard.writeText(`${rec.type},${rec.host},${rec.answer},${rec.ttl}`)}
-                        >
-                          Copier
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="info-box warning" style={{ marginTop: '16px' }}>
-                <AlertTriangle size={15} className="info-box-icon" />
-                <div className="info-box-text">{t('step4.warning')}</div>
-              </div>
-            </div>
-          </div>
-        </ServiceConfigBlock>
-
-        {/* Resend */}
-        <ServiceConfigBlock
-          stepNumber={4}
           serviceName="RESEND"
           serviceIcon={<Mail size={18} color="var(--color-primary-text)" />}
-          description={t('apiConfig.resend.desc')}
+          description={t("apiConfig.resend.desc")}
           status={resendStatus}
-          isComplete={isResendComplete}
+          isComplete={resendManualDone}
+          manuallyConfirmed={resendManualDone}
+          logs={resend.logs}
+          progress={resend.progress}
           locked={!!resendLock}
           lockedReason={resendLock ?? undefined}
-          onStart={() => handleStart('Resend')}
-          onCancel={() => handleCancel('Resend')}
-          btnStartLabel={t('apiConfig.btnStart')}
-          btnCancelLabel={t('apiConfig.btnCancel')}
+          errorMessage={resend.error}
+          onStart={handleStartResend}
+          onCancel={resend.cancel}
+          btnStartLabel={t("apiConfig.btnStart")}
+          btnRetryLabel={t("apiConfig.btnRetry")}
+          btnRerunLabel={t("apiConfig.btnRerun")}
+          btnCancelLabel={t("apiConfig.btnCancel")}
           statusLabels={statusLabels}
           helpAnchor="svc-resend"
-          helpHint={t('apiConfig.resend.helpHint')}
-          manualLabel={t('apiConfig.manualConfig')}
+          helpHint={t("apiConfig.resend.helpHint")}
+          /* The run hands DNS propagation back rather than sitting on it, so
+             the card has to say what it is waiting for — otherwise a step
+             that is genuinely finished reads as one that quietly gave up. */
+          extra={
+            config.RESEND_VERIFICATION_PENDING_SINCE &&
+            !config.RESEND_DOMAIN_VERIFIED_AT ? (
+              <div className="info-box info">
+                <Info size={15} className="info-box-icon" />
+                <div className="info-box-text">
+                  {t("apiConfig.resend.pendingBox")}
+                </div>
+              </div>
+            ) : undefined
+          }
+          manualLabel={t("apiConfig.manualConfig")}
         >
           <div className="form-section">
-            <div>
-            <div style={{ fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Mail size={16} color="var(--color-primary-text)" />
-              {t('step4.subdomain')}
-            </div>
-            <CopyRow label={t('step4.subdomain')} content={mailSubdomain} />
-          </div>
-
-            <FormField id="from-email" label={t('apiConfig.supabase.fromEmail')} value={config.FROM_EMAIL} onChange={v => setField('FROM_EMAIL', v)} placeholder="Hackathon Team <onboarding@mail.domain.com>" />
-            <FormField id="allowed-emails" label={t('apiConfig.supabase.allowedEmails')} value={config.ALLOWED_EMAILS} onChange={v => setField('ALLOWED_EMAILS', v)} placeholder="*" />
+            <ManualSection title={t("step4.subdomain")}>
+              <CopyRow content={mailSubdomain} />
+              <ManualCheck
+                checkKey="resend-subdomain"
+                label={
+                  isEn
+                    ? "This subdomain is added in Resend and verified"
+                    : "Ce sous-domaine est ajouté dans Resend et vérifié"
+                }
+              />
+            </ManualSection>
+            <ManualSection
+              title={isEn ? "Sending settings" : "Réglages d'envoi"}
+            >
+              <FormField
+                id="from-email"
+                label={t("apiConfig.supabase.fromEmail")}
+                value={config.FROM_EMAIL}
+                onChange={(v) => setField("FROM_EMAIL", v)}
+                placeholder="Hackathon Team <onboarding@mail.domain.com>"
+              />
+              <FormField
+                id="allowed-emails"
+                label={t("apiConfig.supabase.allowedEmails")}
+                value={config.ALLOWED_EMAILS}
+                onChange={(v) => setField("ALLOWED_EMAILS", v)}
+                placeholder="*"
+              />
+            </ManualSection>
           </div>
         </ServiceConfigBlock>
 
+        {/* Spaceship — or whichever registrar holds the domain, once step 1
+            says another provider will handle it */}
+        <ServiceConfigBlock
+          stepNumber={4}
+          serviceName={
+            usesOtherDomainProvider
+              ? t("apiConfig.domainProvider.title")
+              : "SPACESHIP"
+          }
+          serviceIcon={<Globe size={18} color="var(--color-primary-text)" />}
+          description={t("apiConfig.spaceship.desc")}
+          status={spaceshipStatus}
+          manuallyConfirmed={spaceshipManualDone}
+          logs={spaceship.logs}
+          progress={spaceship.progress}
+          locked={!usesOtherDomainProvider && !!spaceshipLock}
+          lockedReason={spaceshipLock ?? undefined}
+          manualOnly={usesOtherDomainProvider}
+          errorMessage={spaceship.error}
+          onStart={handleStartSpaceship}
+          onCancel={spaceship.cancel}
+          btnStartLabel={t("apiConfig.btnStart")}
+          btnRetryLabel={t("apiConfig.btnRetry")}
+          btnRerunLabel={t("apiConfig.btnRerun")}
+          btnCancelLabel={t("apiConfig.btnCancel")}
+          statusLabels={statusLabels}
+          helpAnchor="svc-spaceship"
+          helpHint={t("apiConfig.spaceship.helpHint")}
+          manualLabel={
+            usesOtherDomainProvider ? undefined : t("apiConfig.manualConfig")
+          }
+          /* The table below is half Resend's, and Resend's half is only ever
+             as current as the last time it was asked. Opening the panel is
+             the moment it is about to be copied into a registrar, so it is
+             the moment worth asking again. */
+          onManualOpen={() => void syncResendDomain(true)}
+        >
+          <div className="form-section">
+            <ManualSection
+              title={t("step4.dns.title")}
+              desc={t("apiConfig.spaceship.dnsPath")}
+            >
+              {!usesOtherDomainProvider && (
+                <div className="link-buttons-row">
+                  <ExternalLinkBtn
+                    url={SPACESHIP_LAUNCHPAD_URL}
+                    label="Launchpad"
+                  />
+                  <ExternalLinkBtn
+                    url={SPACESHIP_DNS_HELP_URL}
+                    label={isEn ? "Spaceship DNS help" : "Aide DNS Spaceship"}
+                  />
+                </div>
+              )}
+              {/* Refreshed when the panel opens, and on demand: a subdomain
+                  added at Resend a moment ago has records nothing here can
+                  guess, and the reader should not have to reload the app to
+                  see them appear. */}
+              {!!config.RESEND_API_KEY && (
+                <div className="link-buttons-row">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      void syncResendDomain(true);
+                      void syncManualChecks();
+                    }}
+                    disabled={syncingResend}
+                    type="button"
+                  >
+                    <RefreshCw size={14} />
+                    {syncingResend
+                      ? t("apiConfig.dns.refreshing")
+                      : t("apiConfig.dns.refresh")}
+                  </button>
+                </div>
+              )}
+              <DnsTable records={allDnsRecords} labels={dnsLabels} />
+              {/* The API is the only thing that knows a DKIM key — when it has
+                  not answered, the dashboard still shows the same lines, so
+                  the reader is sent to read them there rather than left with
+                  half a table and no way to complete it. */}
+              {resendRecords.length === 0 && (
+                <div className="info-box warning">
+                  <AlertTriangle size={15} className="info-box-icon" />
+                  <div className="info-box-text">
+                    {resendKeyRefused
+                      ? t("apiConfig.dns.resendRefused")
+                      : t("apiConfig.dns.resendMissing")}
+                  </div>
+                </div>
+              )}
+              <div className="info-box info">
+                <Info size={15} className="info-box-icon" />
+                <div className="info-box-text">
+                  {t("apiConfig.spaceship.hostNote")}
+                </div>
+              </div>
+              <div className="info-box warning">
+                <AlertTriangle size={15} className="info-box-icon" />
+                <div className="info-box-text">{t("step4.warning")}</div>
+              </div>
+              {/* Where the records were just pasted is where the reader finds
+                  out whether they took: Resend checks on its own schedule and
+                  offers no way to ask sooner, so the button that does sits
+                  with the table rather than a card away. */}
+              <div className="link-buttons-row">
+                {!!config.RESEND_API_KEY && (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleVerifyResend}
+                    disabled={verifyingResend}
+                    type="button"
+                  >
+                    <RefreshCw size={14} />
+                    {verifyingResend
+                      ? t("apiConfig.resend.verify.running")
+                      : t("apiConfig.resend.verify.btn")}
+                  </button>
+                )}
+                <ExternalLinkBtn
+                  url={RESEND_DOMAINS_URL}
+                  label={t("apiConfig.resend.domainsBtn")}
+                />
+              </div>
+              <ManualCheck
+                checkKey="spaceship-dns"
+                label={
+                  isEn
+                    ? "These records are added in Advanced DNS"
+                    : "Ces enregistrements sont ajoutés dans Advanced DNS"
+                }
+              />
+            </ManualSection>
+          </div>
+        </ServiceConfigBlock>
       </div>
     </WizardLayout>
-  )
+  );
 }

@@ -1,12 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* =============================================
    DESIGN TOKENS
    ============================================= */
 :root {
   /* Colors */
-  --color-primary: #1DB48A;
-  --color-primary-hover: #17A07A;
+  --color-primary: #17906F;
+  --color-primary-hover: #117C5F;
   /* Foreground green — dark enough to stay legible on tinted/light surfaces */
   --color-primary-text: #0B7A5B;
   --color-primary-light: #D8F2E9;
@@ -27,16 +27,62 @@
   --color-bg-transparent: rgba(255, 255, 255, 0.78);
   --color-surface: #FFFFFF;
   --color-surface-hover: #F1F5F9;
+  /* The ground under a recessed row sitting on a card. All but white: the
+     border is what draws the row, so the fill only has to break the flat
+     white a little. Any heavier and it darkened the text sitting on it. */
+  --color-surface-sunken: #FCFDFE;
 
+  /* ONE tone for content, and the hierarchy is built without it.
+     Level is carried by SIZE and WEIGHT — see the TYPOGRAPHY block below.
+     Colour is not a level: greying a paragraph does not rank it, it only
+     makes it harder to read, and a page where every second line is grey
+     reads as a draft nobody finished.
+
+       text        — every word of content, at every level of the ladder:
+                     titles, body, descriptions, hints, list items, cells.
+       muted       — the single exception, for information of genuinely low
+                     stakes that the reader loses nothing by skipping: a
+                     count, a file path, a timestamp, an "empty" line. If
+                     you hesitate between this and `text`, it is `text`.
+       placeholder — NOT content. Input placeholders, disabled values, idle
+                     icon buttons, decorative separators. Never prose. */
   --color-text: #0F172A;
-  --color-text-secondary: #37455A;
-  --color-text-muted: #566274;
-  --color-text-tertiary: #64748B;
-  --color-text-placeholder: #7C8899;
+  --color-text-muted: #55617A;
+  --color-text-placeholder: #8792A6;
+  /* Deprecated alias — resolves to the full content tone so that any rule
+     still referencing it is readable rather than grey. Do not add new uses:
+     write `var(--color-text)` and set the level with size and weight. */
+  --color-text-secondary: var(--color-text);
 
   --color-border: #DEE5EC;
   --color-border-strong: #C4CFDB;
-  --color-border-focus: #1DB48A;
+  --color-border-focus: #17906F;
+
+  /* Terminals — live output, dark in both themes (that convention is what
+     separates a running log from the static literals above). One surface,
+     used by every console in the app. */
+  --color-terminal-bg: #14181F;
+  --color-terminal-text: #C6D0DC;
+  --color-terminal-dim: #8494A6;
+  --color-terminal-ok: #6EE7B7;
+  --color-terminal-error: #FC8181;
+
+  /* Code surfaces — every block that shows a literal to copy (a command, a
+     SQL statement, a key) draws from these, so they read as one family
+     instead of the light panels and hardcoded black slabs they used to be. */
+  --color-code-bg: #FBFCFE;
+  --color-code-header-bg: #E9EEF4;
+  --color-code-border: #CDD8E3;
+  --color-code-text: #0B1220;
+  /* Inline `code` chips — the one accent left in running text */
+  --color-code-accent: #0B7A5B;
+
+  /* Syntax — a snippet is read by scanning for its shape, so the parts get
+     their own hues. Three, and no more: what a thing is named, what its
+     value is, and what is only commentary. */
+  --color-syntax-name: #0B7A5B;
+  --color-syntax-value: #A9550C;
+  --color-syntax-comment: #626F81;
 
   /* Inputs */
   --color-input-bg: #FBFCFE;
@@ -55,6 +101,17 @@
   --space-12: 41px;
   --space-16: 54px;
 
+  /* Three gaps, and every stack in the app picks one of them. Spacing lives
+     on containers as a `gap`; a child that sets its own margin spaces
+     differently depending on where it lands, which is what kept these pages
+     uneven however often the individual values were adjusted.
+       item    — elements inside one section
+       section — sections inside a card
+       block   — cards inside a page */
+  --gap-item: var(--space-3);
+  --gap-section: var(--space-6);
+  --gap-block: var(--space-5);
+
   /* Border radius */
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -68,18 +125,83 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
 
-  /* Typography — every size derives from --font-scale, which the text-size
-     slider in Settings drives (see AppContext) */
+  /* =====================================================================
+     TYPOGRAPHY
+
+     Read this ladder the way you read a Notion page: a handful of levels,
+     each one a step the eye can actually see, and nothing else doing the
+     ranking. Two rules hold it together:
+
+       1. Level comes from SIZE and WEIGHT. Never from colour — every level
+          below is set in --color-text.
+       2. Adjacent levels differ by a visible amount. A one-pixel step is
+          not a step; it is noise that costs a token and ranks nothing.
+
+     The levels, largest to smallest:
+
+       display  34 / 800   the single title of a landing screen
+       h1       26 / 700   the title of the screen you are on
+       h2       20 / 700   a major block within that screen
+       h3      16.5 / 700  a card, a section, a named thing
+       h4       15 / 700   a sub-section, the title of a row
+       lead    15.5 / 400  the sentence that introduces a screen
+       body     14 / 400   every paragraph, description and hint
+       ui      13.5 / 600  the label on a control: button, tab, field label
+       caption 12.5 / 400  a short aside attached to the thing above it
+       label   11.5 / 700  an uppercase eyebrow standing over a block
+       micro    11 / 700   a badge or a chip — never a sentence
+
+     Reach for `--type-*` below rather than setting size and weight by hand:
+     one declaration puts an element on a level, and moving that level moves
+     every element on it. Every size derives from --font-scale, which the
+     text-size slider in Settings drives (see AppContext).
+     ===================================================================== */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-scale: 1;
-  --font-size-xs: calc(10.5px * var(--font-scale));
+
+  /* The size ramp. Names are kept from the old scale so existing rules keep
+     resolving, but the values are re-spaced so the steps are visible. */
+  --font-size-micro: calc(11px * var(--font-scale));
+  --font-size-xs: calc(11.5px * var(--font-scale));
   --font-size-sm: calc(12.5px * var(--font-scale));
-  --font-size-base: calc(13.5px * var(--font-scale));
-  --font-size-md: calc(14.5px * var(--font-scale));
-  --font-size-lg: calc(17px * var(--font-scale));
-  --font-size-xl: calc(20.5px * var(--font-scale));
+  --font-size-ui: calc(13.5px * var(--font-scale));
+  --font-size-base: calc(14px * var(--font-scale));
+  --font-size-md: calc(15px * var(--font-scale));
+  --font-size-lead: calc(15.5px * var(--font-scale));
+  --font-size-lg: calc(16.5px * var(--font-scale));
+  --font-size-xl: calc(20px * var(--font-scale));
   --font-size-2xl: calc(26px * var(--font-scale));
-  --font-size-mono: calc(11.5px * var(--font-scale));
+  --font-size-3xl: calc(34px * var(--font-scale));
+  --font-size-mono: calc(12.5px * var(--font-scale));
+
+  /* The weight ramp. 400 is prose, 600 is a control, 700 is a heading.
+     500 exists only for monospace, which reads thin at the same weight. */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-black: 800;
+
+  /* Leading: tight for headings, snug for one-line UI, normal for prose. */
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.4;
+  --line-height-normal: 1.6;
+
+  /* The levels themselves, as `font` shorthands. `font: var(--type-h2);`
+     sets size, weight, leading and family in one go; set `color` beside it
+     only when the element is NOT --color-text (a link, a badge, an error). */
+  --type-display: var(--font-weight-black) var(--font-size-3xl)/1.12 var(--font-family);
+  --type-h1: var(--font-weight-bold) var(--font-size-2xl)/1.18 var(--font-family);
+  --type-h2: var(--font-weight-bold) var(--font-size-xl)/1.25 var(--font-family);
+  --type-h3: var(--font-weight-bold) var(--font-size-lg)/1.3 var(--font-family);
+  --type-h4: var(--font-weight-bold) var(--font-size-md)/1.35 var(--font-family);
+  --type-lead: var(--font-weight-regular) var(--font-size-lead)/1.55 var(--font-family);
+  --type-body: var(--font-weight-regular) var(--font-size-base)/var(--line-height-normal) var(--font-family);
+  --type-body-strong: var(--font-weight-semibold) var(--font-size-base)/var(--line-height-normal) var(--font-family);
+  --type-ui: var(--font-weight-semibold) var(--font-size-ui)/var(--line-height-tight) var(--font-family);
+  --type-caption: var(--font-weight-regular) var(--font-size-sm)/1.5 var(--font-family);
+  --type-label: var(--font-weight-bold) var(--font-size-xs)/var(--line-height-tight) var(--font-family);
+  --type-micro: var(--font-weight-bold) var(--font-size-micro)/1.1 var(--font-family);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -91,11 +213,11 @@
    DARK MODE
    ============================================= */
 [data-theme="dark"] {
-  --color-primary: #1DB48A;
+  --color-primary: #17906F;
   --color-primary-hover: #25C99A;
   --color-primary-text: #3ADCA9;
-  --color-primary-light: rgba(29, 180, 138, 0.15);
-  --color-primary-lighter: rgba(29, 180, 138, 0.05);
+  --color-primary-light: rgba(23, 144, 111, 0.15);
+  --color-primary-lighter: rgba(23, 144, 111, 0.05);
 
   --color-secondary: #60A5FA; /* Lighter blue for links in dark mode */
   --color-secondary-light: rgba(96, 165, 250, 0.2);
@@ -112,16 +234,26 @@
   --color-bg-transparent: rgba(32, 34, 37, 0.78);
   --color-surface: #2B2D31;
   --color-surface-hover: #383A40;
+  --color-surface-sunken: #232528;
 
   --color-text: #F2F3F5;
-  --color-text-secondary: #CBD1D8;
-  --color-text-muted: #A7AFBA;
-  --color-text-tertiary: #99A1AC;
-  --color-text-placeholder: #8A919C;
+  --color-text-muted: #A8B3C2;
+  --color-text-placeholder: #7C8695;
+  --color-text-secondary: var(--color-text);
 
   --color-border: #383C43;
   --color-border-strong: #4B515A;
-  --color-border-focus: #1DB48A;
+  --color-border-focus: #17906F;
+
+  --color-code-bg: #1B1D21;
+  --color-code-header-bg: #24262B;
+  --color-code-border: #3A3D44;
+  --color-code-text: #E8EDF3;
+  --color-code-accent: #7FE3C2;
+
+  --color-syntax-name: #7FE3C2;
+  --color-syntax-value: #F0BE79;
+  --color-syntax-comment: #8A919C;
 
   /* Inputs */
   --color-input-bg: #1B1D21;
@@ -136,30 +268,23 @@
 /* Dark mode specific component overrides */
 [data-theme="dark"] .service-account-card--complete,
 [data-theme="dark"] .service-config-block--complete {
-  background: rgba(29, 180, 138, 0.07);
-  border-color: rgba(29, 180, 138, 0.28);
-}
-
-[data-theme="dark"] .service-config-block--complete .service-config-block__step-number {
-  border-right-color: rgba(29, 180, 138, 0.28);
+  background: rgba(23, 144, 111, 0.07);
+  border-color: rgba(23, 144, 111, 0.28);
 }
 
 [data-theme="dark"] .info-box.info {
-  background: rgba(29, 180, 138, 0.1);
-  border-color: rgba(29, 180, 138, 0.4);
-  color: #6EE7B7;
+  background: rgba(23, 144, 111, 0.1);
+  border-color: rgba(23, 144, 111, 0.4);
 }
 
 [data-theme="dark"] .info-box.warning {
   background: rgba(251, 191, 36, 0.1);
   border-color: rgba(251, 191, 36, 0.4);
-  color: #FCD34D;
 }
 
 [data-theme="dark"] .info-box.tip {
   background: rgba(96, 165, 250, 0.1);
   border-color: rgba(96, 165, 250, 0.4);
-  color: #93C5FD;
 }
 
 [data-theme="dark"] .deploy-console,
@@ -175,15 +300,13 @@
 
 [data-theme="dark"] .form-input:focus {
   background: #212429;
-  box-shadow: 0 0 0 3px rgba(29, 180, 138, 0.28);
+  box-shadow: 0 0 0 3px rgba(23, 144, 111, 0.28);
 }
 
-[data-theme="dark"] .help-env-key,
 [data-theme="dark"] .modal-body code,
 [data-theme="dark"] .help-panel-body code {
-  background: #1B1D21;
+  background: var(--color-code-bg);
   border: 1px solid var(--color-border-strong);
-  color: #7FE3C2;
 }
 
 [data-theme="dark"] .btn-external {
@@ -200,16 +323,12 @@
 [data-theme="dark"] .btn-copy {
   background: #1B1D21;
   border-color: var(--color-border-strong);
-  color: var(--color-text-secondary);
+  color: var(--color-text);
 }
 
 [data-theme="dark"] .dns-table th {
   background: #1B1D21;
-  color: var(--color-text-secondary);
-}
-
-[data-theme="dark"] .copy-block {
-  background: #1B1D21;
+  color: var(--color-text);
 }
 
 
@@ -266,13 +385,86 @@ body,
 }
 
 body {
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
+  font: var(--type-body);
   color: var(--color-text);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   user-select: none;
+}
+
+/* =============================================
+   TYPOGRAPHY ROLES
+
+   The ladder declared in the tokens above, as classes. New markup should
+   pick a level here instead of inventing a size: `<h2 class="t-h2">`. A
+   component rule that cannot use a class sets `font: var(--type-h2)`
+   directly — same values, same single place to change them.
+
+   None of these set a colour: every level is --color-text, inherited from
+   `body`. Only `.t-muted` departs from that, and only for the low-stakes
+   aside it is named after.
+   ============================================= */
+.t-display {
+  font: var(--type-display);
+  letter-spacing: -0.03em;
+}
+
+.t-h1 {
+  font: var(--type-h1);
+  letter-spacing: -0.02em;
+}
+
+.t-h2 {
+  font: var(--type-h2);
+  letter-spacing: -0.015em;
+}
+
+.t-h3 {
+  font: var(--type-h3);
+  letter-spacing: -0.01em;
+}
+
+.t-h4 {
+  font: var(--type-h4);
+}
+
+.t-lead {
+  font: var(--type-lead);
+}
+
+.t-body {
+  font: var(--type-body);
+}
+
+.t-body-strong {
+  font: var(--type-body-strong);
+}
+
+.t-ui {
+  font: var(--type-ui);
+}
+
+.t-caption {
+  font: var(--type-caption);
+}
+
+/* An eyebrow: the word that says what the block under it is. Uppercase and
+   tracked out so it reads as a signpost rather than as a short sentence. */
+.t-label {
+  font: var(--type-label);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.t-micro {
+  font: var(--type-micro);
+}
+
+/* The one place a lighter tone is allowed: a count, a path, a timestamp —
+   something the reader can skip without losing the thread. */
+.t-muted {
+  color: var(--color-text-muted);
 }
 
 /* =============================================
@@ -372,16 +564,13 @@ body {
 }
 
 .sidebar-logo-text {
-  font-size: var(--font-size-md);
-  font-weight: 700;
+  font: var(--type-h4);
   color: var(--color-text);
-  line-height: 1.2;
 }
 
 .sidebar-logo-sub {
-  font-size: var(--font-size-xs);
+  font: var(--type-micro);
   color: var(--color-text-muted);
-  font-weight: 400;
   margin-top: 1px;
 }
 
@@ -462,24 +651,23 @@ body {
 }
 
 .step-label {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-ui);
   line-height: 1.3;
 }
 
 .step-label-number {
-  font-weight: 400;
+  font: var(--type-micro);
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
 }
 
 .step-label-title {
-  font-weight: 500;
+  font: var(--type-ui);
   color: var(--color-text);
 }
 
 .sidebar-step.active .step-label-title {
   color: var(--color-primary-text);
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
 }
 
 /* =============================================
@@ -541,7 +729,7 @@ body {
 
 .service-account-card--complete {
   background: var(--color-primary-lighter);
-  border-color: rgba(29, 180, 138, 0.4);
+  border-color: rgba(23, 144, 111, 0.4);
   border-width: 1px;
 }
 
@@ -563,10 +751,9 @@ body {
 }
 
 .service-account-card__name {
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h3);
   color: var(--color-text);
-  letter-spacing: 0.05em;
+  letter-spacing: -0.01em;
 }
 
 .service-account-card__body {
@@ -585,7 +772,7 @@ body {
 .api-config-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-block);
 }
 
 .service-config-block {
@@ -603,29 +790,39 @@ body {
    border, green service name. */
 .service-config-block--complete {
   background: var(--color-primary-lighter);
-  border-color: rgba(29, 180, 138, 0.4);
+  border-color: rgba(23, 144, 111, 0.4);
 }
 
-.service-config-block--complete .service-config-block__name,
-.service-config-block--complete .service-config-block__step-number {
+.service-config-block--complete .service-config-block__name {
   color: var(--color-primary-text);
 }
 
-.service-config-block--complete .service-config-block__step-number {
-  border-right-color: rgba(29, 180, 138, 0.4);
+/* The numbered badge. The block's step number used to be a bare grey
+   numeral behind a vertical rule — the only vertical rule in the app, and
+   a third way of numbering things next to the walkthrough cards and the
+   config screens. One badge now, sized per context.
+   A flex box centres the glyph box, not the glyph: neutralise the font's
+   line box and its numeric side-bearings so the digit lands dead centre. */
+.service-config-block__step-number,
+.config-screen__index,
+.help-flow__index {
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary-text);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  display: grid;
+  place-items: center;
 }
 
 .service-config-block__step-number {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-  width: 30px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  border-right: 1px solid var(--color-border);
-  padding-right: var(--space-4);
+  width: 26px;
+  height: 26px;
+  font-size: var(--font-size-sm);
+  margin-right: var(--space-4);
 }
 
 .service-config-block__content {
@@ -635,14 +832,20 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--space-4);
   padding-left: var(--space-4);
+}
+
+/* Every direct child is spaced by the gap above — margins here stacked on
+   top of it and made each block space itself differently. */
+.service-config-block__content > * {
+  margin: 0;
 }
 
 .service-config-block__header {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-2);
 }
 
 .service-config-block__icon {
@@ -652,46 +855,66 @@ body {
 }
 
 .service-config-block__name {
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h3);
   color: var(--color-text);
-  letter-spacing: 0.05em;
+  letter-spacing: -0.01em;
 }
 
 .service-config-block__description {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-  margin-bottom: var(--space-2);
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 .service-config-block__info-box {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3);
   border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  margin-bottom: var(--space-4);
+  border: 1px solid transparent;
+  font: var(--type-body-strong);
+}
+
+/* The icon keeps its own size whatever the row does to the text beside it —
+   a flex item shrinks below its intrinsic size by default. */
+.service-config-block__info-box > svg {
+  flex-shrink: 0;
+}
+
+/* Locked reason is a single line in the common case — the icon sits centred
+   on it rather than pinned to the top of a box that isn't wrapping. */
+.service-config-block__info-box--locked {
+  align-items: center;
 }
 
 .service-config-block__info-box--success {
   background: var(--color-primary-light);
+  color: var(--color-text);
+  border-color: rgba(23, 144, 111, 0.35);
+}
+
+.service-config-block__info-box--success svg {
   color: var(--color-primary-text);
-  border: 1px solid rgba(29, 180, 138, 0.2);
 }
 
 .service-config-block__info-box--error {
   background: var(--color-danger-light);
+  color: var(--color-text);
+  border-color: rgba(229, 62, 62, 0.35);
+}
+
+.service-config-block__info-box--error svg {
   color: var(--color-danger);
-  border: 1px solid rgba(229, 62, 62, 0.2);
 }
 
 .service-config-block__info-box--running {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg);
   color: var(--color-text);
-  border: 1px solid var(--color-border);
+  border-color: var(--color-border);
+}
+
+.service-config-block__info-box--running svg {
+  color: var(--color-primary-text);
 }
 
 .service-config-block__spinner {
@@ -708,13 +931,12 @@ body {
 }
 
 .service-config-block__terminal {
-  background: #12121f;
+  background: var(--color-terminal-bg);
   border-radius: var(--radius-md);
   padding: var(--space-3);
-  margin-bottom: var(--space-3);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
-  color: #4ade80;
+  color: var(--color-terminal-text);
   line-height: 1.6;
   max-height: 200px;
   overflow-y: auto;
@@ -724,11 +946,28 @@ body {
   margin-bottom: 4px;
 }
 
+.service-config-block__log-line--error {
+  color: var(--color-terminal-error);
+}
+
+/* An error box carries a label and the provider's own wording under it */
+.service-config-block__info-box-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.service-config-block__error-detail {
+  font-weight: var(--font-weight-regular);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
 .service-config-block__progress-track {
   height: 6px;
   background: var(--color-border);
   border-radius: var(--radius-full);
-  margin-bottom: var(--space-4);
   overflow: hidden;
 }
 
@@ -739,16 +978,168 @@ body {
   transition: width 0.3s ease;
 }
 
-.service-config-block__btn-start {
-  align-self: flex-start;
-}
-
-.service-config-block__btn-cancel {
-  align-self: flex-start;
-}
-
 .service-config-block__children {
   min-width: 0;
+}
+
+/* Inputs the run consumes, above the action row */
+.service-config-block__extra {
+  min-width: 0;
+}
+
+/* The block's primary action (start, cancel, rerun, or the locked reason)
+   and the manual-configuration toggle, on one line. The locked reason grows
+   to fill the row; buttons keep their own width. */
+.service-config-block__action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.service-config-block__action-row > .service-config-block__info-box {
+  flex: 1;
+  min-width: 0;
+}
+
+.service-config-block__btn-manual {
+  flex-shrink: 0;
+}
+
+.service-config-block__btn-manual-chevron {
+  transition: transform var(--transition-fast);
+}
+
+.service-config-block__btn-manual[aria-expanded="true"] .service-config-block__btn-manual-chevron {
+  transform: rotate(180deg);
+}
+
+/* =============================================
+   SSH KEY SELECTOR
+   ============================================= */
+.ssh-key-selector {
+  min-width: 0;
+}
+
+/* Same box as a text field — only its content is chosen rather than typed */
+.ssh-key-selector__value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-md);
+  background: var(--color-input-bg);
+  color: var(--color-input-text);
+  font: var(--type-body);
+  overflow: hidden;
+}
+
+.ssh-key-selector__value--empty {
+  border-style: dashed;
+  color: var(--color-text-placeholder);
+}
+
+.ssh-key-selector__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ssh-key-selector__caption {
+  color: var(--color-text-muted);
+  font: var(--type-caption);
+}
+
+.ssh-key-selector__type {
+  margin-left: var(--space-2);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font: var(--type-micro);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+/* =============================================
+   MANUAL ACTION CHECKBOX
+   ============================================= */
+.manual-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.manual-check:hover {
+  border-color: var(--color-border-strong);
+}
+
+.manual-check--done {
+  border-color: rgba(23, 144, 111, 0.45);
+  background: var(--color-primary-light);
+}
+
+.manual-check input {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.manual-check__label {
+  font: var(--type-body);
+  color: var(--color-text);
+  min-width: 0;
+}
+
+.manual-check--done .manual-check__label {
+  color: var(--color-primary-text);
+}
+
+/* =============================================
+   WARNING DIALOG — an action started on unfinished prerequisites
+   ============================================= */
+.warning-dialog__intro {
+  margin: 0 0 var(--space-3);
+  font: var(--type-body-strong);
+  color: var(--color-text);
+}
+
+.warning-dialog__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.warning-dialog__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  font: var(--type-body);
+}
+
+.warning-dialog__chip {
+  font: var(--type-micro);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.warning-dialog__note {
+  margin: 0;
+  font: var(--type-caption);
+  color: var(--color-text-muted);
 }
 
 /* =============================================
@@ -776,7 +1167,7 @@ body {
 .top-right-island:hover {
   background: var(--color-surface);
   box-shadow: var(--shadow-md);
-  border-color: rgba(29, 180, 138, 0.4);
+  border-color: rgba(23, 144, 111, 0.4);
 }
 
 /* Align heights and styles of help button and language toggle in the island */
@@ -802,12 +1193,12 @@ body {
   0%, 100% {
     background-color: transparent;
     color: var(--color-text-muted);
-    box-shadow: 0 0 0 0 rgba(29, 180, 138, 0);
+    box-shadow: 0 0 0 0 rgba(23, 144, 111, 0);
   }
   50% {
     background-color: var(--color-primary-light);
     color: var(--color-primary-text);
-    box-shadow: 0 0 0 4px rgba(29, 180, 138, 0.4);
+    box-shadow: 0 0 0 4px rgba(23, 144, 111, 0.4);
   }
 }
 
@@ -859,50 +1250,29 @@ body {
   margin-bottom: var(--space-5);
 }
 
-/* Title row: page icon (same as sidebar) + title */
-.step-title-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-  margin-bottom: var(--space-1);
-}
-
-.step-title-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-primary-text);
-  flex-shrink: 0;
-}
-
 .step-badge {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   background: var(--color-primary-light);
   color: var(--color-primary-text);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-label);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
   margin-bottom: var(--space-3);
 }
 
 .step-title {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
+  font: var(--type-h1);
   color: var(--color-text);
-  line-height: 1.2;
-  margin: 0;
+  margin: var(--space-4) 0 var(--space-1);
 }
 
 .step-description {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  font: var(--type-lead);
+  color: var(--color-text);
   max-width: 640px;
 }
 
@@ -934,8 +1304,8 @@ body {
 }
 
 .progress-indicator {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  font: var(--type-ui);
+  color: var(--color-text);
 }
 
 /* =============================================
@@ -948,15 +1318,12 @@ body {
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  font-family: var(--font-family);
+  font: var(--type-ui);
   cursor: pointer;
   transition: all var(--transition-fast);
   border: 1px solid transparent;
   text-decoration: none;
   white-space: nowrap;
-  line-height: 1.5;
 }
 
 .btn:disabled {
@@ -969,8 +1336,6 @@ body {
   color: white;
   border-color: var(--color-primary);
   padding: var(--space-2) var(--space-5);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -986,10 +1351,9 @@ body {
 
 .btn-secondary {
   background: var(--color-surface);
-  color: var(--color-text-secondary);
+  color: var(--color-text);
   border-color: var(--color-border-strong);
   padding: var(--space-2) var(--space-4);
-  font-size: var(--font-size-sm);
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -1000,7 +1364,7 @@ body {
 
 .btn-ghost {
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--color-text);
   border-color: transparent;
 }
 
@@ -1029,7 +1393,7 @@ body {
   background: var(--color-secondary-light);
   color: var(--color-secondary);
   border-color: #BFDBFE;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-ui);
 }
 
 .btn-external:hover:not(:disabled) {
@@ -1039,15 +1403,15 @@ body {
 
 .btn-sm {
   padding: var(--space-1) var(--space-3);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
 }
 
 .btn-copy {
   background: var(--color-bg-secondary);
-  color: var(--color-text-secondary);
+  color: var(--color-text);
   border: 1px solid var(--color-border);
   padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   border-radius: calc(var(--radius-md) - 3px);
   align-self: stretch;
   transition: all var(--transition-fast);
@@ -1079,38 +1443,38 @@ body {
 .lang-btn {
   padding: 4px 10px;
   border-radius: calc(var(--radius-md) - 2px);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-micro);
   cursor: pointer;
   border: none;
   background: transparent;
   color: var(--color-text-muted);
   transition: all var(--transition-fast);
-  font-family: var(--font-family);
 }
 
 .lang-btn.active {
   background: var(--color-surface);
   color: var(--color-text);
   box-shadow: var(--shadow-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 /* =============================================
    FORM FIELDS
    ============================================= */
+/* One rhythm for a card's contents, inside the manual dropdown and out.
+   It used to be space-4 in one place and space-6 in the other, with a
+   trailing margin on top. */
 .form-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  gap: var(--gap-section);
 }
 
 .form-section-title {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font: var(--type-label);
+  color: var(--color-text);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   margin-bottom: var(--space-3);
   display: flex;
   align-items: center;
@@ -1131,8 +1495,7 @@ body {
 }
 
 .form-label {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font: var(--type-ui);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -1154,8 +1517,7 @@ body {
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-input-border);
   border-radius: var(--radius-md);
-  font-size: var(--font-size-base);
-  font-family: var(--font-family);
+  font: var(--type-body);
   color: var(--color-input-text);
   background: var(--color-input-bg);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
@@ -1166,9 +1528,10 @@ body {
   border-color: var(--color-border-strong);
 }
 
+/* `rows` sets the height; the min-height used to override it and pin every
+   textarea to three lines whatever the field asked for. */
 .form-textarea {
   resize: vertical;
-  min-height: 70px;
   line-height: 1.5;
 }
 
@@ -1179,21 +1542,27 @@ body {
 .form-input:focus {
   border-color: var(--color-primary);
   background: var(--color-surface);
-  box-shadow: 0 0 0 3px rgba(29, 180, 138, 0.2);
+  box-shadow: 0 0 0 3px rgba(23, 144, 111, 0.2);
 }
 
 .form-input:disabled {
   background: var(--color-bg-secondary);
   border-color: var(--color-border);
-  color: var(--color-text-muted);
+  color: var(--color-text-placeholder);
   cursor: not-allowed;
   opacity: 0.8;
 }
 
 .form-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  line-height: 1.45;
+  font: var(--type-caption);
+  color: var(--color-text);
+}
+
+/* A value offered for copying, with an optional caption above it */
+.copy-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .form-row {
@@ -1207,44 +1576,51 @@ body {
   min-width: 0;
 }
 
-.manual-config-details {
-  margin-top: var(--space-5);
+/* Manual-configuration panel, revealed by the button in the action row.
+   No margin of its own — the content column's `gap` already spaces it from
+   the row above, same as every other sibling in the block. */
+.manual-config-details__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-section);
+  min-width: 0;
 }
 
-.manual-config-details > summary {
-  cursor: pointer;
-  font-weight: 500;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  list-style: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  user-select: none;
-  transition: color 0.2s;
+/* The fallback is read, not skimmed: its parts stand further apart than the
+   fields inside any one of them, so the eye can tell a new errand from the
+   next line of the current one. */
+.manual-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-item);
+  min-width: 0;
 }
 
-.manual-config-details > summary:hover {
-  color: var(--color-primary-text);
+.manual-section__title {
+  margin: 0;
+  font: var(--type-h4);
+  font-size: var(--font-size-lg);
+  color: var(--color-text);
 }
 
-.manual-config-details > summary::before {
-  content: "▶";
-  font-size: var(--font-size-xs);
-  transition: transform 0.2s;
-  color: inherit;
+.manual-section__desc {
+  margin: 0;
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
-.manual-config-details[open] > summary {
-  margin-bottom: var(--space-4);
+/* Inside a part, the steps sit closer together than the parts do */
+.manual-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-item);
+  min-width: 0;
 }
 
-.manual-config-details[open] > .form-section {
-  margin-top: var(--space-5);
-}
-
-.manual-config-details[open] > summary::before {
-  transform: rotate(90deg);
+/* A section is a heading plus its content — nothing inside it needs to push
+   itself away from a neighbour the gap already separates. */
+.manual-section__body > * {
+  margin: 0;
 }
 
 .form-input-row {
@@ -1263,10 +1639,14 @@ body {
   height: 100%;
 }
 
-/* Trailing action (e.g. "Parcourir") sits flush against the input */
+/* Trailing action (e.g. "Parcourir") sits flush against the input. `display:
+   flex` is what actually stretches the button inside it to the input's
+   height — `align-self: stretch` alone only sizes this wrapper, leaving the
+   button at its own shorter, content-driven height. */
 .form-input-row .form-input-action {
   flex-shrink: 0;
   align-self: stretch;
+  display: flex;
 }
 
 /* Borderless reveal toggle inside password inputs */
@@ -1313,10 +1693,8 @@ body {
   align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-2);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-micro);
   color: var(--color-primary-text);
-  line-height: 1.4;
 }
 
 .token-fill__label svg {
@@ -1339,10 +1717,11 @@ body {
 }
 
 /* Bucket names reproduced verbatim in the manual-configuration card */
+/* The five buckets are one thing to create, so they sit in one frame. */
 .bucket-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1352,14 +1731,17 @@ body {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-2) var(--space-3);
   min-width: 0;
 }
 
+.bucket-list .copy-chip {
+  flex-shrink: 0;
+}
+
 .bucket-list__note {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
-  line-height: 1.5;
+  font: var(--type-caption);
+  color: var(--color-text);
   min-width: 0;
 }
 
@@ -1386,6 +1768,314 @@ body {
   background: var(--color-primary-light);
 }
 
+.form-help-btn--active {
+  color: var(--color-primary-text);
+  background: var(--color-primary-light);
+}
+
+/* =============================================
+   FIELD HELP BUBBLE — what a field is, next to the field
+   (portalled and positioned in viewport coordinates, so no
+   scroll container or card can clip it)
+   ============================================= */
+.field-bubble {
+  position: fixed;
+  z-index: 1200;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+/* The tip: a rotated square sharing the bubble's border, with the two edges
+   facing into the card painted over by the bubble's own background. */
+.field-bubble__arrow {
+  position: absolute;
+  top: -5px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border-strong);
+  border-top: 1px solid var(--color-border-strong);
+  transform: rotate(45deg);
+}
+
+.field-bubble--above .field-bubble__arrow {
+  top: auto;
+  bottom: -5px;
+  border-left: none;
+  border-top: none;
+  border-right: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.field-bubble__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding-right: var(--space-5);
+}
+
+.field-bubble__title {
+  font: var(--type-h4);
+  color: var(--color-text);
+}
+
+.field-bubble__env {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: var(--font-size-mono);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.field-bubble__close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-placeholder);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.field-bubble__close:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+/* Where to click, as the same chain of chips the walkthroughs use */
+.field-bubble__path {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 var(--space-2);
+  font: var(--type-caption);
+  color: var(--color-text);
+}
+
+.field-bubble__path code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: var(--font-size-mono);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-strong);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  color: var(--color-code-accent);
+  white-space: nowrap;
+}
+
+.field-bubble__hint {
+  margin: 0;
+  font: var(--type-caption);
+  color: var(--color-text);
+}
+
+/* =============================================
+   SSH KEY MODAL
+   ============================================= */
+.ssh-modal {
+  width: 560px;
+  max-width: 95vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.ssh-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow-y: auto;
+}
+
+.ssh-modal__desc {
+  margin: 0;
+  font: var(--type-body);
+  color: var(--color-text);
+}
+
+.ssh-modal__list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ssh-modal__count {
+  font: var(--type-label);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.ssh-modal__refresh {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.ssh-modal__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-8) 0;
+  font: var(--type-body);
+  color: var(--color-text-muted);
+}
+
+.ssh-modal__empty {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  font: var(--type-body);
+  color: var(--color-text);
+}
+
+.ssh-modal__empty-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-warning);
+}
+
+.ssh-modal__empty-title {
+  font: var(--type-h4);
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+.ssh-modal__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* One key: what it is called, what it is, and where it lives */
+.ssh-key-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.ssh-key-row:hover {
+  border-color: var(--color-border-strong);
+}
+
+.ssh-key-row--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.ssh-key-row input {
+  accent-color: var(--color-primary);
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ssh-key-row__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ssh-key-row__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ssh-key-row__name {
+  font: var(--type-h4);
+  color: var(--color-text);
+}
+
+.ssh-key-row__type {
+  font: var(--type-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+/* Only shown when the private half is missing — the one fact that stops a
+   key from working, and so the only one worth marking. */
+.ssh-key-row__warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: var(--type-micro);
+  color: var(--color-warning);
+}
+
+.ssh-key-row__path {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: var(--font-size-mono);
+  color: var(--color-text-muted);
+  word-break: break-all;
+}
+
+.ssh-modal__create {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.ssh-modal__create-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.ssh-modal__create-row .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ssh-modal__create-btn {
+  align-self: flex-start;
+}
+
 /* =============================================
    CARD / SECTION
    ============================================= */
@@ -1402,13 +2092,12 @@ body {
 }
 
 .card-title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  font: var(--type-h3);
   color: var(--color-text);
   margin-bottom: var(--space-3);
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .card-icon {
@@ -1421,8 +2110,8 @@ body {
    COPY BLOCK
    ============================================= */
 .copy-block {
-  background: var(--color-input-bg);
-  border: 1px solid var(--color-input-border);
+  background: var(--color-code-bg);
+  border: 1px solid var(--color-code-border);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
@@ -1431,24 +2120,23 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  background: var(--color-code-header-bg);
+  border-bottom: 1px solid var(--color-code-border);
 }
 
 .copy-block-label {
-  font-size: var(--font-size-xs);
-  font-weight: 500;
-  color: var(--color-text-muted);
+  font: var(--type-label);
+  color: var(--color-text);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .copy-block-content {
   padding: var(--space-3);
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   font-size: var(--font-size-mono);
-  color: var(--color-text);
+  color: var(--color-code-text);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
@@ -1469,15 +2157,15 @@ body {
   gap: var(--space-2);
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
   border-radius: var(--radius-md);
-  background: var(--color-input-bg);
-  border: 1px solid var(--color-input-border);
+  background: var(--color-code-bg);
+  border: 1px solid var(--color-code-border);
   min-height: 34px;
 }
 
 .copy-block-row-text {
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   font-size: var(--font-size-mono);
-  color: var(--color-text);
+  color: var(--color-code-text);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -1489,68 +2177,120 @@ body {
 /* =============================================
    DNS TABLE
    ============================================= */
+/* A table is a block like any other here, so it gets the same rounded,
+   bordered shell. `separate` with a zero gap keeps the radius clipping the
+   corner cells, which `collapse` would square off. */
 .dns-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-sunken);
 }
 
 .dns-table th {
   text-align: left;
   padding: var(--space-2) var(--space-3);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font: var(--type-label);
+  color: var(--color-text);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 2px solid var(--color-border);
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-secondary);
 }
 
 .dns-table td {
   padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
   color: var(--color-text);
+  vertical-align: middle;
+}
+
+.dns-table tbody tr:first-child td {
+  border-top: none;
+}
+
+.dns-table tbody tr:hover td {
+  background: var(--color-surface-hover);
+}
+
+/* The record type is the column you scan down */
+.dns-table__type {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-syntax-name);
+  letter-spacing: 0.04em;
+}
+
+/* An MX preference, kept beside its value rather than given a column of
+   its own: only one record type in the whole table ever carries one. */
+.dns-table__priority {
+  color: var(--color-text-muted);
+  /* Kept in one piece: wrapped mid-way, it reads as a stray bullet on one
+     line and a bare number on the next. */
+  white-space: nowrap;
 }
 
 .dns-table td:last-child {
-  width: 80px;
+  width: 1%;
   text-align: right;
+  white-space: nowrap;
 }
 
-.dns-table tr:last-child td {
-  border-bottom: none;
+/* A DKIM value is a few hundred characters of base64 — left to its own
+   devices it stretches the card past the window. */
+.dns-table td:nth-child(3) {
+  max-width: 22ch;
+  overflow-wrap: anywhere;
 }
 
 /* =============================================
    INFO BOX
    ============================================= */
+/* Colour identifies the kind of box — through its tint, its border and
+   its icon. The text itself stays the ordinary reading colour: coloured
+   prose was both harder to read and, three variants deep, the single
+   biggest source of colour on these pages. */
 .info-box {
   display: flex;
   gap: var(--space-2);
   padding: var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid;
+  color: var(--color-text);
+  font: var(--type-body);
 }
 
 .info-box.info {
   background: var(--color-primary-lighter);
-  border-color: rgba(29, 180, 138, 0.3);
-  color: #065f46;
+  border-color: rgba(23, 144, 111, 0.3);
+}
+
+.info-box.info .info-box-icon {
+  color: var(--color-primary-text);
 }
 
 .info-box.warning {
   background: var(--color-warning-light);
   border-color: #FCD34D;
-  color: #92400e;
+}
+
+.info-box.warning .info-box-icon {
+  color: var(--color-warning);
 }
 
 .info-box.tip {
   background: var(--color-secondary-light);
   border-color: #93C5FD;
-  color: #1e3a8a;
+}
+
+.info-box.tip .info-box-icon {
+  color: var(--color-secondary);
 }
 
 .info-box-icon {
@@ -1559,12 +2299,11 @@ body {
 }
 
 .info-box-text {
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
+  font: var(--type-body);
 }
 
 .info-box-title {
-  font-weight: 600;
+  font: var(--type-h4);
   margin-bottom: var(--space-1);
 }
 
@@ -1576,29 +2315,42 @@ body {
 .icon-row-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-item);
   list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .icon-row-list--spaced {
-  margin-top: var(--space-4);
+  margin-top: var(--gap-item);
+}
+
+/* The recessed row: an enumeration entry, a checkbox, a numbered screen,
+   a pointer to the walkthrough. They were four different surfaces — one
+   on --color-bg, one on --color-bg-secondary, two transparent — for what
+   is the same object, which is most of why these cards looked noisy. */
+.icon-row,
+.manual-check,
+.config-screen,
+.bucket-list,
+.service-config-block__help {
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .icon-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  padding: var(--space-3);
 }
 
 .icon-row__icon {
   width: 30px;
   height: 30px;
   background: var(--color-primary-light);
-  border: 1px solid rgba(29, 180, 138, 0.3);
+  border: 1px solid rgba(23, 144, 111, 0.3);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -1608,16 +2360,15 @@ body {
 }
 
 .icon-row__label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  font-weight: 500;
+  font: var(--type-label);
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
 }
 
 .icon-row__text {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
+  font: var(--type-body);
   color: var(--color-text);
-  line-height: 1.45;
 }
 
 /* =============================================
@@ -1686,8 +2437,7 @@ body {
 }
 
 .modal-title {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
+  font: var(--type-h2);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -1700,7 +2450,7 @@ body {
   border-radius: var(--radius-md);
   background: var(--color-bg-secondary);
   border: none;
-  color: var(--color-text-muted);
+  color: var(--color-text-placeholder);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1720,8 +2470,7 @@ body {
 }
 
 .modal-body h3 {
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  font: var(--type-h3);
   color: var(--color-text);
   margin-bottom: var(--space-2);
   margin-top: var(--space-5);
@@ -1735,9 +2484,8 @@ body {
 }
 
 .modal-body p {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.55;
+  font: var(--type-body);
+  color: var(--color-text);
   margin-bottom: var(--space-3);
 }
 
@@ -1750,9 +2498,8 @@ body {
 }
 
 .modal-body li {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 .modal-body code {
@@ -1766,7 +2513,7 @@ body {
 
 .modal-body strong {
   color: var(--color-text);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* =============================================
@@ -1812,8 +2559,7 @@ body {
 }
 
 .help-panel-title {
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h2);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -1830,8 +2576,7 @@ body {
 }
 
 .help-panel-body h3 {
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  font: var(--type-h3);
   color: var(--color-text);
   margin-bottom: var(--space-2);
   margin-top: var(--space-5);
@@ -1844,18 +2589,31 @@ body {
   margin-top: 0;
 }
 
+/* Lists keep normal block layout: a flex container puts the markers outside
+   its content box, where they hang over — or under — the text instead of
+   lining up with it. The indent is padding, so the bullet sits inside the box
+   and every wrapped line aligns under the first. */
 .help-panel-body ol,
 .help-panel-body ul {
-  margin-left: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  margin-left: 0;
+  padding-left: var(--space-5);
+  list-style-position: outside;
 }
 
 .help-panel-body li {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
+  font: var(--type-body);
+  color: var(--color-text);
+}
+
+/* Markers carry as much weight as the text they introduce — a marker faded
+   into the background reads as decoration and the list loses its shape. */
+
+.help-panel-body li + li {
+  margin-top: var(--space-2);
+}
+
+.help-panel-body li::marker {
+  color: var(--color-text);
 }
 
 /* Every action name in the panel — walkthrough card, click path, note — gets
@@ -1867,19 +2625,18 @@ body {
   border: 1px solid var(--color-border-strong);
   padding: 1px 5px;
   border-radius: var(--radius-sm);
-  color: var(--color-primary-hover);
+  color: var(--color-code-accent);
   white-space: nowrap;
 }
 
 .help-panel-body strong {
   color: var(--color-text);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .help-panel-body p {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.55;
+  font: var(--type-body);
+  color: var(--color-text);
   margin-bottom: var(--space-3);
 }
 
@@ -1892,35 +2649,8 @@ body {
   transition: background var(--transition-base), border-color var(--transition-base);
 }
 
-.help-section-title {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: var(--space-1);
-}
-
-.help-env-key {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: var(--font-size-xs);
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  padding: 1px 5px;
-  border-radius: var(--radius-sm);
-}
-
 .help-section p {
   margin-bottom: 0;
-}
-
-/* A section carries the click path first, then what the value actually is */
-.help-section .step-schema {
-  margin-top: 3px;
 }
 
 .help-section .help-note {
@@ -1928,7 +2658,7 @@ body {
   margin-left: 0;
 }
 
-/* Flash ring shown when a field's "?" button jumps here */
+/* Flash ring shown when a "Learn more" button jumps here */
 .help-section--flash {
   animation: helpFlash 2.6s ease both;
 }
@@ -1937,78 +2667,41 @@ body {
   0%, 70% {
     background: var(--color-primary-light);
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(29, 180, 138, 0.18);
+    box-shadow: 0 0 0 3px rgba(23, 144, 111, 0.18);
   }
   100% {
     background: transparent;
     border-color: transparent;
-    box-shadow: 0 0 0 0 rgba(29, 180, 138, 0);
+    box-shadow: 0 0 0 0 rgba(23, 144, 111, 0);
   }
 }
 
-/* Field sections sit under the walkthrough of the service they belong to */
-.help-fields {
-  margin-left: var(--space-4);
-  margin-bottom: var(--space-5);
-}
-
-.help-fields-group {
-  margin-bottom: var(--space-3);
-}
-
-.help-fields-group:last-child {
-  margin-bottom: 0;
-}
-
-.help-fields-group-title {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--color-primary-text);
-  margin-bottom: var(--space-2);
-}
-
-.help-block {
-  margin-left: var(--space-4);
-  margin-bottom: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.help-block p {
-  margin-bottom: 0;
-}
-
-.step-schema {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
+/* Secondary information, ranked below the description by SIZE and not by
+   fading: a note set in the palest grey available stopped being read at all. */
 .help-note {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
-  margin-top: 2px;
-  margin-left: 4px;
-  line-height: 1.5;
+  font: var(--type-caption);
+  color: var(--color-text);
+  margin-top: var(--space-1);
+  margin-left: 0;
 }
 .help-note strong {
-  color: var(--color-text-secondary);
+  color: var(--color-text);
+  font-weight: var(--font-weight-bold);
 }
 
 ul.help-note {
-  margin-left: var(--space-4);
-  margin-top: 4px;
-  list-style: disc;
+  margin-left: 0;
+  margin-top: var(--space-2);
+  padding-left: var(--space-5);
+  list-style: disc outside;
 }
 ul.help-note li {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
+  font: var(--type-caption);
+  color: var(--color-text);
+}
+
+.help-panel-body ul.help-note li + li {
+  margin-top: var(--space-1);
 }
 
 /* =============================================
@@ -2025,9 +2718,15 @@ ul.help-note li {
   gap: 0;
 }
 
-/* Inside the panel the chain is indented and separated from the next service */
+/* Inside the panel the chain is indented and separated from the next service.
+   It carries its own numbering, so it keeps the panel's list indent off. */
 .help-panel-body .help-flow {
   margin: 0 0 var(--space-5) var(--space-4);
+  padding-left: 0;
+}
+
+.help-panel-body .help-flow > li + li {
+  margin-top: 0;
 }
 
 .help-flow__card {
@@ -2047,34 +2746,19 @@ ul.help-note li {
 }
 
 .help-flow__index {
-  flex-shrink: 0;
-  width: 19px;
-  height: 19px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-light);
-  color: var(--color-primary-text);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  /* A flex box centres the glyph box, not the glyph: neutralise the font's
-     line box and its numeric side-bearings so the digit lands dead centre. */
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  display: grid;
-  place-items: center;
+  width: 21px;
+  height: 21px;
+  font-size: var(--font-size-sm);
 }
 
 .help-flow__title {
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+  font: var(--type-h4);
   color: var(--color-text);
-  line-height: 1.3;
 }
 
 .help-flow__desc {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-  line-height: 1.55;
+  font: var(--type-body);
+  color: var(--color-text);
   margin: 0;
 }
 
@@ -2084,7 +2768,7 @@ ul.help-note li {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-placeholder);
   padding: var(--space-1) 0;
 }
 
@@ -2098,8 +2782,8 @@ ul.help-note li {
   border-radius: var(--radius-sm);
   padding: 6px 11px;
   font-family: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-primary-text);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast);
@@ -2115,7 +2799,12 @@ ul.help-note li {
   margin-bottom: 0;
 }
 
+.help-panel-body .help-flow__copy-list > li + li {
+  margin-top: var(--space-2);
+}
+
 /* Copyable literals inside an action card — values that must be typed exactly */
+.help-panel-body .help-flow__copy-list,
 .help-flow__copy-list {
   list-style: none;
   margin: 0;
@@ -2133,9 +2822,8 @@ ul.help-note li {
   align-items: flex-start;
   gap: 2px;
   min-width: 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
-  line-height: 1.5;
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 .help-flow__copy-note {
@@ -2153,7 +2841,7 @@ ul.help-note li {
   padding: 2px 6px;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
-  color: var(--color-primary-hover);
+  color: var(--color-code-accent);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
@@ -2207,33 +2895,57 @@ ul.help-note li {
   align-items: flex-start;
   gap: var(--space-2);
   padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
 .service-help-hint {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-tertiary);
-  line-height: 1.5;
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 /* =============================================
    CONFIG-APP SCREENS (step 5, "Next steps")
    The config.<domain> wizard, one block per screen
    ============================================= */
+/* The line that opens a block, above the buttons or the list it introduces */
+.step-lead {
+  margin: 0;
+  font: var(--type-lead);
+  color: var(--color-text);
+}
+
+.done-badge-row {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-6);
+}
+
+.done-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-light);
+  border: 1px solid rgba(23, 144, 111, 0.3);
+  color: var(--color-primary-text);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
 .config-screens {
   /* min-width:0 keeps long values (a JWT) inside the card instead of
      stretching the surrounding flex/grid track */
   min-width: 0;
-  margin-bottom: var(--space-6);
 }
 
 .config-screens__title {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-weight: 600;
-  margin-bottom: var(--space-3);
+  font: var(--type-h3);
+  color: var(--color-text);
+  margin-bottom: var(--gap-item);
 }
 
 .config-screens__list {
@@ -2242,7 +2954,7 @@ ul.help-note li {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--gap-item);
   min-width: 0;
 }
 
@@ -2252,23 +2964,12 @@ ul.help-note li {
   gap: var(--space-3);
   min-width: 0;
   padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
 .config-screen__index {
-  flex-shrink: 0;
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-light);
-  color: var(--color-primary-text);
   font-size: var(--font-size-sm);
-  font-weight: 700;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  display: grid;
-  place-items: center;
 }
 
 .config-screen__body {
@@ -2276,27 +2977,24 @@ ul.help-note li {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-item);
 }
 
 .config-screen__name {
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font: var(--type-h4);
   color: var(--color-text);
 }
 
 .config-screen__desc {
   margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.55;
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 .config-screen__note {
   margin: 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
-  line-height: 1.5;
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 /* The copy rows carry a JWT — they must truncate, never widen the card */
@@ -2342,8 +3040,8 @@ ul.help-note li {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--color-primary-text);
 }
@@ -2357,8 +3055,8 @@ ul.help-note li {
 /* The A/A endpoints stay a fixed size — they are the scale's own legend */
 .settings-font__tick {
   flex-shrink: 0;
-  font-weight: 700;
-  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-placeholder);
   line-height: 1;
   user-select: none;
 }
@@ -2429,8 +3127,7 @@ ul.help-note li {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font: var(--type-ui);
   color: var(--color-text);
 }
 
@@ -2453,9 +3150,7 @@ ul.help-note li {
   border: none;
   background: transparent;
   border-radius: var(--radius-sm);
-  font-family: inherit;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-micro);
   color: var(--color-text-muted);
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -2470,45 +3165,87 @@ ul.help-note li {
   background: var(--color-surface);
   color: var(--color-primary-text);
   box-shadow: var(--shadow-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 /* =============================================
    EXTERNAL LINK BUTTONS ROW
    ============================================= */
+/* No outer margin: every caller sits in a flex column that already spaces
+   its children. A component that carries its own margin spaces differently
+   depending on where it lands, which is what made these pages uneven. */
 .link-buttons-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  margin-bottom: var(--space-5);
 }
 
 /* =============================================
    FINAL STEP (Deploy)
    ============================================= */
 .env-preview {
-  background: #14181F;
-  color: #A8FF78;
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  background: var(--color-code-bg);
+  border: 1px solid var(--color-code-border);
+  color: var(--color-code-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
   line-height: 1.7;
   max-height: 255px;
-  overflow-y: auto;
+  overflow: auto;
   white-space: pre;
   user-select: text;
 }
 
 .env-preview .env-comment {
-  color: #718096;
+  color: var(--color-syntax-comment);
+}
+
+.env-preview .env-sep {
+  color: var(--color-text-placeholder);
 }
 
 .env-preview .env-key {
-  color: #68D391;
+  color: var(--color-syntax-name);
+  font-weight: var(--font-weight-semibold);
 }
 
 .env-preview .env-value {
-  color: #FBD38D;
+  color: var(--color-syntax-value);
+}
+
+/* Shared snippet tokens — the .env preview, the SQL block and the command
+   blocks all colour the same three things the same way. */
+.tok-name {
+  color: var(--color-syntax-name);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tok-value {
+  color: var(--color-syntax-value);
+}
+
+.tok-comment {
+  color: var(--color-syntax-comment);
+  font-style: italic;
+}
+
+.tok-punct {
+  color: var(--color-text-placeholder);
+}
+
+/* The platform a command belongs to. One chip, whichever platform it is —
+   a green one next to a blue one implied a difference that is not there. */
+.os-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font: var(--type-micro);
+  letter-spacing: 0.04em;
 }
 
 .download-section {
@@ -2517,7 +3254,7 @@ ul.help-note li {
   gap: var(--space-4);
   padding: var(--space-5);
   background: var(--color-primary-lighter);
-  border: 1px solid rgba(29, 180, 138, 0.25);
+  border: 1px solid rgba(23, 144, 111, 0.25);
   border-radius: var(--radius-lg);
   margin-top: var(--space-5);
 }
@@ -2539,14 +3276,14 @@ ul.help-note li {
 }
 
 .download-title {
-  font-weight: 600;
+  font: var(--type-h4);
   color: var(--color-text);
   margin-bottom: 2px;
 }
 
 .download-subtitle {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 /* =============================================
@@ -2556,76 +3293,82 @@ ul.help-note li {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin-bottom: var(--space-4);
+  min-width: 0;
+}
+
+/* Several commands run in order — each title+command pair stands apart from
+   the next, so the sequence reads as distinct steps rather than one run-on
+   block. */
+.command-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-section);
 }
 
 .command-label {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font: var(--type-body-strong);
+  color: var(--color-text);
 }
 
 .command-block {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  background: #1A202C;
+  background: var(--color-code-bg);
   border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid #2D3748;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border: 1px solid var(--color-code-border);
+}
+
+.command-block__marker {
+  flex-shrink: 0;
+  color: var(--color-text-placeholder);
 }
 
 .command-text {
   flex: 1;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
-  color: #68D391;
+  color: var(--color-code-text);
   user-select: text;
   word-break: break-all;
-}
-
-.command-prompt {
-  color: #4A5568;
-  margin-right: var(--space-1);
-  flex-shrink: 0;
 }
 
 /* =============================================
    SQL BLOCK
    ============================================= */
 .sql-block {
-  background: #1A202C;
+  background: var(--color-code-bg);
   border-radius: var(--radius-md);
   overflow: hidden;
-  border: 1px solid #2D3748;
+  border: 1px solid var(--color-code-border);
 }
 
 .sql-block-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-4);
-  background: #2D3748;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  background: var(--color-code-header-bg);
+  border-bottom: 1px solid var(--color-code-border);
 }
 
 .sql-lang-badge {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: #68D391;
+  font: var(--type-micro);
+  color: var(--color-syntax-name);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
 }
 
 .sql-block-content {
   padding: var(--space-3);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: var(--font-size-mono);
-  color: #E8EDF3;
+  color: var(--color-code-text);
   line-height: 1.6;
   user-select: text;
   white-space: pre;
+  overflow-x: auto;
 }
 
 /* =============================================
@@ -2637,8 +3380,7 @@ ul.help-note li {
   gap: var(--space-1);
   background: var(--color-primary-light);
   color: var(--color-primary-text);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font: var(--type-micro);
   padding: 2px var(--space-2);
   border-radius: var(--radius-full);
 }
@@ -2707,8 +3449,13 @@ ul.help-note li {
   margin-bottom: var(--space-5);
 }
 
+/* Legacy name, kept because markup still asks for it. It no longer mutes:
+   running prose belongs on the content tone whatever its rank. To set a
+   paragraph back from the one above it, drop it a level in the ladder
+   (`.t-caption`) — never fade it. For the rare low-stakes aside that really
+   does want a lighter tone, the class is `.t-muted`. */
 .text-muted {
-  color: var(--color-text-muted);
+  color: var(--color-text);
 }
 
 .text-sm {
@@ -2769,7 +3516,7 @@ ul.help-note li {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 20px 40px rgba(29, 180, 138, 0.3);
+  box-shadow: 0 20px 40px rgba(23, 144, 111, 0.3);
   transform: rotate(-5deg);
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -2779,19 +3526,17 @@ ul.help-note li {
 }
 
 .landing-title {
-  font-size: 2.65rem;
-  font-weight: 800;
+  font: var(--type-display);
   color: var(--color-text);
   margin-bottom: var(--space-3);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .landing-subtitle {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
+  font: var(--type-lead);
+  color: var(--color-text);
   max-width: 500px;
   margin-bottom: var(--space-5);
-  line-height: 1.5;
 }
 
 .landing-team-badge {
@@ -2802,13 +3547,12 @@ ul.help-note li {
   border: 1px solid rgba(255, 255, 255, 0.8);
   padding: var(--space-2) var(--space-5);
   border-radius: var(--radius-full);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+  font: var(--type-label);
   color: var(--color-primary-text);
   margin-bottom: var(--space-8);
   box-shadow: var(--shadow-sm);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .landing-actions {
@@ -2824,7 +3568,7 @@ ul.help-note li {
   padding: var(--space-3) var(--space-5);
   font-size: var(--font-size-md);
   border-radius: var(--radius-lg);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* =============================================
@@ -2845,7 +3589,7 @@ ul.help-note li {
   color: var(--color-surface);
   padding: 6px 10px;
   border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   white-space: nowrap;
   opacity: 0;
   transition: opacity var(--transition-fast), transform var(--transition-fast);
@@ -2883,11 +3627,10 @@ ul.help-note li {
 
 .recent-configs-title {
   text-align: left;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font: var(--type-label);
+  color: var(--color-text);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
   margin-bottom: var(--space-3);
   padding-left: var(--space-2);
 }
@@ -2937,7 +3680,7 @@ ul.help-note li {
 }
 
 .recent-config-item:hover {
-  background: rgba(29, 180, 138, 0.04);
+  background: rgba(23, 144, 111, 0.04);
 }
 
 .recent-config-info {
@@ -2950,8 +3693,7 @@ ul.help-note li {
 }
 
 .recent-config-name {
-  font-weight: 600;
-  font-size: var(--font-size-base);
+  font: var(--type-h4);
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
@@ -2959,12 +3701,12 @@ ul.help-note li {
 }
 
 .recent-config-path {
-  font-size: var(--font-size-xs);
+  font: var(--type-caption);
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
   color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
 }
 
 .recent-config-actions {
@@ -2983,8 +3725,8 @@ ul.help-note li {
   color: white;
   border: none;
   border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition: all var(--transition-fast);
   white-space: nowrap;
@@ -2993,7 +3735,7 @@ ul.help-note li {
 
 .recent-config-launch:hover {
   background: var(--color-primary-hover);
-  box-shadow: 0 4px 12px rgba(29, 180, 138, 0.3);
+  box-shadow: 0 4px 12px rgba(23, 144, 111, 0.3);
   transform: translateY(-1px);
 }
 
@@ -3008,7 +3750,7 @@ ul.help-note li {
   width: 28px;
   height: 28px;
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text-placeholder);
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -3033,7 +3775,7 @@ ul.help-note li {
   gap: var(--space-3);
   padding: var(--space-8) var(--space-6);
   color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  font: var(--type-body);
 }
 
 /* =============================================
@@ -3057,25 +3799,23 @@ ul.help-note li {
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-radius: calc(var(--radius-lg) - 2px);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  font-family: var(--font-family);
+  font: var(--type-ui);
   cursor: pointer;
   border: none;
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text);
   transition: all var(--transition-fast);
 }
 
 .deploy-tab:hover:not(.active) {
-  color: var(--color-text-secondary);
+  color: var(--color-text);
   background: rgba(255, 255, 255, 0.5);
 }
 
 .deploy-tab.active {
   background: var(--color-surface);
   color: var(--color-primary-text);
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   box-shadow: var(--shadow-sm);
 }
 
@@ -3087,9 +3827,10 @@ ul.help-note li {
    DEPLOY CONSOLE
    ============================================= */
 .deploy-console {
-  background: #14181F;
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  background: var(--color-terminal-bg);
+  color: var(--color-terminal-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   min-height: 130px;
   max-height: 240px;
   overflow-y: auto;
@@ -3100,8 +3841,7 @@ ul.help-note li {
 }
 
 .deploy-console-placeholder {
-  color: #4A5568;
-  font-style: italic;
+  color: var(--color-terminal-dim);
 }
 
 .deploy-log-line {
@@ -3112,24 +3852,19 @@ ul.help-note li {
   animation: fadeIn 0.15s ease;
 }
 
+/* The icon already says what a line is. Colouring the prose to match made
+   every console a four-colour block; only an error keeps its own tone,
+   because that is the line you scroll back to find. */
 .deploy-log-text {
-  color: #A0AEC0;
-}
-
-.deploy-log-line.done .deploy-log-text {
-  color: #68D391;
+  color: var(--color-terminal-text);
 }
 
 .deploy-log-line.error .deploy-log-text {
-  color: #FC8181;
+  color: var(--color-terminal-error);
 }
 
 .deploy-log-line.info .deploy-log-text {
-  color: #63B3ED;
-}
-
-.deploy-log-line.running .deploy-log-text {
-  color: #FBD38D;
+  color: var(--color-terminal-dim);
 }
 
 .deploy-log-icon {
@@ -3137,16 +3872,16 @@ ul.help-note li {
 }
 
 .deploy-log-icon.done {
-  color: #68D391;
+  color: var(--color-terminal-ok);
 }
 
 .deploy-log-icon.error {
-  color: #FC8181;
+  color: var(--color-terminal-error);
 }
 
 .deploy-log-icon.info {
-  color: #63B3ED;
-  font-weight: 700;
+  color: var(--color-terminal-dim);
+  font-weight: var(--font-weight-bold);
   font-size: var(--font-size-md);
   line-height: 1;
   display: inline-flex;
@@ -3160,8 +3895,8 @@ ul.help-note li {
 .deploy-log-spinner {
   width: 13px;
   height: 13px;
-  border: 2px solid #4A5568;
-  border-top-color: #FBD38D;
+  border: 2px solid var(--color-terminal-dim);
+  border-top-color: var(--color-terminal-text);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   flex-shrink: 0;
@@ -3243,17 +3978,12 @@ ul.help-note li {
   margin-bottom: var(--space-4);
 }
 
-.deploy-path-label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
-
 .deploy-status.form-label {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   margin-bottom: var(--space-2);
   flex-wrap: nowrap;
@@ -3264,8 +3994,7 @@ ul.help-note li {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font: var(--type-micro);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
   flex-shrink: 0;
@@ -3297,8 +4026,8 @@ ul.help-note li {
   color: white;
   border: 1px solid var(--color-primary);
   padding: var(--space-3) var(--space-6);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   border-radius: var(--radius-md);
   display: inline-flex;
   align-items: center;
@@ -3324,8 +4053,8 @@ ul.help-note li {
   color: var(--color-danger);
   border: 1.5px solid var(--color-danger);
   padding: var(--space-3) var(--space-6);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
   border-radius: var(--radius-md);
   display: inline-flex;
   align-items: center;
@@ -3349,9 +4078,8 @@ ul.help-note li {
 }
 
 .deploy-dialog-message {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.7;
+  font: var(--type-body);
+  color: var(--color-text);
   margin-bottom: var(--space-5);
 }
 
@@ -3424,27 +4152,28 @@ ul.help-note li {
 }
 
 .deploy-choice-label {
-  font-size: var(--font-size-sm);
+  font: var(--type-body);
   color: var(--color-text);
-  font-weight: 500;
 }
 
 /* Automation waiting on an upstream step. Muted rather than disabled: the
    manual-configuration dropdown below stays fully usable, which is the whole
-   point of keeping it. */
-.service-config-block--locked {
+   point of keeping it. A block that is also `--complete` (fully filled in by
+   hand) keeps the one green validation style instead — the lock only
+   explains why the automation itself can't run yet. */
+.service-config-block--locked:not(.service-config-block--complete) {
   background: var(--color-surface-alt, var(--color-surface));
   border-style: dashed;
 }
 
-.service-config-block--locked .service-config-block__name,
-.service-config-block--locked .service-config-block__description {
+.service-config-block--locked:not(.service-config-block--complete) .service-config-block__name,
+.service-config-block--locked:not(.service-config-block--complete) .service-config-block__description {
   color: var(--color-text-muted);
 }
 
 .service-config-block__info-box--locked {
-  background: var(--color-surface-alt, transparent);
-  border: 1px dashed var(--color-border);
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border-strong);
   color: var(--color-text-muted);
 }
 
@@ -3474,7 +4203,7 @@ ul.help-note li {
   align-items: center;
   gap: var(--space-2);
   cursor: pointer;
-  font-size: var(--font-size-base);
+  font: var(--type-body);
   color: var(--color-text);
 }
 
@@ -3494,8 +4223,8 @@ ul.help-note li {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-base);
-  color: var(--color-text-muted);
+  font: var(--type-body);
+  color: var(--color-text);
 }
 
 .project-create-status--done {
@@ -3517,16 +4246,15 @@ ul.help-note li {
 }
 
 .project-verification--ok {
-  border-color: rgba(29, 180, 138, 0.4);
+  border-color: rgba(23, 144, 111, 0.4);
   background: var(--color-primary-lighter);
 }
 
 .project-verification__facts {
   margin: 0;
   padding-left: var(--space-4);
-  font-size: var(--font-size-sm);
+  font: var(--type-caption);
   color: var(--color-text);
-  line-height: 1.7;
 }
 
 .project-verification__facts code {
@@ -3547,9 +4275,8 @@ ul.help-note li {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
-  color: var(--color-text-muted);
+  font: var(--type-caption);
+  color: var(--color-text);
 }
 
 .password-rules__item svg {
@@ -3580,8 +4307,7 @@ ul.help-note li {
 }
 
 .password-rules-box__title {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font: var(--type-ui);
   color: var(--color-text);
   margin-bottom: var(--space-2);
 }

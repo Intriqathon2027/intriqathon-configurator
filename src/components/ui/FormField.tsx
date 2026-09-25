@@ -1,7 +1,7 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Eye, EyeOff, HelpCircle, KeyRound, Wand2 } from 'lucide-react'
-import { useHelpNav } from '../../context/HelpNavContext'
 import { hasFieldHelp } from '../../i18n/fieldHelp'
+import { FieldHelpBubble } from './FieldHelpBubble'
 
 interface FormFieldProps {
   id: string
@@ -13,7 +13,9 @@ interface FormFieldProps {
   disabled?: boolean
   rightElement?: ReactNode
   multiline?: boolean
-  /** Help section to jump to. Defaults to `id`; the button only shows if a section exists. */
+  /** Visible lines of a multiline field. Two is enough for a key or a URL. */
+  rows?: number
+  /** Entry the "?" bubble reads. Defaults to `id`; the button only shows if an entry exists. */
   helpId?: string
   /**
    * Inline prompt shown as long as the value still contains a literal
@@ -44,12 +46,14 @@ export function FormField({
   disabled = false,
   rightElement,
   multiline = false,
+  rows = 2,
   helpId,
   tokenFill,
 }: FormFieldProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [fillValue, setFillValue] = useState('')
-  const { openHelp } = useHelpNav()
+  const [helpShown, setHelpShown] = useState(false)
+  const helpBtnRef = useRef<HTMLButtonElement>(null)
 
   const isPassword = type === 'password'
   const inputType = isPassword ? (showPassword ? 'text' : 'password') : type
@@ -84,7 +88,7 @@ export function FormField({
               disabled={disabled}
               autoComplete="off"
               spellCheck={false}
-              rows={3}
+              rows={rows}
               style={isPassword && !showPassword ? maskedTextareaStyle : undefined}
             />
           ) : (
@@ -118,14 +122,24 @@ export function FormField({
 
         {showHelp && (
           <button
+            ref={helpBtnRef}
             type="button"
-            className="form-help-btn"
-            onClick={() => openHelp(helpTarget)}
+            className={`form-help-btn${helpShown ? ' form-help-btn--active' : ''}`}
+            onClick={() => setHelpShown(open => !open)}
             title="Aide"
             aria-label="Aide"
+            aria-expanded={helpShown}
           >
             <HelpCircle size={15} />
           </button>
+        )}
+
+        {showHelp && helpShown && (
+          <FieldHelpBubble
+            fieldId={helpTarget}
+            anchorRef={helpBtnRef}
+            onClose={() => setHelpShown(false)}
+          />
         )}
       </div>
 

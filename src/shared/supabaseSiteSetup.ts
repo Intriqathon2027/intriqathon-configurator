@@ -55,6 +55,17 @@ export const REALTIME_CHECK_SQL = `SELECT
       AND lower(tablename) = lower('${REALTIME_TABLE}')
   ) AS already_published;`
 
+/**
+ * Whether the public schema holds anything at all — the cheapest form of the
+ * check above, for the wait that precedes the run.
+ */
+export const PUBLIC_TABLE_COUNT_SQL = `SELECT count(*)::int AS public_tables
+FROM pg_tables WHERE schemaname = 'public';`
+
+export interface PublicTableCountRow {
+  public_tables: number
+}
+
 /** The public tables, to name them when the expected one is not among them. */
 export const PUBLIC_TABLES_SQL = `SELECT tablename
 FROM pg_tables
@@ -89,6 +100,37 @@ BEGIN
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', target.tablename);
   END LOOP;
 END $$;`
+
+/**
+ * Whether the privileges `GRANTS_SQL` hands out are in fact held — the read-only
+ * half of that block, for the box that claims it was run.
+ *
+ * Asked of the roles rather than of the grant statements: a reader who applied
+ * the same privileges some other way has done the thing the box says, and the
+ * point is what is true of the schema, not how it got that way.
+ */
+export const GRANTS_CHECK_SQL = `SELECT
+  (SELECT count(*)::int FROM pg_tables WHERE schemaname = 'public') AS public_tables,
+  (
+    has_schema_privilege('anon', 'public', 'USAGE')
+    AND has_schema_privilege('authenticated', 'public', 'USAGE')
+    AND has_schema_privilege('service_role', 'public', 'USAGE')
+  ) AS schema_granted,
+  NOT EXISTS (
+    SELECT 1 FROM pg_tables t
+    WHERE t.schemaname = 'public'
+      AND NOT (
+        has_table_privilege('anon', format('public.%I', t.tablename), 'SELECT')
+        AND has_table_privilege('authenticated', format('public.%I', t.tablename), 'SELECT')
+        AND has_table_privilege('service_role', format('public.%I', t.tablename), 'SELECT')
+      )
+  ) AS tables_granted;`
+
+export interface GrantsCheckRow {
+  public_tables: number
+  schema_granted: boolean
+  tables_granted: boolean
+}
 
 /** Rows returned by `REALTIME_CHECK_SQL`. */
 export interface RealtimeCheckRow {

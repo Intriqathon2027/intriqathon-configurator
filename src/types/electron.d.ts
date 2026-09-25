@@ -9,9 +9,18 @@ import type {
   SupabaseOrganizationSummary,
   SupabaseProjectSummary,
   SupabaseProjectVerification,
+  ManualCheckProbe,
+  ManualCheckProbeRequest,
+  ResendDomainReadRequest,
+  ResendDomainSnapshot,
+  ResendProvisionRequest,
+  ResendVerificationResult,
+  ResendVerifyRequest,
+  SpaceshipProvisionRequest,
   SupabaseProvisionRequest,
   SupabaseSiteSetupRequest,
 } from './provision'
+import type { CredentialCheckRequest, CredentialCheckResult } from './credentials'
 
 export interface RecentConfig {
   name: string
@@ -103,6 +112,12 @@ export interface ElectronAPI {
   // Provisioning (Configuration par API)
   startSupabaseProvision: (req: SupabaseProvisionRequest) => Promise<void>
   startSupabaseSiteSetup: (req: SupabaseSiteSetupRequest) => Promise<void>
+  startSpaceshipProvision: (req: SpaceshipProvisionRequest) => Promise<void>
+  startResendProvision: (req: ResendProvisionRequest) => Promise<void>
+  verifyResendDomain: (req: ResendVerifyRequest) => Promise<ProvisionQueryResult<ResendVerificationResult>>
+  readResendDomain: (req: ResendDomainReadRequest) => Promise<ProvisionQueryResult<ResendDomainSnapshot>>
+  readManualChecks: (req: ManualCheckProbeRequest) => Promise<ProvisionQueryResult<ManualCheckProbe>>
+  checkCredentials: (req: CredentialCheckRequest) => Promise<CredentialCheckResult>
   listSupabaseOrganizations: (accessToken: string) => Promise<ProvisionQueryResult<SupabaseOrganizationSummary[]>>
   listSupabaseProjects: (accessToken: string) => Promise<ProvisionQueryResult<SupabaseProjectSummary[]>>
   verifySupabaseProject: (accessToken: string, ref: string) => Promise<ProvisionQueryResult<SupabaseProjectVerification>>

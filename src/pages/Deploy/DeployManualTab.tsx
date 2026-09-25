@@ -1,5 +1,7 @@
 import { FileDown, Download, Terminal } from 'lucide-react'
-import { CommandBlock } from '../ui/CopyBlock'
+import { Card } from '../../components/ui/Card'
+import { CommandBlock } from '../../components/ui/CopyBlock'
+import { ManualCheck } from '../../components/ui/ManualCheck'
 import { useApp } from '../../context/AppContext'
 
 import { generateEnvContent } from '../../utils/deploy'
@@ -35,7 +37,7 @@ export function DeployManualTab() {
       return (
         <span key={i}>
           <span className="env-key">{key}</span>
-          <span style={{ color: '#718096' }}>=</span>
+          <span className="env-sep">=</span>
           <span className="env-value">{value}</span>{'\n'}
         </span>
       )
@@ -46,8 +48,7 @@ export function DeployManualTab() {
   return (
     <>
       {/* .env preview + download */}
-      <div className="card">
-        <div className="card-title"><FileDown size={16} color="var(--color-primary-text)" />{t('step6.preview')}</div>
+      <Card icon={<FileDown size={16} color="var(--color-primary-text)" />} title={t('step6.preview')}>
         <div className="env-preview">{colorizedEnv}</div>
         <div className="download-section">
           <div className="download-icon">
@@ -62,43 +63,42 @@ export function DeployManualTab() {
             {t('btn.downloadEnv')}
           </button>
         </div>
-      </div>
+      </Card>
 
-      {/* Deployment commands */}
-      <div className="card">
-        <div className="card-title"><Terminal size={16} color="var(--color-primary-text)" />{t('step6.commands.title')}</div>
+      {/* Deployment commands — one stack, spaced by the list, so the blocks
+          no longer each carry a margin of their own. */}
+      <Card
+        icon={<Terminal size={16} color="var(--color-primary-text)" />}
+        title={t('step6.commands.title')}
+        style={{ marginTop: 'var(--space-5)' }}
+      >
+        <div className="command-stack">
+          <CommandBlock label={t('step6.cmd.cd')} command={`cd ${deployPath}`} />
 
-        <CommandBlock label={t('step6.cmd.cd')} command={`cd ${deployPath}`} />
-
-        <div style={{ marginBottom: '8px', marginTop: '16px' }}>
-          <div className="command-label" style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary-text)', padding: '1px 8px', borderRadius: '4px', fontSize: 'var(--font-size-xs)' }}>{t('step6.label.mac')}</span>
-          </div>
           <CommandBlock
+            label={<span className="os-chip">{t('step6.label.mac')}</span>}
             command={`rsync -avz --progress ./ root@${ipv4}:~/hackathon-deploy`}
           />
-        </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <div className="command-label" style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '1px 8px', borderRadius: '4px', fontSize: 'var(--font-size-xs)' }}>{t('step6.label.windows')}</span>
-          </div>
           <CommandBlock
+            label={<span className="os-chip">{t('step6.label.windows')}</span>}
             command={`scp -r ./ root@${ipv4}:~/hackathon-deploy`}
           />
-        </div>
 
-        <CommandBlock label={t('step6.cmd.ssh')} command={`ssh root@${ipv4}`} />
-        <div style={{ marginTop: '8px' }}>
+          <CommandBlock label={t('step6.cmd.ssh')} command={`ssh root@${ipv4}`} />
           <CommandBlock label={t('step6.cmd.cdRemote')} command="cd hackathon-deploy" />
-        </div>
-        <div style={{ marginTop: '8px' }}>
           <CommandBlock label={t('step6.cmd.chmod')} command="chmod +x install_hackathon.sh" />
-        </div>
-        <div style={{ marginTop: '8px' }}>
           <CommandBlock label={t('step6.cmd.install')} command="./install_hackathon.sh" />
+
+          {/* Nothing else records a deployment run from a terminal: the
+              automatic tab validates the step when it succeeds, and this is
+              the manual route's equivalent. */}
+          <ManualCheck
+            checkKey="deploy-manual"
+            label={isEn ? 'The deployment has been carried out' : 'Le déploiement a été effectué'}
+          />
         </div>
-      </div>
+      </Card>
     </>
   )
 }

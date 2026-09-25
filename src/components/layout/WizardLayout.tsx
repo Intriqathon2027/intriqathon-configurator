@@ -30,10 +30,10 @@ export function WizardLayout({
   const [helpFocus, setHelpFocus] = useState<HelpFocus | null>(null)
   const { currentStep } = state
 
-  // A field's "?" button opens the panel and asks it to reveal that section
-  const openHelp = useCallback((fieldId?: string) => {
+  // A "Learn more" button opens the panel and asks it to reveal that service
+  const openHelp = useCallback((anchor?: string) => {
     setHelpOpen(true)
-    if (fieldId) setHelpFocus(prev => ({ id: fieldId, nonce: (prev?.nonce ?? 0) + 1 }))
+    if (anchor) setHelpFocus(prev => ({ id: anchor, nonce: (prev?.nonce ?? 0) + 1 }))
   }, [])
 
   const helpNav = useMemo(() => ({ openHelp }), [openHelp])

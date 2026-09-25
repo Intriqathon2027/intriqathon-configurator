@@ -24,6 +24,7 @@ export type TranslationKeys = {
   'nav.previous': string
   'nav.step': string
   'nav.of': string
+  'btn.close': string
   'btn.copy': string
   'btn.copied': string
   'btn.openLink': string
@@ -134,7 +135,6 @@ export type TranslationKeys = {
   'accountCreation.supabase.nameTaken': string
   'accountCreation.supabase.nameTaken.switch': string
   'accountCreation.supabase.created': string
-  'accountCreation.supabase.created.next': string
   'accountCreation.supabase.projects.none': string
   'accountCreation.supabase.dbPassword.generate': string
   'accountCreation.supabase.dbPassword.requirements': string
@@ -143,7 +143,6 @@ export type TranslationKeys = {
   'accountCreation.supabase.dbPassword.rule.noShellBreakers': string
   'accountCreation.supabase.dbPassword.rule.variety': string
   'accountCreation.supabase.dbPassword.rule.recommendedLength': string
-  'accountCreation.supabase.createWarning': string
   'accountCreation.supabase.projectName': string
   'accountCreation.supabase.projectName.hint': string
   'accountCreation.supabase.organization': string
@@ -170,6 +169,19 @@ export type TranslationKeys = {
   'accountCreation.resend.apiKey': string
   'accountCreation.resend.apiKey.path': string
   'accountCreation.resend.apiKey.hint': string
+  'accountCreation.resend.mailSubdomain': string
+  'accountCreation.resend.mailSubdomain.hint': string
+
+  /**
+   * Shown only when the provider itself refuses the key. Each covers both of
+   * the causes a refusal can have — a wrong key, and a key without the rights
+   * the automation needs — because the reader's next move is the same either
+   * way: go back to the provider and look at the key.
+   */
+  'accountCreation.invalid.supabase': string
+  'accountCreation.invalid.scaleway': string
+  'accountCreation.invalid.spaceship': string
+  'accountCreation.invalid.resend': string
 
   // Spaceship
   'accountCreation.spaceship.title': string
@@ -182,6 +194,9 @@ export type TranslationKeys = {
   'accountCreation.spaceship.apiSecret': string
   'accountCreation.spaceship.apiSecret.path': string
   'accountCreation.spaceship.apiSecret.hint': string
+  'accountCreation.spaceship.otherProvider': string
+  /** What the card is called once DNS is somebody else's registrar. */
+  'accountCreation.domainProvider.title': string
 
   // Scaleway
   'accountCreation.scaleway.title': string
@@ -203,6 +218,7 @@ export type TranslationKeys = {
   'apiConfig.btnStart': string
   'apiConfig.btnCancel': string
   'apiConfig.btnRetry': string
+  'apiConfig.btnRerun': string
   'apiConfig.locked.supabaseToken': string
   'apiConfig.locked.supabasePassword': string
   'apiConfig.locked.scalewayKeys': string
@@ -213,6 +229,7 @@ export type TranslationKeys = {
   'apiConfig.locked.accountScaleway': string
   'apiConfig.locked.accountSpaceship': string
   'apiConfig.locked.accountResend': string
+  'apiConfig.locked.credentialRefused': string
   'apiConfig.status.done': string
   'apiConfig.status.running': string
   'apiConfig.status.error': string
@@ -251,11 +268,17 @@ export type TranslationKeys = {
 
   // Spaceship API config
   'apiConfig.spaceship.desc': string
+  'apiConfig.dns.resendMissing': string
+  'apiConfig.dns.resendRefused': string
+  'apiConfig.dns.refresh': string
+  'apiConfig.dns.refreshing': string
   'apiConfig.spaceship.helpHint': string
   'apiConfig.spaceship.dnsPath': string
+  'apiConfig.spaceship.hostNote': string
   'apiConfig.spaceship.ipv4': string
   'apiConfig.spaceship.ipv4.path': string
   'apiConfig.spaceship.ipv4.hint': string
+  'apiConfig.domainProvider.title': string
 
   // Scaleway API config
   'apiConfig.scaleway.desc': string
@@ -264,6 +287,13 @@ export type TranslationKeys = {
   // Resend API config
   'apiConfig.resend.desc': string
   'apiConfig.resend.helpHint': string
+  'apiConfig.resend.domainsBtn': string
+  'apiConfig.resend.verify.btn': string
+  'apiConfig.resend.verify.running': string
+  'apiConfig.resend.verify.verified': string
+  'apiConfig.resend.verify.pending': string
+  'apiConfig.resend.verify.failed': string
+  'apiConfig.resend.pendingBox': string
 
   // =============================================
   // Step 3 — OAuth2 + Discord Bot
@@ -341,6 +371,7 @@ export type TranslationKeys = {
   'step6.auto.browse': string
   'step6.auto.pathLabel': string
   'step6.auto.btnStart': string
+  'step6.auto.btnRestart': string
   'step6.auto.btnCancel': string
   'step6.auto.status.idle': string
   'step6.auto.status.running': string

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Check, Settings, Zap, PanelLeftClose, PanelLeft } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
+import { useStepComplete } from '../../hooks/useStepComplete'
 import { steps } from './steps'
 
 interface SidebarProps {
@@ -9,7 +10,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
-  const { state, t, goToStep, goHome, isStepComplete } = useApp()
+  const { state, t, goToStep, goHome } = useApp()
+  const isStepComplete = useStepComplete()
   const { currentStep } = state
 
   const isMac = typeof navigator !== 'undefined'

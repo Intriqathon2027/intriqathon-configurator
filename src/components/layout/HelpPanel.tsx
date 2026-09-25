@@ -8,12 +8,15 @@ interface HelpPanelProps {
   setHelpOpen: (open: boolean) => void
   title: string
   helpContent?: ReactNode
-  /** Set by a field's "?" button: section to scroll to and flash. */
+  /** Set by a "Learn more" button: service block to scroll to and flash. */
   focus?: HelpFocus | null
 }
 
 const FLASH_MS = 2600
 const SCROLL_MS = 420
+
+/** Breathing room kept above the section that was jumped to. */
+const SCROLL_MARGIN = 12
 
 /**
  * Action names are chips that never break across lines, so the panel cannot go
@@ -117,7 +120,7 @@ export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent, focus }: 
     }
   }, [isResizing, resize, stopResizing])
 
-  // Reveal the section a "?" button pointed at, once the panel has expanded
+  // Reveal the block a "Learn more" button pointed at, once the panel has expanded
   useEffect(() => {
     if (!focus) return
 
@@ -128,13 +131,16 @@ export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent, focus }: 
 
       const containerRect = container.getBoundingClientRect()
       const targetRect = target.getBoundingClientRect()
-      const centered = container.scrollTop
+      // The section's heading, not its middle: a walkthrough is read from its
+      // first step, and centring a long one put that first step off-screen
+      // above the fold.
+      const toTop = container.scrollTop
         + (targetRect.top - containerRect.top)
-        - (container.clientHeight - targetRect.height) / 2
+        - SCROLL_MARGIN
       const maxScroll = container.scrollHeight - container.clientHeight
       cancelScrollRef.current = smoothScrollTo(
         container,
-        Math.max(0, Math.min(centered, maxScroll)),
+        Math.max(0, Math.min(toTop, maxScroll)),
       )
 
       // Restart the animation even when the same section is requested twice

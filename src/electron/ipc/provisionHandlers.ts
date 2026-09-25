@@ -2,6 +2,18 @@ import { ipcMain } from 'electron'
 import type { BrowserWindow } from 'electron'
 import { SupabaseProvisionService, type SupabaseProvisionRequest } from '../services/SupabaseProvisionService'
 import { SupabaseSiteSetupService, type SupabaseSiteSetupRequest } from '../services/SupabaseSiteSetupService'
+import { SpaceshipProvisionService } from '../services/SpaceshipProvisionService'
+import { ResendProvisionService } from '../services/ResendProvisionService'
+import { checkCredentials } from '../services/CredentialCheckService'
+import { ManualCheckService } from '../services/ManualCheckService'
+import type { CredentialCheckRequest } from '../../types/credentials'
+import type {
+  ManualCheckProbeRequest,
+  ResendDomainReadRequest,
+  ResendProvisionRequest,
+  ResendVerifyRequest,
+  SpaceshipProvisionRequest,
+} from '../../types/provision'
 
 /**
  * IPC surface for the "Configuration par API" automations.
@@ -14,6 +26,9 @@ import { SupabaseSiteSetupService, type SupabaseSiteSetupRequest } from '../serv
 export function registerProvisionHandlers(getWin: () => BrowserWindow | null): void {
   const supabase = new SupabaseProvisionService()
   const supabaseSite = new SupabaseSiteSetupService()
+  const spaceship = new SpaceshipProvisionService()
+  const resend = new ResendProvisionService()
+  const manualChecks = new ManualCheckService()
 
   const requireWin = (): BrowserWindow => {
     const win = getWin()
@@ -56,8 +71,69 @@ export function registerProvisionHandlers(getWin: () => BrowserWindow | null): v
     }
   })
 
+  ipcMain.handle('provision:spaceship:start', (_event, req: SpaceshipProvisionRequest) => {
+    void spaceship.start(requireWin(), req)
+  })
+
+  ipcMain.handle('provision:resend:start', (_event, req: ResendProvisionRequest) => {
+    void resend.start(requireWin(), req)
+  })
+
+  /**
+   * A read of the sending domain, for a step being opened. Read-only: it asks
+   * Resend nothing but what it already holds.
+   */
+  ipcMain.handle('provision:resend:read-domain', async (_event, req: ResendDomainReadRequest) => {
+    try {
+      return { success: true, data: await resend.readDomain(req) }
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  /**
+   * The standalone verification. Answers a promise rather than streaming over
+   * `provision:*`: it is a question about one domain, not a run, and the card
+   * that asked is waiting on the answer.
+   */
+  ipcMain.handle('provision:resend:verify', async (_event, req: ResendVerifyRequest) => {
+    try {
+      return { success: true, data: await resend.verifyOnly(req) }
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  /**
+   * What the manual checkboxes claim, checked against the providers. Read-only
+   * throughout: it runs when a step is opened, and must never be the thing
+   * that changes a configuration.
+   */
+  ipcMain.handle('provision:checks:read', async (_event, req: ManualCheckProbeRequest) => {
+    try {
+      return { success: true, data: await manualChecks.read(req) }
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  /**
+   * Answers for one key, on demand. Read-only and retry-free by design — it
+   * runs on every edit of the account page, not as part of a run.
+   */
+  ipcMain.handle('credentials:check', async (_event, req: CredentialCheckRequest) => {
+    try {
+      return await checkCredentials(req)
+    } catch {
+      // A check that cannot complete says nothing about the key.
+      return { state: 'unknown' }
+    }
+  })
+
   ipcMain.handle('provision:cancel', (_event, service: string) => {
     if (service === 'supabase') supabase.cancel()
     if (service === 'supabase-site') supabaseSite.cancel()
+    if (service === 'spaceship') spaceship.cancel()
+    if (service === 'resend') resend.cancel()
   })
 }

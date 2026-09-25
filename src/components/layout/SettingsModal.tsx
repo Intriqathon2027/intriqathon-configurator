@@ -234,7 +234,7 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
           <div style={{ height: '1px', background: 'var(--color-border)', margin: '8px 0' }} />
           <button
             className="btn"
-            style={{ justifyContent: 'flex-start', padding: '12px 16px', color: '#ef4444', border: '1px solid #ef4444', background: 'transparent' }}
+            style={{ justifyContent: 'flex-start', padding: '12px 16px', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', background: 'transparent' }}
             onClick={handleReset}
           >
             <Trash2 size={16} />

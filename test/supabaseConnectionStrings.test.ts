@@ -21,8 +21,14 @@ describe('buildPostgresUrls', () => {
     const { databaseUrl, directUrl } = buildPostgresUrls({
       ref: REF, password: 'hunter2', pooler: [transaction, session],
     })
-    expect(databaseUrl).toBe(`postgresql://postgres.${REF}:hunter2@aws-0-eu-west-3.pooler.supabase.com:6543/postgres`)
+    expect(databaseUrl).toBe(`postgresql://postgres.${REF}:hunter2@aws-0-eu-west-3.pooler.supabase.com:6543/postgres?pgbouncer=true`)
     expect(directUrl).toBe(`postgresql://postgres.${REF}:hunter2@aws-0-eu-west-3.pooler.supabase.com:5432/postgres`)
+  })
+
+  it('flags DATABASE_URL for pgbouncer once, and never DIRECT_URL', () => {
+    const { databaseUrl, directUrl } = buildPostgresUrls({ ref: REF, password: 'hunter2', pooler: [transaction, session] })
+    expect(databaseUrl.match(/pgbouncer=true/g)).toHaveLength(1)
+    expect(directUrl).not.toContain('pgbouncer')
   })
 
   it('never leaves the [YOUR-PASSWORD] placeholder behind', () => {

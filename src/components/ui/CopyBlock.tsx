@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Check, Copy } from 'lucide-react'
+import { Fragment, useState, type ReactNode } from 'react'
+import { Check, Copy, Terminal } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 
 interface CopyBlockProps {
@@ -38,7 +38,8 @@ export function CopyBlock({ label, content, multiLine = false }: CopyBlockProps)
 }
 
 interface CopyRowProps {
-  label: string
+  /** Omit where the row already sits under a heading saying the same thing. */
+  label?: string
   content: string
 }
 
@@ -53,8 +54,8 @@ export function CopyRow({ label, content }: CopyRowProps) {
   }
 
   return (
-    <div style={{ marginBottom: '8px' }}>
-      <div className="form-hint" style={{ marginBottom: '4px' }}>{label}</div>
+    <div className="copy-row">
+      {label && <div className="form-hint copy-row__label">{label}</div>}
       <div className="copy-block-row">
         <span className="copy-block-row-text">{content}</span>
         <button
@@ -72,11 +73,42 @@ export function CopyRow({ label, content }: CopyRowProps) {
   )
 }
 
+/**
+ * A shell line, split into the parts the reader scans for: the program being
+ * run, its flags, and any quoted argument. Everything else stays plain.
+ */
+export function highlightShell(command: string): ReactNode[] {
+  const parts = command.split(/(\s+)/)
+  let seenProgram = false
+
+  return parts.map((part, i) => {
+    if (!part.trim()) return <Fragment key={i}>{part}</Fragment>
+
+    if (!seenProgram) {
+      seenProgram = true
+      return <span key={i} className="tok-name">{part}</span>
+    }
+    if (part.startsWith('-')) {
+      return <span key={i} className="tok-punct">{part}</span>
+    }
+    if (part.startsWith('"') || part.startsWith("'")) {
+      return <span key={i} className="tok-value">{part}</span>
+    }
+    return <Fragment key={i}>{part}</Fragment>
+  })
+}
+
 interface CommandBlockProps {
-  label?: string
+  /** Small eyebrow above the block — what the command is for. */
+  label?: ReactNode
   command: string
 }
 
+/**
+ * The single shell-command block. `DockerBlock` is this component under
+ * another name; they used to be two near-identical copies differing only in
+ * whether they drew a `$` or a terminal glyph.
+ */
 export function CommandBlock({ label, command }: CommandBlockProps) {
   const { t } = useApp()
   const [copied, setCopied] = useState(false)
@@ -91,8 +123,8 @@ export function CommandBlock({ label, command }: CommandBlockProps) {
     <div className="command-group">
       {label && <div className="command-label">{label}</div>}
       <div className="command-block">
-        <span className="command-prompt">$</span>
-        <span className="command-text">{command}</span>
+        <Terminal size={14} className="command-block__marker" />
+        <span className="command-text">{highlightShell(command)}</span>
         <button
           className={`btn btn-copy ${copied ? 'copied' : ''}`}
           onClick={handleCopy}

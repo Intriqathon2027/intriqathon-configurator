@@ -1,4 +1,5 @@
 import type { SupabasePoolerConfig } from './types'
+import { ensurePgBouncerFlag } from '../../../shared/pgbouncer'
 
 /**
  * Building DATABASE_URL and DIRECT_URL.
@@ -61,7 +62,9 @@ export function buildPostgresUrls({ ref, password, pooler, databaseHost }: Build
   const user = transaction.db_user || `postgres.${ref}`
   const dbName = transaction.db_name || 'postgres'
 
-  const databaseUrl = buildUrl(user, password, transaction.db_host, transaction.db_port ?? 6543, dbName)
+  const databaseUrl = ensurePgBouncerFlag(
+    buildUrl(user, password, transaction.db_host, transaction.db_port ?? 6543, dbName),
+  )
 
   // Session mode usually shares the pooler host on port 5432. When the API does
   // not list a session entry, derive it rather than dropping to the direct host.

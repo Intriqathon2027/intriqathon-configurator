@@ -1,3 +1,4 @@
+import { DNS_TTL, buildInfraDnsRecords, hostPart, type DnsRecord } from '../shared/dnsRecords'
 import type {
   ProvisionCancelledPayload,
   ProvisionDonePayload,
@@ -5,6 +6,14 @@ import type {
   ProvisionLogPayload,
   ProvisionProgressPayload,
   ProvisionQueryResult,
+  ManualCheckProbe,
+  ManualCheckProbeRequest,
+  ResendDomainReadRequest,
+  ResendDomainSnapshot,
+  ResendProvisionRequest,
+  ResendVerificationResult,
+  ResendVerifyRequest,
+  SpaceshipProvisionRequest,
   SupabaseOrganizationSummary,
   SupabaseProjectSummary,
   SupabaseProjectVerification,
@@ -21,6 +30,14 @@ export interface ProvisionBridge {
   startSupabase(req: SupabaseProvisionRequest): Promise<void>
   /** The post-deployment settings run, driven from "Configuration du site". */
   startSupabaseSiteSetup(req: SupabaseSiteSetupRequest): Promise<void>
+  startSpaceship(req: SpaceshipProvisionRequest): Promise<void>
+  startResend(req: ResendProvisionRequest): Promise<void>
+  /** The standalone check, outside any run — nothing is created or published. */
+  verifyResendDomain(req: ResendVerifyRequest): Promise<ProvisionQueryResult<ResendVerificationResult>>
+  /** What Resend holds for the sending domain today — read-only. */
+  readResendDomain(req: ResendDomainReadRequest): Promise<ProvisionQueryResult<ResendDomainSnapshot>>
+  /** Whether what the manual checkboxes claim is still true — read-only. */
+  readManualChecks(req: ManualCheckProbeRequest): Promise<ProvisionQueryResult<ManualCheckProbe>>
   listOrganizations(accessToken: string): Promise<ProvisionQueryResult<SupabaseOrganizationSummary[]>>
   listProjects(accessToken: string): Promise<ProvisionQueryResult<SupabaseProjectSummary[]>>
   verifyProject(accessToken: string, ref: string): Promise<ProvisionQueryResult<SupabaseProjectVerification>>
@@ -38,6 +55,21 @@ class ElectronProvisionBridge implements ProvisionBridge {
   }
   startSupabaseSiteSetup(req: SupabaseSiteSetupRequest) {
     return window.electronAPI.startSupabaseSiteSetup(req)
+  }
+  startSpaceship(req: SpaceshipProvisionRequest) {
+    return window.electronAPI.startSpaceshipProvision(req)
+  }
+  startResend(req: ResendProvisionRequest) {
+    return window.electronAPI.startResendProvision(req)
+  }
+  verifyResendDomain(req: ResendVerifyRequest) {
+    return window.electronAPI.verifyResendDomain(req)
+  }
+  readResendDomain(req: ResendDomainReadRequest) {
+    return window.electronAPI.readResendDomain(req)
+  }
+  readManualChecks(req: ManualCheckProbeRequest) {
+    return window.electronAPI.readManualChecks(req)
   }
   listOrganizations(accessToken: string) {
     return window.electronAPI.listSupabaseOrganizations(accessToken)
@@ -80,6 +112,9 @@ class MockProvisionBridge implements ProvisionBridge {
     { id: '2', ref: 'bbcdefghijklmnopqrst', name: 'autre-projet', status: 'ACTIVE_HEALTHY', region: 'eu-west-1' },
   ]
 
+  /** The sending domain this fake account holds, once a run has created one. */
+  private resendDomain: { id: string; name: string; records: DnsRecord[]; verified: boolean } | null = null
+
   private logCbs: ((p: ProvisionLogPayload) => void)[] = []
   private progressCbs: ((p: ProvisionProgressPayload) => void)[] = []
   private doneCbs: ((p: ProvisionDonePayload) => void)[] = []
@@ -104,6 +139,7 @@ class MockProvisionBridge implements ProvisionBridge {
     const projectSteps: [string, number][] = [
       [req.mode === 'create' ? `Création du projet « ${req.projectName || 'demo'} »…` : 'Recherche du projet Supabase…', 10],
       ['Projet actif.', 45],
+      ['Clé service_role legacy récupérée.', 50],
     ]
 
     if (req.stopAfterProject) {
@@ -121,6 +157,9 @@ class MockProvisionBridge implements ProvisionBridge {
             ? { SUPABASE_CREATED_PROJECT_REF: ref }
             : { SUPABASE_SELECTED_PROJECT_REF: ref }),
           SUPABASE_URL: `https://${ref}.supabase.co`,
+          // Same as the real service: the panel key is resolved as soon as the
+          // project exists.
+          SUPABASE_PANEL_SERVICE_KEY: 'eyJmock.legacy.service.key',
         },
       }))
       return
@@ -155,6 +194,7 @@ class MockProvisionBridge implements ProvisionBridge {
         SUPABASE_URL: `https://${ref}.supabase.co`,
         SUPABASE_ANON_KEY: 'eyJmock.anon.key',
         SUPABASE_SERVICE_ROLE_KEY: 'eyJmock.service.key',
+        SUPABASE_PANEL_SERVICE_KEY: 'eyJmock.legacy.service.key',
         DATABASE_URL: `postgresql://postgres.${ref}:mock@pooler.supabase.com:6543/postgres`,
         DIRECT_URL: `postgresql://postgres.${ref}:mock@pooler.supabase.com:5432/postgres`,
       },
@@ -196,6 +236,131 @@ class MockProvisionBridge implements ProvisionBridge {
     }))
   }
 
+  /** The DNS run as the real service reports it: one line per record, then the read-back. */
+  async startSpaceship(req: SpaceshipProvisionRequest) {
+    this.cancelled = false
+
+    const records = buildInfraDnsRecords(req.domain, req.ipv4, req.mailSubdomain)
+    const script: [string, number][] = [
+      [`Enregistrements à publier sur ${req.domain} :`, 10],
+      ...records.map(
+        (r): [string, number] => [`  ${r.type}  ${r.host}  ➔  ${r.answer}`, 20],
+      ),
+      ['Écriture chez Spaceship (les enregistrements de même nom sont remplacés)…', 35],
+      ['Relecture de la zone…', 75],
+      [`Zone relue — ${records.length} enregistrement(s) en place.`, 90],
+    ]
+
+    for (const [message, value] of script) {
+      await new Promise(resolve => setTimeout(resolve, 350))
+      if (this.cancelled) return
+      this.logCbs.forEach(cb => cb({ service: 'spaceship', message, level: 'info' }))
+      this.progressCbs.forEach(cb => cb({ service: 'spaceship', value }))
+    }
+
+    this.progressCbs.forEach(cb => cb({ service: 'spaceship', value: 100 }))
+    this.doneCbs.forEach(cb => cb({ service: 'spaceship', patch: {} }))
+  }
+
+  /**
+   * The Resend run, in its Spaceship branch — the one that goes all the way to
+   * a verified domain. The records mirror the shapes Resend really asks for,
+   * so the table the card renders from them is the real thing.
+   */
+  async startResend(req: ResendProvisionRequest) {
+    this.cancelled = false
+
+    const mailHost = hostPart(req.mailSubdomain, req.domain)
+    const records: DnsRecord[] = [
+      { type: 'MX', host: `send.${mailHost}`, answer: 'feedback-smtp.eu-west-1.amazonses.com', ttl: DNS_TTL, priority: 10 },
+      { type: 'TXT', host: `send.${mailHost}`, answer: 'v=spf1 include:amazonses.com ~all', ttl: DNS_TTL },
+      { type: 'TXT', host: `resend._domainkey.${mailHost}`, answer: 'p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQMOCK...', ttl: DNS_TTL },
+    ]
+
+    const script: [string, number][] = [
+      [`Recherche de ${req.mailSubdomain} sur le compte Resend…`, 10],
+      [`Création du domaine ${req.mailSubdomain}…`, 25],
+      [`Enregistrements demandés par Resend (${records.length}) :`, 40],
+      ...records.map(
+        (r): [string, number] => [`  ${r.type}  ${r.host}  ➔  ${r.answer.slice(0, 57)}`, 45],
+      ),
+      [`Publication des enregistrements chez Spaceship sur ${req.domain}…`, 55],
+      ['Enregistrements publiés.', 60],
+      ['Demande de vérification à Resend…', 70],
+      ["Vérification demandée. La propagation DNS peut prendre jusqu'à 15 minutes : cette étape est terminée.", 90],
+    ]
+
+    for (const [message, value] of script) {
+      await new Promise(resolve => setTimeout(resolve, 350))
+      if (this.cancelled) return
+      this.logCbs.forEach(cb => cb({ service: 'resend', message, level: 'info' }))
+      this.progressCbs.forEach(cb => cb({ service: 'resend', value }))
+    }
+
+    this.resendDomain = { id: 'mock-4f3a2b1c-domain', name: req.mailSubdomain, records, verified: false }
+
+    this.progressCbs.forEach(cb => cb({ service: 'resend', value: 100 }))
+    this.doneCbs.forEach(cb => cb({
+      service: 'resend',
+      patch: {
+        RESEND_DOMAIN_ID: 'mock-4f3a2b1c-domain',
+        RESEND_DNS_RECORDS: JSON.stringify(records),
+        // As the real run now ends: asked, not yet confirmed.
+        RESEND_VERIFICATION_PENDING_SINCE: new Date().toISOString(),
+      },
+    }))
+  }
+
+  /**
+   * The mock account holds whatever its last `startResend` created, so the
+   * read answers "no such domain" until one has been — which is the state the
+   * page has to handle, and the one it used to get wrong.
+   */
+  async readResendDomain(req: ResendDomainReadRequest) {
+    await new Promise(resolve => setTimeout(resolve, 400))
+    if (this.resendDomain?.name !== req.mailSubdomain) return { success: true, data: { exists: false } }
+    return {
+      success: true,
+      data: {
+        exists: true,
+        domainId: this.resendDomain.id,
+        status: this.resendDomain.verified ? ('verified' as const) : ('pending' as const),
+        records: this.resendDomain.records,
+      },
+    }
+  }
+
+  /** The check as the real one answers on the happy path: asked, then seen. */
+  async verifyResendDomain(req: ResendVerifyRequest) {
+    await new Promise(resolve => setTimeout(resolve, 900))
+    if (this.resendDomain) this.resendDomain.verified = true
+    return {
+      success: true,
+      data: {
+        domainId: req.domainId || 'mock-4f3a2b1c-domain',
+        status: 'verified' as const,
+        verifiedAt: new Date().toISOString(),
+      },
+    }
+  }
+
+  /**
+   * The fake account confirms whatever it was given credentials for — enough
+   * for the pages to exercise the ticking, without pretending to know about
+   * services this mock has no state for.
+   */
+  async readManualChecks(req: ManualCheckProbeRequest) {
+    await new Promise(resolve => setTimeout(resolve, 300))
+    return {
+      success: true,
+      data: {
+        ...(req.supabase?.ref ? { buckets: true, siteGrants: true, siteSettings: true } : {}),
+        ...(req.scaleway?.ipv4 ? { instance: true as const } : {}),
+        ...(req.spaceship?.records.length ? { dnsRecords: true } : {}),
+      },
+    }
+  }
+
   async listOrganizations() {
     return { success: true, data: [{ id: '1', slug: 'demo-org', name: 'Demo Org' }] }
   }
@@ -235,8 +400,7 @@ class MockProvisionBridge implements ProvisionBridge {
 
   async cancel(service: string) {
     this.cancelled = true
-    const cancelled = service === 'supabase-site' ? 'supabase-site' : 'supabase'
-    this.cancelledCbs.forEach(cb => cb({ service: cancelled }))
+    this.cancelledCbs.forEach(cb => cb({ service: service as ProvisionCancelledPayload['service'] }))
   }
 
   onLog(cb: (p: ProvisionLogPayload) => void) {

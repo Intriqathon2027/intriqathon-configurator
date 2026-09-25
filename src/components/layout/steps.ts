@@ -7,8 +7,8 @@ export interface Step {
   Icon: typeof KeyRound
   /**
    * Config fields that must all be filled for the step to count as complete.
-   * An empty list means the step is validated by an action instead (see
-   * `actionSteps` in AppContext).
+   * An empty list means the step is validated by an action instead — a run or
+   * a ticked box, both read from the session (see `useStepComplete`).
    */
   requiredFields: (keyof Config)[]
 }
