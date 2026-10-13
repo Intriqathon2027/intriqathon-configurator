@@ -396,7 +396,7 @@ export const translations: Translations = {
     'step8.desc': 'Finalisez la configuration en accédant au panneau admin et au site principal.',
     'step8.config.btn': 'Panneau d\'administration',
     'step8.site.btn': 'Site principal',
-    'step8.adminLogin.btn': 'Connexion admin — unheard.cfd',
+    'step8.adminLogin.btn': 'Connexion admin',
     'step8.tip': 'Allez sur le panneau admin, entrez vos identifiants Supabase et créez votre utilisateur organisateur.',
     'step8.tip2': 'L\'envoi d\'email peut ne pas fonctionner immédiatement si le DNS Resend vient d\'être configuré.',
   },
@@ -796,7 +796,7 @@ export const translations: Translations = {
     'step8.desc': 'Finalize the setup by accessing the admin panel and the main site.',
     'step8.config.btn': 'Admin Panel',
     'step8.site.btn': 'Main Site',
-    'step8.adminLogin.btn': 'Admin login — unheard.cfd',
+    'step8.adminLogin.btn': 'Admin login',
     'step8.tip': 'Go to the admin panel, enter your Supabase credentials, and create your organizer user.',
     'step8.tip2': 'Email sending may not work immediately if Resend DNS was just configured.',
   }
