@@ -10,6 +10,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { HelpAnchorBtn } from "./HelpAnchorBtn";
+import { useAutomationLock } from "../../context/AutomationLockContext";
 
 type ServiceConfigStatus = "idle" | "running" | "done" | "error" | "none";
 
@@ -124,6 +125,13 @@ export function ServiceConfigBlock({
   const complete =
     status === "done" || manuallyConfirmed || (isComplete ?? false);
   const terminalRef = useRef<HTMLDivElement>(null);
+  /**
+   * A run in this block holds the app-wide lock: it keeps the block above the
+   * dimmed screen, and its cancel button usable. A run in any other block
+   * disables this one's launch button.
+   */
+  const { isOwner: automationFocused, lockedByOther: automationBusy } =
+    useAutomationLock(status === "running");
   const [manualOpen, setManualOpen] = useState(false);
 
   useEffect(() => {
@@ -204,6 +212,7 @@ export function ServiceConfigBlock({
       <button
         className="btn btn-primary service-config-block__btn-start"
         onClick={onStart}
+        disabled={automationBusy}
         type="button"
       >
         {status === "error" ? <RotateCcw size={14} /> : <Play size={14} />}
@@ -221,6 +230,7 @@ export function ServiceConfigBlock({
       <button
         className="btn btn-secondary service-config-block__btn-rerun"
         onClick={onStart}
+        disabled={automationBusy}
         type="button"
       >
         <RotateCcw size={14} />
@@ -232,7 +242,7 @@ export function ServiceConfigBlock({
 
   return (
     <div
-      className={`service-config-block service-config-block--${status}${complete ? " service-config-block--complete" : ""}${locked ? " service-config-block--locked" : ""}`}
+      className={`service-config-block service-config-block--${status}${complete ? " service-config-block--complete" : ""}${locked ? " service-config-block--locked" : ""}${automationFocused ? " automation-focus" : ""}`}
     >
       <div className="service-config-block__step-number">{stepNumber}</div>
 

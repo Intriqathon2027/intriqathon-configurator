@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Database, Mail, Globe, Server, FolderOpen } from "lucide-react";
 import toast from "react-hot-toast";
 import { WizardLayout } from "../components/layout/WizardLayout";
@@ -21,6 +21,9 @@ export function AccountCreation() {
    * first second after one claiming to be complete.
    */
   const { recordCredentialState, isCredentialRefused } = useSession();
+  // The project creation runs inside SupabaseProjectSetup; the card around it
+  // is what has to stay lit while it does.
+  const [supabaseCreating, setSupabaseCreating] = useState(false);
 
   const reportSupabase = useCallback(
     (s: CredentialState) => recordCredentialState("supabase", s),
@@ -97,6 +100,7 @@ export function AccountCreation() {
           serviceIcon={<Database size={16} color="var(--color-primary-text)" />}
           helpAnchor="svc-supabase"
           isComplete={isSupabaseComplete}
+          automationRunning={supabaseCreating}
         >
           <div className="form-section">
             <FormField
@@ -125,7 +129,7 @@ export function AccountCreation() {
 
             {/* The project itself: adopted or created from here, plus the
                 database password that makes step 2 fully automatic. */}
-            <SupabaseProjectSetup />
+            <SupabaseProjectSetup onRunningChange={setSupabaseCreating} />
           </div>
         </ServiceAccountCard>
 

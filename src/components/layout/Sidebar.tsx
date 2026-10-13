@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Check, Settings, Zap, PanelLeftClose, PanelLeft } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import { useStepComplete } from '../../hooks/useStepComplete'
+import { useAutomationLocked } from '../../context/AutomationLockContext'
 import { steps } from './steps'
 
 interface SidebarProps {
@@ -13,6 +14,11 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
   const { state, t, goToStep, goHome } = useApp()
   const isStepComplete = useStepComplete()
   const { currentStep } = state
+  // Leaving the step — or the wizard — would unmount the run in flight.
+  const automationLocked = useAutomationLocked()
+  const goHomeIfIdle = () => {
+    if (!automationLocked) goHome()
+  }
 
   const isMac = typeof navigator !== 'undefined'
     && navigator.platform.toUpperCase().indexOf('MAC') >= 0
@@ -105,7 +111,7 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
       <aside className="sidebar sidebar--collapsed" style={{ transition: 'width 0.3s ease' }}>
         {isMac && <div className="sidebar-drag-strip" />}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', paddingTop: isMac ? '4px' : '14px' }}>
-          <div className="sidebar-logo-icon" onClick={goHome} style={{ cursor: 'pointer' }}>
+          <div className="sidebar-logo-icon" onClick={goHomeIfIdle} style={{ cursor: 'pointer' }}>
             <Zap size={18} />
           </div>
           <button className="btn btn-icon btn-ghost" onClick={() => setIsCollapsed(false)} title="Ouvrir le menu">
@@ -125,6 +131,7 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
                 key={index}
                 className={`sidebar-step sidebar-step--collapsed ${isActive ? 'active' : ''} ${isDone ? 'completed' : ''}`}
                 onClick={() => goToStep(index)}
+                disabled={automationLocked}
                 title={t(step.labelKey)}
                 style={{ justifyContent: 'center', padding: '8px 0' }}
               >
@@ -161,7 +168,7 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
         <div
           className="sidebar-logo"
           style={{ cursor: 'pointer' }}
-          onClick={goHome}
+          onClick={goHomeIfIdle}
         >
           <div className="sidebar-logo-icon">
             <Zap size={18} />
@@ -188,6 +195,7 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
               key={index}
               className={`sidebar-step ${isActive ? 'active' : ''} ${isDone ? 'completed' : ''}`}
               onClick={() => goToStep(index)}
+              disabled={automationLocked}
             >
               <div className={`step-indicator ${indicator}`}>
                 <StepIcon size={17} />

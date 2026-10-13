@@ -42,7 +42,15 @@ const REGIONS = [
   'ca-central-1', 'sa-east-1',
 ]
 
-export function SupabaseProjectSetup() {
+interface SupabaseProjectSetupProps {
+  /**
+   * Reports the project creation starting and ending, so the card around this
+   * component can take the app-wide automation lock for its duration.
+   */
+  onRunningChange?: (running: boolean) => void
+}
+
+export function SupabaseProjectSetup({ onRunningChange }: SupabaseProjectSetupProps = {}) {
   const { t, config, setField, setFields, saveConfig } = useApp()
   // Built once: the effects below run on every token or selection change, and
   // each of them minting its own bridge is both wasteful and, for anything
@@ -140,6 +148,11 @@ export function SupabaseProjectSetup() {
     setProjects(null)
     setProjectsRefresh(n => n + 1)
   })
+
+  const creating = provision.status === 'running'
+  useEffect(() => {
+    onRunningChange?.(creating)
+  }, [creating, onRunningChange])
 
   /**
    * Whether a project of this name is already on the account. While the listing
