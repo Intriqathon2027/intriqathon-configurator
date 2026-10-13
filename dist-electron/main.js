@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
 import { execFile, spawn } from "node:child_process";
+import net from "node:net";
 import crypto from "node:crypto";
 import os from "node:os";
 import { promisify } from "node:util";
@@ -29,8 +30,37 @@ var PlatformService = class {
 //#endregion
 //#region src/electron/services/DeployService.ts
 var __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
+/** How long to wait for the instance's SSH port before giving up. */
+var SSH_WAIT_TIMEOUT_MS = 180 * 1e3;
+var SSH_PROBE_INTERVAL_MS = 3e3;
+var SSH_PROBE_TIMEOUT_MS = 3e3;
+/**
+* Whether something accepts TCP connections on `host:port` — the same check
+* as `nc -vz`. No SSH handshake: a listening sshd is all the script needs.
+*/
+function probePort(host, port, timeoutMs) {
+	return new Promise((resolve) => {
+		const socket = net.createConnection({
+			host,
+			port
+		});
+		const done = (ok) => {
+			socket.destroy();
+			resolve(ok);
+		};
+		socket.setTimeout(timeoutMs, () => done(false));
+		socket.once("connect", () => done(true));
+		socket.once("error", () => done(false));
+	});
+}
 var DeployService = class {
 	childProcess = null;
+	/**
+	* Bumped by every start and cancel: a run still waiting for SSH compares it
+	* with the value it started with, and stops instead of spawning once a
+	* cancel or a newer run has superseded it.
+	*/
+	runId = 0;
 	getScriptPath(scriptNameBase = "script") {
 		const scriptName = PlatformService.isWindows() ? `${scriptNameBase}.bat` : `${scriptNameBase}.sh`;
 		if (__dirname$1.includes("app.asar") && process.resourcesPath) return path.join(process.resourcesPath, "src/cmd_scripts", scriptName);
@@ -39,8 +69,33 @@ var DeployService = class {
 	debug(win, msg) {
 		win.webContents.send("deploy:stdout", `[DEBUG] ${msg}`);
 	}
-	start(ipv4, sourceDir, win, sshPassword, sshKeyPath) {
+	/**
+	* Wait until the instance accepts connections on port 22. Scaleway reports
+	* a server `running` as soon as the VM boots, well before sshd listens: a
+	* script started in that window fails with "Connection refused".
+	* Resolves false when the run was cancelled or the wait timed out (the
+	* error is then already reported).
+	*/
+	async waitForSsh(ipv4, win, runId) {
+		const maxAttempts = Math.ceil(SSH_WAIT_TIMEOUT_MS / SSH_PROBE_INTERVAL_MS);
+		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+			if (runId !== this.runId) return false;
+			if (await probePort(ipv4, 22, SSH_PROBE_TIMEOUT_MS)) {
+				if (runId !== this.runId) return false;
+				win.webContents.send("deploy:stdout", `Serveur SSH joignable sur ${ipv4}:22`);
+				return true;
+			}
+			if (runId !== this.runId) return false;
+			if (attempt === 1 || attempt % 5 === 0) win.webContents.send("deploy:stdout", `En attente du serveur SSH sur ${ipv4}:22 (tentative ${attempt}/${maxAttempts})…`);
+			await new Promise((r) => setTimeout(r, SSH_PROBE_INTERVAL_MS));
+		}
+		if (runId !== this.runId) return false;
+		win.webContents.send("deploy:error", `Le serveur ${ipv4} n'accepte pas de connexion SSH (port 22) après ${SSH_WAIT_TIMEOUT_MS / 6e4} min. Vérifiez que l'instance est démarrée, que l'IPv4 est correcte et que le port 22 n'est pas bloqué (pare-feu, VPN).`);
+		return false;
+	}
+	async start(ipv4, sourceDir, win, sshPassword, sshKeyPath) {
 		this.cancel();
+		const runId = this.runId;
 		const scriptPath = this.getScriptPath();
 		const isWin = PlatformService.isWindows();
 		this.debug(win, `Plateforme : ${process.platform}`);
@@ -70,6 +125,7 @@ var DeployService = class {
 			env.SSH_KEY_PATH = sshKeyPath;
 			this.debug(win, `SSH_KEY_PATH configuré : ${sshKeyPath}`);
 		}
+		if (!await this.waitForSsh(ipv4, win, runId)) return;
 		const args = isWin ? ["cmd.exe", [
 			"/c",
 			scriptPath,
@@ -110,8 +166,9 @@ var DeployService = class {
 			this.childProcess = null;
 		});
 	}
-	startRestart(ipv4, win, sshPassword, sshKeyPath) {
+	async startRestart(ipv4, win, sshPassword, sshKeyPath) {
 		this.cancel();
+		const runId = this.runId;
 		const scriptPath = this.getScriptPath("restart_docker");
 		const isWin = PlatformService.isWindows();
 		this.debug(win, `Plateforme : ${process.platform}`);
@@ -140,6 +197,7 @@ var DeployService = class {
 			env.SSH_KEY_PATH = sshKeyPath;
 			this.debug(win, `SSH_KEY_PATH configuré : ${sshKeyPath}`);
 		}
+		if (!await this.waitForSsh(ipv4, win, runId)) return;
 		const args = isWin ? ["cmd.exe", [
 			"/c",
 			scriptPath,
@@ -176,6 +234,7 @@ var DeployService = class {
 		});
 	}
 	cancel() {
+		this.runId++;
 		if (this.childProcess) {
 			this.childProcess.kill("SIGTERM");
 			this.childProcess = null;
@@ -197,12 +256,12 @@ function registerDeployHandlers(getWin) {
 	ipcMain.handle("deploy:start", (_event, ipv4, sourceDir, sshPassword, sshKeyPath) => {
 		const win = getWin();
 		if (!win) throw new Error("No active window");
-		deployService.start(ipv4, sourceDir, win, sshPassword, sshKeyPath);
+		return deployService.start(ipv4, sourceDir, win, sshPassword, sshKeyPath);
 	});
 	ipcMain.handle("deploy:restart", (_event, ipv4, sshPassword, sshKeyPath) => {
 		const win = getWin();
 		if (!win) throw new Error("No active window");
-		deployService.startRestart(ipv4, win, sshPassword, sshKeyPath);
+		return deployService.startRestart(ipv4, win, sshPassword, sshKeyPath);
 	});
 	ipcMain.handle("deploy:cancel", () => deployService.cancel());
 	ipcMain.handle("deploy:send-input", (_event, text) => deployService.sendInput(text));
