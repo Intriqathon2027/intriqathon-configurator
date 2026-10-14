@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database, FolderOpen } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import { useSession } from '../../context/SessionContext'
+import { useAutomationLock } from '../../context/AutomationLockContext'
 import { generateEnvContent } from '../../utils/deploy'
 import { collectPreDeployGaps, type PreDeployGap } from '../../utils/preDeployChecks'
 import { useDeployment } from '../../hooks/useDeployment'
@@ -116,6 +117,9 @@ export function DeployAutoTab() {
   }
 
   const isRunning = status === 'running' || status === 'paused_for_dialog'
+  // The deployment holds the app-wide lock while it runs, dialogs included:
+  // this card stays lit, the rest of the window is dimmed and inert.
+  const { isOwner: automationFocused } = useAutomationLock(isRunning)
   const isFinished = status === 'completed' || status === 'error' || status === 'cancelled'
   /**
    * A deployment that succeeded earlier in this session, on a tab that has
@@ -131,7 +135,11 @@ export function DeployAutoTab() {
 
   return (
     <>
-      <Card icon={<Terminal size={16} color="var(--color-primary-text)" />} title={t('step6.auto.title')}>
+      <Card
+        icon={<Terminal size={16} color="var(--color-primary-text)" />}
+        title={t('step6.auto.title')}
+        className={automationFocused ? 'automation-focus' : ''}
+      >
         {/* Deploy path selector */}
         <div className="deploy-path-selector" style={{ marginBottom: 'var(--space-3)' }}>
           <label className="form-label" style={{ marginBottom: 'var(--space-2)', display: 'block' }}>

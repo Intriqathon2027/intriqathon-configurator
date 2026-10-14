@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Check, Save } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import toast from 'react-hot-toast'
+import { useAutomationLocked } from '../../context/AutomationLockContext'
 
 interface BottomNavigationProps {
   currentStep: number
@@ -11,6 +12,8 @@ interface BottomNavigationProps {
 
 export function BottomNavigation({ currentStep, totalSteps, isFirst, isLast }: BottomNavigationProps) {
   const { t, goToStep, saveAndNext } = useApp()
+  // Leaving the step would unmount the run in flight.
+  const automationLocked = useAutomationLocked()
 
   const handleSaveAndNext = () => {
     saveAndNext()
@@ -29,7 +32,7 @@ export function BottomNavigation({ currentStep, totalSteps, isFirst, isLast }: B
         <button
           className="btn btn-secondary"
           onClick={() => goToStep(currentStep - 1)}
-          disabled={isFirst}
+          disabled={isFirst || automationLocked}
           id="btn-previous"
         >
           <ChevronLeft size={16} />
@@ -44,6 +47,7 @@ export function BottomNavigation({ currentStep, totalSteps, isFirst, isLast }: B
           <button
             className="btn btn-primary"
             onClick={handleSaveAndNext}
+            disabled={automationLocked}
             id="btn-save-next"
           >
             <Save size={16} />

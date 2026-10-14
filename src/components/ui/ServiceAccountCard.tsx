@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { HelpAnchorBtn } from './HelpAnchorBtn'
+import { useAutomationLock } from '../../context/AutomationLockContext'
 
 interface ServiceAccountCardProps {
   serviceName: string
@@ -11,6 +12,12 @@ interface ServiceAccountCardProps {
    */
   helpAnchor: string
   isComplete: boolean
+  /**
+   * An automation started from inside the card is running — the Supabase
+   * project creation, say. The card then holds the app-wide lock and stays
+   * above the dimmed screen.
+   */
+  automationRunning?: boolean
   children: ReactNode
 }
 
@@ -19,11 +26,14 @@ export function ServiceAccountCard({
   serviceIcon,
   helpAnchor,
   isComplete,
+  automationRunning = false,
   children,
 }: ServiceAccountCardProps) {
+  const { isOwner: automationFocused } = useAutomationLock(automationRunning)
+
   return (
     <div
-      className={`service-account-card${isComplete ? ' service-account-card--complete' : ''}`}
+      className={`service-account-card${isComplete ? ' service-account-card--complete' : ''}${automationFocused ? ' automation-focus' : ''}`}
     >
       <div className="service-account-card__header">
         <span className="service-account-card__service-icon">{serviceIcon}</span>

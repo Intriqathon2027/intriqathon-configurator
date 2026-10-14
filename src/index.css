@@ -1229,9 +1229,41 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: var(--space-6) var(--space-8);
-  animation: slideUp 0.25s ease both;
+  /* `backwards`, not `both`: a fill that outlives the animation keeps a
+     transform on this element, which makes it a stacking context — and then
+     no card inside can be raised above the automation overlay. */
+  animation: slideUp 0.25s ease backwards;
   container-type: inline-size;
   container-name: step;
+}
+
+/* =============================================
+   AUTOMATION LOCK — the window dimmed while a run is in flight,
+   except for the card running it
+   ============================================= */
+.automation-overlay {
+  position: fixed;
+  inset: 0;
+  /* Above the window drag strip (1000), under modals and field bubbles. */
+  z-index: 1050;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+  -webkit-app-region: no-drag;
+}
+
+.automation-overlay--active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.3s ease, visibility 0s;
+}
+
+.automation-focus {
+  position: relative;
+  z-index: 1060;
 }
 
 @keyframes slideUp {
@@ -3820,7 +3852,9 @@ ul.help-note li {
 }
 
 .deploy-tab-content {
-  animation: slideUp 0.2s ease both;
+  /* `backwards`: see .step-content — a lasting transform would trap the
+     deploy card under the automation overlay. */
+  animation: slideUp 0.2s ease backwards;
 }
 
 /* =============================================

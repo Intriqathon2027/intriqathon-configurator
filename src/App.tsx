@@ -1,5 +1,6 @@
 import { AppProvider, useApp } from './context/AppContext'
 import { SessionProvider } from './context/SessionContext'
+import { AutomationLockProvider } from './context/AutomationLockContext'
 import { Toaster } from 'react-hot-toast'
 import { AccountCreation } from './pages/AccountCreation'
 import { ApiConfiguration } from './pages/ApiConfiguration'
@@ -33,9 +34,11 @@ function App() {
   return (
     <AppProvider>
       <SessionProvider>
-        <VaultGate>
-          <AppContent />
-        </VaultGate>
+        <AutomationLockProvider>
+          <VaultGate>
+            <AppContent />
+          </VaultGate>
+        </AutomationLockProvider>
       </SessionProvider>
       <Toaster 
         toastOptions={{

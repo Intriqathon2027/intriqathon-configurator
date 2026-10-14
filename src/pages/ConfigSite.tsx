@@ -29,6 +29,7 @@ import {
   type SshKeySelectorHandle,
 } from "../components/ui/SshKeySelector";
 import { PreRestartWarning } from "../components/deploy/PreRestartWarning";
+import { VpnWarning } from "../components/ui/VpnWarning";
 import type { SshKeyInfo } from "../types/electron";
 
 /**
@@ -39,9 +40,6 @@ const SQL_COMMANDS = GRANTS_SQL;
 
 /** Deep link to the SQL editor, next to the block the reader has to paste. */
 const SQL_EDITOR_URL = "https://supabase.com/dashboard/project/_/sql/new";
-
-/** Where the config panel's admin account is created. */
-const ADMIN_LOGIN_URL = "https://unheard.cfd/admin-login";
 
 /** The project's API keys — the `Legacy API keys` tab is the one that matters here. */
 const API_KEYS_URL =
@@ -193,7 +191,7 @@ function supabaseFinalSteps(isEn: boolean): HelpFlowStep[] {
 }
 
 export function ConfigSite() {
-  const { t, config, state, selectedSshKey, setFields, saveConfig } = useApp();
+  const { t, config, state, selectedSshKey, setFields, saveConfig, openUrl } = useApp();
   const { isRunDone, markRunDone, isManualChecked, confirmManual, setManualCheck } =
     useSession();
   const { status, logs, progress, start, cancel } = useDockerRestart();
@@ -215,6 +213,9 @@ export function ConfigSite() {
   const domain = config.DOMAIN || "<DOMAIN>";
   const ipv4 = config.IPV4_INSTANCE || "<IPV4>";
   const isEn = state.language === "en";
+  const configUrl = `https://config.${domain}/`;
+  // The platform's admin sign-in page, on the hackathon's own domain
+  const adminLoginUrl = `https://${domain}/admin-login`;
   // The two values config.<domain> asks for on its first screen
   const supabaseUrl = config.SUPABASE_URL;
   const serviceKey = config.SUPABASE_SERVICE_ROLE_KEY;
@@ -248,6 +249,7 @@ export function ConfigSite() {
    * happens to hold by then.
    */
   const [restartPending, setRestartPending] = useState<SshKeyInfo | null>(null);
+  const [vpnWarningOpen, setVpnWarningOpen] = useState(false);
 
   const launchRestart = (keyToUse: SshKeyInfo) => {
     start({ ipv4, sshKeyPath: keyToUse.privateKeyPath });
@@ -592,17 +594,18 @@ export function ConfigSite() {
             <p className="step-lead">{t("step8.tip")}</p>
             <div className="link-buttons-row">
               <ExternalLinkBtn
-                url={`https://config.${domain}/`}
+                url={configUrl}
                 label={`${t("step8.config.btn")} — config.${domain}`}
                 variant="primary"
+                onClick={() => setVpnWarningOpen(true)}
               />
               <ExternalLinkBtn
                 url={`https://${domain}/`}
                 label={`${t("step8.site.btn")} — ${domain}`}
               />
               <ExternalLinkBtn
-                url={ADMIN_LOGIN_URL}
-                label={t("step8.adminLogin.btn")}
+                url={adminLoginUrl}
+                label={`${t("step8.adminLogin.btn")} — ${domain}`}
               />
             </div>
 
@@ -654,8 +657,8 @@ export function ConfigSite() {
                     </p>
                     <div className="link-buttons-row">
                       <ExternalLinkBtn
-                        url={ADMIN_LOGIN_URL}
-                        label={t("step8.adminLogin.btn")}
+                        url={adminLoginUrl}
+                        label={`${t("step8.adminLogin.btn")} — ${domain}`}
                       />
                     </div>
                     <div className="info-box info">
@@ -785,6 +788,19 @@ export function ConfigSite() {
             : "Votre infrastructure hackathon est configurée !"}
         </div>
       </div>
+
+      {/* Opening config.<domain>: ask to turn the VPN off first */}
+      {vpnWarningOpen && (
+        <VpnWarning
+          isEn={isEn}
+          host={`config.${domain}`}
+          onCancel={() => setVpnWarningOpen(false)}
+          onProceed={() => {
+            setVpnWarningOpen(false);
+            openUrl(configUrl);
+          }}
+        />
+      )}
 
       {/* Restart started before the deployment installed anything */}
       {restartPending && (
