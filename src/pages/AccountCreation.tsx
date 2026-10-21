@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Database, Mail, Globe, Server, FolderOpen } from "lucide-react";
+import { Database, Mail, Globe, Server } from "lucide-react";
 import toast from "react-hot-toast";
 import { WizardLayout } from "../components/layout/WizardLayout";
 import { FormField } from "../components/ui/FormField";
@@ -51,13 +51,6 @@ export function AccountCreation() {
       });
     }
   }, [hasSavedConfig, t]);
-
-  const openFolderDialog = async () => {
-    if (window.electronAPI) {
-      const path = await window.electronAPI.openFolderDialog();
-      if (path) setField("DEPLOY_PATH", path);
-    }
-  };
 
   // Completion checks — the rule itself lives in `serviceCompletion`, where the
   // automations of steps 2 and 8 read it to decide whether they may run at all.
@@ -155,23 +148,6 @@ export function AccountCreation() {
               value={config.SCW_DEFAULT_PROJECT_ID}
               onChange={(v) => setField("SCW_DEFAULT_PROJECT_ID", v)}
               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            />
-            <FormField
-              id="deploy-path"
-              label={t("accountCreation.scaleway.deployPath")}
-              value={config.DEPLOY_PATH}
-              onChange={(v) => setField("DEPLOY_PATH", v)}
-              placeholder={t("accountCreation.scaleway.deployPath.placeholder")}
-              rightElement={
-                <button
-                  className="btn btn-secondary"
-                  onClick={openFolderDialog}
-                  id="btn-browse-folder"
-                >
-                  <FolderOpen size={14} />
-                  {t("btn.browse")}
-                </button>
-              }
             />
 
             {/* The secret key only. A Project ID that does not exist is a

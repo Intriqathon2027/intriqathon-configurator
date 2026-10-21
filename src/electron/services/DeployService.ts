@@ -3,7 +3,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import net from 'node:net'
 import { fileURLToPath } from 'node:url'
-import type { BrowserWindow } from 'electron'
+import { app, type BrowserWindow } from 'electron'
 import { PlatformService } from './PlatformService'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -48,6 +48,33 @@ export class DeployService {
     }
 
     return path.join(process.env.APP_ROOT!, 'src/cmd_scripts', scriptName)
+  }
+
+  getDeployPath(): string {
+    return path.join(app.getPath('temp'), 'intriqathon-deploy')
+  }
+
+  getBundledDeployPath(): string {
+    if (__dirname.includes('app.asar') && process.resourcesPath) {
+      return path.join(process.resourcesPath, 'hackathon-deploy')
+    }
+    return path.join(process.env.APP_ROOT!, 'hackathon-deploy')
+  }
+
+  prepareDeployDirectory(envContent?: string): string {
+    const sourceDir = this.getBundledDeployPath()
+    if (!fs.existsSync(sourceDir)) {
+      throw new Error(`Dossier hackathon-deploy introuvable dans : ${sourceDir}`)
+    }
+
+    const targetDir = this.getDeployPath()
+    fs.mkdirSync(targetDir, { recursive: true })
+    fs.cpSync(sourceDir, targetDir, { recursive: true, force: true })
+
+    if (envContent) {
+      PlatformService.writeEnvFile(targetDir, envContent)
+    }
+    return targetDir
   }
 
   // Helper: emit a debug line to the frontend console
@@ -100,12 +127,26 @@ export class DeployService {
     const scriptPath = this.getScriptPath()
     const isWin = PlatformService.isWindows()
 
+    const defaultDir = this.getDeployPath()
+    let effectiveSourceDir = sourceDir || defaultDir
+    if (!fs.existsSync(effectiveSourceDir)) {
+      try {
+        this.debug(win, 'Préparation des fichiers de déploiement...')
+        effectiveSourceDir = this.prepareDeployDirectory()
+        this.debug(win, `Dossier de déploiement préparé : ${effectiveSourceDir}`)
+      } catch (err: any) {
+        this.debug(win, `Erreur préparation : ${err.message}`)
+        win.webContents.send('deploy:error', `Erreur préparation : ${err.message}`)
+        return
+      }
+    }
+
     // ── Pre-flight diagnostics ─────────────────────────────────────────────
     this.debug(win, `Plateforme : ${process.platform}`)
     this.debug(win, `Script : ${scriptPath}`)
     this.debug(win, `Existe : ${fs.existsSync(scriptPath)}`)
     this.debug(win, `IPV4 : ${ipv4}`)
-    this.debug(win, `SOURCE_DIR : ${sourceDir}`)
+    this.debug(win, `SOURCE_DIR : ${effectiveSourceDir}`)
 
     if (!fs.existsSync(scriptPath)) {
       win.webContents.send('deploy:error', `Script introuvable : ${scriptPath}`)

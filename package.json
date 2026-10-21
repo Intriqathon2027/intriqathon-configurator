@@ -31,6 +31,14 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "hackathon-deploy",
+        "to": "hackathon-deploy",
+        "filter": [
+          "**/*",
+          "!.env"
+        ]
       }
     ],
     "mac": {
