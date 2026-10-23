@@ -8,6 +8,8 @@ export function registerDeployHandlers(getWin: () => BrowserWindow | null): void
 
   ipcMain.handle('deploy:get-platform', () => PlatformService.getPlatform())
   ipcMain.handle('deploy:write-env', (_event, dirPath: string, content: string) => PlatformService.writeEnvFile(dirPath, content))
+  ipcMain.handle('deploy:get-deploy-path', () => deployService.getDeployPath())
+  ipcMain.handle('deploy:prepare-deploy-dir', (_event, envContent?: string) => deployService.prepareDeployDirectory(envContent))
   ipcMain.handle('deploy:start', (_event, ipv4: string, sourceDir: string, sshPassword?: string, sshKeyPath?: string) => {
     const win = getWin()
     if (!win) throw new Error('No active window')

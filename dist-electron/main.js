@@ -17,6 +17,7 @@ var PlatformService = class {
 	}
 	static writeEnvFile(dirPath, content) {
 		try {
+			fs.mkdirSync(dirPath, { recursive: true });
 			fs.writeFileSync(path.join(dirPath, ".env"), content);
 			return { success: true };
 		} catch (err) {
@@ -66,6 +67,25 @@ var DeployService = class {
 		if (__dirname$1.includes("app.asar") && process.resourcesPath) return path.join(process.resourcesPath, "src/cmd_scripts", scriptName);
 		return path.join(process.env.APP_ROOT, "src/cmd_scripts", scriptName);
 	}
+	getDeployPath() {
+		return path.join(app.getPath("temp"), "intriqathon-deploy");
+	}
+	getBundledDeployPath() {
+		if (__dirname$1.includes("app.asar") && process.resourcesPath) return path.join(process.resourcesPath, "hackathon-deploy");
+		return path.join(process.env.APP_ROOT, "hackathon-deploy");
+	}
+	prepareDeployDirectory(envContent) {
+		const sourceDir = this.getBundledDeployPath();
+		if (!fs.existsSync(sourceDir)) throw new Error(`Dossier hackathon-deploy introuvable dans : ${sourceDir}`);
+		const targetDir = this.getDeployPath();
+		fs.mkdirSync(targetDir, { recursive: true });
+		fs.cpSync(sourceDir, targetDir, {
+			recursive: true,
+			force: true
+		});
+		if (envContent) PlatformService.writeEnvFile(targetDir, envContent);
+		return targetDir;
+	}
 	debug(win, msg) {
 		win.webContents.send("deploy:stdout", `[DEBUG] ${msg}`);
 	}
@@ -98,11 +118,22 @@ var DeployService = class {
 		const runId = this.runId;
 		const scriptPath = this.getScriptPath();
 		const isWin = PlatformService.isWindows();
+		const defaultDir = this.getDeployPath();
+		let effectiveSourceDir = sourceDir || defaultDir;
+		if (!fs.existsSync(effectiveSourceDir)) try {
+			this.debug(win, "Préparation des fichiers de déploiement...");
+			effectiveSourceDir = this.prepareDeployDirectory();
+			this.debug(win, `Dossier de déploiement préparé : ${effectiveSourceDir}`);
+		} catch (err) {
+			this.debug(win, `Erreur préparation : ${err.message}`);
+			win.webContents.send("deploy:error", `Erreur préparation : ${err.message}`);
+			return;
+		}
 		this.debug(win, `Plateforme : ${process.platform}`);
 		this.debug(win, `Script : ${scriptPath}`);
 		this.debug(win, `Existe : ${fs.existsSync(scriptPath)}`);
 		this.debug(win, `IPV4 : ${ipv4}`);
-		this.debug(win, `SOURCE_DIR : ${sourceDir}`);
+		this.debug(win, `SOURCE_DIR : ${effectiveSourceDir}`);
 		if (!fs.existsSync(scriptPath)) {
 			win.webContents.send("deploy:error", `Script introuvable : ${scriptPath}`);
 			return;
@@ -253,6 +284,8 @@ function registerDeployHandlers(getWin) {
 	const deployService = new DeployService();
 	ipcMain.handle("deploy:get-platform", () => PlatformService.getPlatform());
 	ipcMain.handle("deploy:write-env", (_event, dirPath, content) => PlatformService.writeEnvFile(dirPath, content));
+	ipcMain.handle("deploy:get-deploy-path", () => deployService.getDeployPath());
+	ipcMain.handle("deploy:prepare-deploy-dir", (_event, envContent) => deployService.prepareDeployDirectory(envContent));
 	ipcMain.handle("deploy:start", (_event, ipv4, sourceDir, sshPassword, sshKeyPath) => {
 		const win = getWin();
 		if (!win) throw new Error("No active window");
@@ -3141,14 +3174,6 @@ function createWindow() {
 }
 ipcMain.handle("open-external-url", async (_event, url) => {
 	await shell.openExternal(url);
-});
-ipcMain.handle("open-folder-dialog", async () => {
-	const result = await dialog.showOpenDialog(win, {
-		properties: ["openDirectory"],
-		title: "Sélectionner le dossier de déploiement"
-	});
-	if (!result.canceled && result.filePaths.length > 0) return result.filePaths[0];
-	return null;
 });
 ipcMain.handle("save-env-file", async (_event, content) => {
 	const result = await dialog.showSaveDialog(win, {

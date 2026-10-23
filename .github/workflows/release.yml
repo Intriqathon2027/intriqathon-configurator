@@ -1,0 +1,131 @@
+name: Release Multi-Platform
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version de la release (ex: 1.0.1)'
+        required: true
+        default: ''
+      release_name:
+        description: 'Nom / Titre personnalisé (ex: Version 1.0.1 - Déploiement Hackathon). Laissez vide pour défaut'
+        required: false
+        default: ''
+      is_draft:
+        description: 'Créer comme brouillon (draft)'
+        type: boolean
+        default: false
+      is_prerelease:
+        description: 'Marquer comme pré-release'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  # ─── Nom et version de la release ────────────────────────────────────
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      release_name: ${{ steps.get_version.outputs.release_name }}
+      tag_name: ${{ steps.get_version.outputs.tag_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine Version & Release Name
+        id: get_version
+        run: |
+          INPUT_VER="${{ github.event.inputs.version }}"
+          INPUT_NAME="${{ github.event.inputs.release_name }}"
+
+          if [ -n "$INPUT_VER" ]; then
+            VER="${INPUT_VER#v}"
+          fi
+
+          TAG="v${VER}"
+
+          if [ -n "$INPUT_NAME" ]; then
+            NAME="$INPUT_NAME"
+          else
+            NAME="Intriqathon Configurator v${VER}"
+          fi
+
+          echo "Detected version: $VER"
+          echo "Tag: $TAG"
+          echo "Release name: $NAME"
+
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG" >> $GITHUB_OUTPUT
+          echo "release_name=$NAME" >> $GITHUB_OUTPUT
+
+  # ─── Compilation sur chaque OS (Windows, macOS, Linux) ─────────────────
+  build:
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Vite & Package Electron
+        run: npm run electron:build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.AppImage
+            !release/*.blockmap
+            !release/builder-effective-config.yaml
+          if-no-files-found: error
+          retention-days: 2
+
+  # ─── Création / Mise à jour de la Release GitHub ───────────────────────
+  release:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: List downloaded files
+        run: ls -la release-artifacts/
+
+      - name: Publish GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "release-artifacts/*.exe,release-artifacts/*.dmg,release-artifacts/*.AppImage"
+          tag: ${{ needs.prepare.outputs.tag_name }}
+          name: ${{ needs.prepare.outputs.release_name }}
+          draft: ${{ github.event.inputs.is_draft || false }}
+          prerelease: ${{ github.event.inputs.is_prerelease || false }}
+          allowUpdates: true
+          replacesArtifacts: true
+          generateReleaseNotes: true

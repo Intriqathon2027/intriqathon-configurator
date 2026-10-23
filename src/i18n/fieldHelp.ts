@@ -58,7 +58,6 @@ export const fieldHelpByStep: Record<number, FieldHelpGroup[]> = {
       fields: [
         { id: 'scw-secret-key', labelKey: 'accountCreation.scaleway.secretKey', envKey: 'SCW_SECRET_KEY', pathKey: 'accountCreation.scaleway.secretKey.path', hintKey: 'accountCreation.scaleway.secretKey.hint' },
         { id: 'scw-project-id', labelKey: 'accountCreation.scaleway.projectId', envKey: 'SCW_DEFAULT_PROJECT_ID', pathKey: 'accountCreation.scaleway.projectId.path', hintKey: 'accountCreation.scaleway.projectId.hint' },
-        { id: 'deploy-path', labelKey: 'accountCreation.scaleway.deployPath', envKey: 'DEPLOY_PATH', hintKey: 'accountCreation.scaleway.deployPath.hint' },
       ],
     },
   ],

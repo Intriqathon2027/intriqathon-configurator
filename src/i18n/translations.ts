@@ -202,8 +202,8 @@ export const translations: Translations = {
     'accountCreation.scaleway.projectId.path': 'Organization > Projects > Votre projet',
     'accountCreation.scaleway.projectId.hint': 'Identifiant du projet Scaleway dans lequel l\'instance sera créée. Il se copie depuis console.scaleway.com/organization/projects, où figurent aussi l\'ID d\'organisation.',
     'accountCreation.scaleway.deployPath': 'Chemin du dossier hackathon-deploy',
-    'accountCreation.scaleway.deployPath.hint': 'Chemin absolu du dossier hackathon-deploy sur votre machine — c\'est son contenu qui sera envoyé sur le serveur lors du déploiement. Utilisez le bouton Parcourir pour le sélectionner.',
-    'accountCreation.scaleway.deployPath.placeholder': '/Users/moi/hackathon-deploy',
+    'accountCreation.scaleway.deployPath.hint': 'Chemin du dossier de déploiement (automatiquement configuré dans le dossier temporaire).',
+    'accountCreation.scaleway.deployPath.placeholder': '/tmp/intriqathon-deploy',
 
     // =============================================
     // API Configuration (Step 2)
@@ -362,8 +362,6 @@ export const translations: Translations = {
     'step6.label.mac': 'Linux / macOS',
     'step6.label.windows': 'Windows',
     'step6.auto.title': 'DÉPLOIEMENT AUTOMATIQUE',
-    'step6.auto.deployPath': 'Chemin de déploiement',
-    'step6.auto.browse': 'Parcourir',
     'step6.auto.pathLabel': 'Dossier de configuration',
     'step6.auto.btnStart': 'Lancer le déploiement',
     'step6.auto.btnRestart': 'Relancer le déploiement',
@@ -602,8 +600,8 @@ export const translations: Translations = {
     'accountCreation.scaleway.projectId.path': 'Organization > Projects > Your project',
     'accountCreation.scaleway.projectId.hint': 'Identifier of the Scaleway Project the instance will be created in. Copy it from console.scaleway.com/organization/projects, which also lists the Organization ID.',
     'accountCreation.scaleway.deployPath': 'hackathon-deploy folder path',
-    'accountCreation.scaleway.deployPath.hint': 'Absolute path to the hackathon-deploy folder on your machine — its contents are what gets uploaded to the server on deployment. Use the Browse button to pick it.',
-    'accountCreation.scaleway.deployPath.placeholder': '/Users/me/hackathon-deploy',
+    'accountCreation.scaleway.deployPath.hint': 'Path to the deployment folder (automatically configured in the temporary workspace).',
+    'accountCreation.scaleway.deployPath.placeholder': '/tmp/intriqathon-deploy',
 
     // =============================================
     // API Configuration (Step 2)
@@ -762,8 +760,6 @@ export const translations: Translations = {
     'step6.label.mac': 'Linux / macOS',
     'step6.label.windows': 'Windows',
     'step6.auto.title': 'AUTOMATIC DEPLOYMENT',
-    'step6.auto.deployPath': 'Deployment path',
-    'step6.auto.browse': 'Browse',
     'step6.auto.pathLabel': 'Configuration folder',
     'step6.auto.btnStart': 'Start deployment',
     'step6.auto.btnRestart': 'Run the deployment again',

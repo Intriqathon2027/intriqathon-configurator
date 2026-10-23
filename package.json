@@ -31,25 +31,30 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "hackathon-deploy",
+        "to": "hackathon-deploy",
+        "filter": [
+          "**/*",
+          "!.env"
+        ]
       }
     ],
     "mac": {
       "target": [
-        "dmg",
-        "zip"
+        "dmg"
       ],
       "category": "public.app-category.developer-tools"
     },
     "win": {
       "target": [
-        "nsis",
         "portable"
       ]
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        "AppImage"
       ]
     }
   },
