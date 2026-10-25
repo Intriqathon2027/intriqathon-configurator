@@ -42,16 +42,22 @@ export function OAuth2HelpContent() {
       desc: L(
         <>
           Ouvrez le portail développeur de Discord et connectez-vous avec votre
-          compte Discord habituel. Cliquez sur <code>Nouvelle application</code>{' '}
-          (<code>New Application</code>) <M n={1} />, donnez-lui un nom — par exemple{' '}
-          <code>Hackathon_Auth</code> <M n={2} /> —, cochez l'acceptation des conditions <M n={3} />
-          puis cliquez sur <code>Créer</code> <M n={4} />.
+          compte Discord habituel.<br />
+          <M n={1} /> Cliquez sur <code>Nouvelle application</code>{' '}
+          (<code>New Application</code>)<br />
+          <M n={2} /> Donnez-lui un nom, par exemple{' '}
+          <code>Hackathon_Auth</code><br />
+          <M n={3} /> Cochez l'acceptation des conditions<br />
+          <M n={4} /> Cliquez sur <code>Créer</code>.
         </>,
         <>
           Open Discord's developer portal and sign in with your usual Discord
-          account. Click <code>New Application</code> <M n={1} />, give it a name — for
-          example <code>Hackathon_Auth</code> <M n={2} /> —, tick the terms checkbox <M n={3} />,
-          then click <code>Create</code> <M n={4} />.
+          account.<br />
+          <M n={1} /> Click <code>New Application</code><br />
+          <M n={2} /> Give it a name, for
+          example <code>Hackathon_Auth</code><br />
+          <M n={3} /> Tick the terms checkbox<br />
+          <M n={4} /> Click <code>Create</code>.
         </>,
       ),
       url: DISCORD_PORTAL,
@@ -66,16 +72,17 @@ export function OAuth2HelpContent() {
       title: L('Copier le Client ID', 'Copy the Client ID'),
       desc: L(
         <>
-          Une fois l'application créée, Discord ouvre l'onglet{' '}
-          <code>Informations générales</code> (<code>General Information</code>) <M n={1} />.
-          Repérez <code>Identifiant d'application</code> (<code>Application ID</code>) <M n={2} />,
+          <M n={1} /> Une fois l'application créée, Discord ouvre l'onglet{' '}
+          <code>Informations générales</code> (<code>General Information</code>)<br />
+          <M n={2} /> Repérez <code>Identifiant d'application</code> (<code>Application ID</code>),
           cliquez sur <code>Copier</code> et collez la valeur dans le champ{' '}
           <strong>Discord Client ID</strong> du formulaire.
         </>,
         <>
-          Once the application exists, Discord opens the{' '}
-          <code>General Information</code> tab <M n={1} />. Find the{' '}
-          <code>Application ID</code> <M n={2} />, click <code>Copy</code> and paste it
+          <M n={1} /> Once the application exists, Discord opens the{' '}
+          <code>General Information</code> tab<br />
+          <M n={2} /> Find the{' '}
+          <code>Application ID</code>, click <code>Copy</code> and paste it
           into the <strong>Discord Client ID</strong> field of the form.
         </>,
       ),
@@ -89,16 +96,20 @@ export function OAuth2HelpContent() {
       title: L('Générer le Client Secret', 'Generate the Client Secret'),
       desc: L(
         <>
-          Dans le menu de gauche, ouvrez l'onglet <code>OAuth2</code> <M n={1} />. Sous{' '}
+          <M n={1} /> Dans le menu de gauche, ouvrez l'onglet <code>OAuth2</code><br />
+          <M n={3} /> Sous{' '}
           <code>Informations du client</code>, cliquez sur{' '}
-          <code>Réinitialiser la clé secrète</code> (<code>Reset Secret</code>) <M n={3} />
-          et confirmez. Copiez la clé qui apparaît et collez-la dans le champ{' '}
+          <code>Réinitialiser la clé secrète</code> (<code>Reset Secret</code>)
+          et confirmez.<br />
+          Copiez la clé qui apparaît et collez-la dans le champ{' '}
           <strong>Discord Client Secret</strong>.
         </>,
         <>
-          In the left menu, open the <code>OAuth2</code> tab <M n={1} />. Under{' '}
-          <code>Client Information</code>, click <code>Reset Secret</code> <M n={3} />
-          and confirm. Copy the key that appears and paste it into the{' '}
+          <M n={1} /> In the left menu, open the <code>OAuth2</code> tab<br />
+          <M n={3} /> Under{' '}
+          <code>Client Information</code>, click <code>Reset Secret</code>
+          and confirm.<br />
+          Copy the key that appears and paste it into the{' '}
           <strong>Discord Client Secret</strong> field.
         </>,
       ),
@@ -132,14 +143,17 @@ export function OAuth2HelpContent() {
       desc: L(
         <>
           Sur la même page, descendez jusqu'à <code>Redirections</code>{' '}
-          (<code>Redirects</code>). Cliquez sur <code>Ajouter une redirection</code>{' '}
-          (<code>Add Redirect</code>, ou <code>Ajouter un autre</code> s'il y en a déjà une) <M n={5} /> et collez l'URL ci-dessous <M n={4} /> —{' '}
+          (<code>Redirects</code>).<br />
+          <M n={5} /> Cliquez sur <code>Ajouter une redirection</code>{' '}
+          (<code>Add Redirect</code>, ou <code>Ajouter un autre</code> s'il y en a déjà une)<br />
+          <M n={4} /> Collez l'URL ci-dessous —{' '}
           <strong>au caractère près</strong>. C'est l'adresse vers laquelle
           Discord renvoie le participant une fois connecté.
         </>,
         <>
-          On the same page, scroll down to <code>Redirects</code>. Click{' '}
-          <code>Add Redirect</code> <M n={5} /> and paste the URL below <M n={4} /> —{' '}
+          On the same page, scroll down to <code>Redirects</code>.<br />
+          <M n={5} /> Click <code>Add Redirect</code><br />
+          <M n={4} /> Paste the URL below —{' '}
           <strong>character for character</strong>. It is where Discord sends
           the participant back once signed in.
         </>,
@@ -212,15 +226,16 @@ export function OAuth2HelpContent() {
       title: L('Installation : serveurs uniquement', 'Installation: servers only'),
       desc: L(
         <>
-          Ouvrez l'onglet <code>Installation</code> <M n={1} />. Dans{' '}
+          <M n={1} /> Ouvrez l'onglet <code>Installation</code><br />
+          <M n={2} /> Dans{' '}
           <code>Contextes d'installation</code>, ne laissez cochée que{' '}
-          <code>Installation pour une guilde</code> (<code>Guild Install</code>) <M n={2} />
+          <code>Installation pour une guilde</code> (<code>Guild Install</code>)
           — décochez l'installation pour un utilisateur.
         </>,
         <>
-          Open the <code>Installation</code> tab <M n={1} />. Under{' '}
-          <code>Installation Contexts</code>, keep only <code>Guild Install</code>{' '}
-          <M n={2} /> ticked — untick <code>User Install</code>.
+          <M n={1} /> Open the <code>Installation</code> tab<br />
+          <M n={2} /> Under{' '}
+          <code>Installation Contexts</code>, keep only <code>Guild Install</code>{' '} ticked — untick <code>User Install</code>.
         </>,
       ),
       shots: [{
@@ -280,18 +295,21 @@ export function OAuth2HelpContent() {
       title: L('Inviter le bot sur votre serveur', 'Invite the bot to your server'),
       desc: L(
         <>
-          Remontez à <code>Lien d'installation</code> (<code>Install Link</code>)
-          <M n={3} /> et copiez le lien avec le bouton à sa droite. Collez-le dans un nouvel
+          <M n={3} /> Remontez à <code>Lien d'installation</code> (<code>Install Link</code>) et copiez le lien avec le bouton à sa droite.<br />
+          Collez-le dans un nouvel
           onglet de votre navigateur, choisissez le <strong>serveur vierge</strong>{' '}
           préparé plus haut, puis cliquez sur <code>Continuer</code> et{' '}
-          <code>Autoriser</code>. Le bot apparaît alors (hors ligne) dans la liste
+          <code>Autoriser</code>.<br />
+          Le bot apparaît alors (hors ligne) dans la liste
           des membres du serveur.
         </>,
         <>
-          Scroll back up to <code>Install Link</code> <M n={3} /> and copy the link with the
-          button on its right. Paste it into a new browser tab, pick the{' '}
+          <M n={3} /> Scroll back up to <code>Install Link</code> and copy the link with the
+          button on its right.<br />
+          Paste it into a new browser tab, pick the{' '}
           <strong>empty server</strong> prepared earlier, then click{' '}
-          <code>Continue</code> and <code>Authorize</code>. The bot then shows up
+          <code>Continue</code> and <code>Authorize</code>.<br />
+          The bot then shows up
           (offline) in the server's member list.
         </>,
       ),
@@ -301,15 +319,19 @@ export function OAuth2HelpContent() {
       title: L('Récupérer le token du bot', 'Get the bot token'),
       desc: L(
         <>
-          Ouvrez l'onglet <code>Bot</code> <M n={1} />, cliquez sur{' '}
-          <code>Réinitialiser le token</code> (<code>Reset Token</code>) <M n={2} /> et
+          <M n={1} /> Ouvrez l'onglet <code>Bot</code><br />
+          <M n={2} /> Cliquez sur{' '}
+          <code>Réinitialiser le token</code> (<code>Reset Token</code>) et
           confirmez (Discord peut redemander votre mot de passe ou votre code
-          2FA). Copiez le token et collez-le dans le champ{' '}
+          2FA).<br />
+          Copiez le token et collez-le dans le champ{' '}
           <strong>Bot Token</strong>.
         </>,
         <>
-          Open the <code>Bot</code> tab <M n={1} />, click <code>Reset Token</code> <M n={2} /> and
-          confirm (Discord may ask for your password or 2FA code again). Copy the
+          <M n={1} /> Open the <code>Bot</code> tab<br />
+          <M n={2} /> Click <code>Reset Token</code> and
+          confirm (Discord may ask for your password or 2FA code again).<br />
+          Copy the
           token and paste it into the <strong>Bot Token</strong> field.
         </>,
       ),
@@ -338,19 +360,24 @@ export function OAuth2HelpContent() {
       title: 'Privileged Gateway Intents',
       desc: L(
         <>
-          Toujours dans l'onglet <code>Bot</code>, descendez jusqu'à{' '}
+          <M n={1} /> Toujours dans l'onglet <code>Bot</code>, descendez jusqu'à{' '}
           <code>Privileged Gateway Intents</code> et activez{' '}
-          <strong>Presence Intent</strong> <M n={1} /> et{' '}
-          <strong>Server Members Intent</strong> <M n={2} />. Ces autorisations
-          permettent au bot de voir les membres du serveur et leur statut.
+          <strong>Presence Intent</strong><br />
+          <M n={2} /> Activez aussi{' '}
+          <strong>Server Members Intent</strong><br />
+          Ces autorisations
+          permettent au bot de voir les membres du serveur et leur statut.<br />
           Enregistrez les modifications.
         </>,
         <>
-          Still on the <code>Bot</code> tab, scroll down to{' '}
+          <M n={1} /> Still on the <code>Bot</code> tab, scroll down to{' '}
           <code>Privileged Gateway Intents</code> and turn on{' '}
-          <strong>Presence Intent</strong> <M n={1} /> and{' '}
-          <strong>Server Members Intent</strong> <M n={2} />. They let the bot see the
-          server's members and their status. Save the changes.
+          <strong>Presence Intent</strong><br />
+          <M n={2} /> Also turn on{' '}
+          <strong>Server Members Intent</strong><br />
+          They let the bot see the
+          server's members and their status.<br />
+          Save the changes.
         </>,
       ),
       shots: [{
@@ -452,13 +479,14 @@ export function OAuth2HelpContent() {
       title: 'New OAuth App',
       desc: L(
         <>
-          Dans le menu de gauche, choisissez <code>OAuth Apps</code> <M n={1} />, puis
-          cliquez sur <code>New OAuth App</code> <M n={2} /> (le bouton s'appelle{' '}
+          <M n={1} /> Dans le menu de gauche, choisissez <code>OAuth Apps</code><br />
+          <M n={2} /> Cliquez sur <code>New OAuth App</code> (le bouton s'appelle{' '}
           <code>Register a new application</code> si c'est votre première app).
         </>,
         <>
-          In the left menu, pick <code>OAuth Apps</code> <M n={1} />, then click{' '}
-          <code>New OAuth App</code> <M n={2} /> (the button reads{' '}
+          <M n={1} /> In the left menu, pick <code>OAuth Apps</code><br />
+          <M n={2} /> Click{' '}
+          <code>New OAuth App</code> (the button reads{' '}
           <code>Register a new application</code> if it is your first app).
         </>,
       ),
@@ -532,16 +560,19 @@ export function OAuth2HelpContent() {
       title: L('Copier l\'ID et générer le secret', 'Copy the ID and generate the secret'),
       desc: L(
         <>
-          GitHub ouvre la page de l'app. Le <code>Client ID</code> <M n={1} /> y est
-          affiché : copiez-le dans <strong>GitHub Client ID</strong>. Cliquez
-          ensuite sur <code>Generate a new client secret</code> <M n={2} /> (GitHub peut
+          GitHub ouvre la page de l'app.<br />
+          <M n={1} /> Le <code>Client ID</code> y est
+          affiché : copiez-le dans <strong>GitHub Client ID</strong>.<br />
+          <M n={2} /> Cliquez ensuite sur <code>Generate a new client secret</code> (GitHub peut
           redemander votre mot de passe) et copiez le secret dans{' '}
           <strong>GitHub Client Secret</strong>.
         </>,
         <>
-          GitHub opens the app's page. The <code>Client ID</code> <M n={1} /> is shown
-          there: copy it into <strong>GitHub Client ID</strong>. Then click{' '}
-          <code>Generate a new client secret</code> <M n={2} /> (GitHub may ask for your
+          GitHub opens the app's page.<br />
+          <M n={1} /> The <code>Client ID</code> is shown
+          there: copy it into <strong>GitHub Client ID</strong>.<br />
+          <M n={2} /> Then click{' '}
+          <code>Generate a new client secret</code> (GitHub may ask for your
           password again) and copy the secret into{' '}
           <strong>GitHub Client Secret</strong>.
         </>,
@@ -606,7 +637,7 @@ export function OAuth2HelpContent() {
   return (
     <>
       <HelpService id="svc-discord" icon={<Shield size={15} />} title="Discord OAuth2">
-        <p className="help-note">
+        <p className="help-service__intro">
           {L(
             <>
               Permet aux participants de <strong>se connecter avec leur compte Discord</strong>.
@@ -626,7 +657,7 @@ export function OAuth2HelpContent() {
       </HelpService>
 
       <HelpService id="svc-bot" icon={<Shield size={15} />} title={L('Bot Discord', 'Discord Bot') }>
-        <p className="help-note">
+        <p className="help-service__intro">
           {L(
             <>
               Le bot relaie les annonces du hackathon sur votre serveur Discord. Il s'agit d'une seconde application Discord, à laquelle
@@ -642,7 +673,7 @@ export function OAuth2HelpContent() {
       </HelpService>
 
       <HelpService id="svc-github" icon={<Shield size={15} />} title="GitHub OAuth2">
-        <p className="help-note">
+        <p className="help-service__intro">
           {L(
             <>
               Permet aux participants de <strong>se connecter avec GitHub</strong> et à
