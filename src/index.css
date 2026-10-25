@@ -303,8 +303,7 @@
   box-shadow: 0 0 0 3px rgba(23, 144, 111, 0.28);
 }
 
-[data-theme="dark"] .modal-body code,
-[data-theme="dark"] .help-panel-body code {
+[data-theme="dark"] .modal-body code {
   background: var(--color-code-bg);
   border: 1px solid var(--color-border-strong);
 }
@@ -2649,15 +2648,12 @@ body {
 }
 
 /* Every action name in the panel — walkthrough card, click path, note — gets
-   the same chip: one appearance, and never broken across two lines. */
+   the same look: body font in bold and accent colour, never broken across two
+   lines. No box around it: the boxed chip is kept for values that can be copied. */
 .help-panel-body code {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: var(--font-size-mono);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border-strong);
-  padding: 1px 5px;
-  border-radius: var(--radius-sm);
-  color: var(--color-code-accent);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: var(--font-weight-bold);
   white-space: nowrap;
 }
 
@@ -3029,7 +3025,7 @@ ul.help-note li {
 .help-service + .help-service {
   position: relative;
   padding-top: var(--space-5);
-  margin-top: var(--space-2);
+  margin-top: var(--space-5);
 }
 
 /* Full-bleed rule: a border would stop at the section box, which sits inset
@@ -3038,10 +3034,15 @@ ul.help-note li {
 .help-service + .help-service::before {
   content: "";
   position: absolute;
-  top: 0;
+  top: -4px;
   left: calc(var(--space-5) * -1);
   right: calc(var(--space-5) * -1);
-  border-top: 1px solid var(--color-border-strong);
+  height: 8px;
+  /* A small sine wave instead of a flat rule. The wave is a mask over the
+     border colour, so it follows the theme like the rule it replaces. */
+  background: var(--color-border-strong);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='8' viewBox='0 0 24 8'%3E%3Cpath d='M0 4 C 3 0.5, 9 0.5, 12 4 S 21 7.5, 24 4' fill='none' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E") repeat-x left center / 24px 8px;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='8' viewBox='0 0 24 8'%3E%3Cpath d='M0 4 C 3 0.5, 9 0.5, 12 4 S 21 7.5, 24 4' fill='none' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E") repeat-x left center / 24px 8px;
 }
 
 /* What the service is for, read before its walkthrough: body size, and a
