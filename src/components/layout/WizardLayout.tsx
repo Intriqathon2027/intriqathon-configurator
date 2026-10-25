@@ -69,7 +69,6 @@ export function WizardLayout({
       <HelpPanel
         helpOpen={helpOpen}
         setHelpOpen={setHelpOpen}
-        title={title}
         helpContent={helpContent}
         focus={helpFocus}
       />

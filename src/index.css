@@ -2579,22 +2579,20 @@ body {
   opacity: 0.3;
 }
 
+/* No title bar: only the close button, floating top right over the content
+   so the panel's text starts at the very top */
 .help-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-  padding-top: 44px; /* Account for window titlebar */
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+  -webkit-app-region: no-drag;
 }
 
-.help-panel-title {
-  font: var(--type-h2);
-  color: var(--color-text);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+.help-panel-header .btn {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 .help-panel-body {
