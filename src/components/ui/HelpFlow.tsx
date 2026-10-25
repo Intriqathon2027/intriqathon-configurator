@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from 'react'
 import { ArrowDown, ExternalLink } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import { CopyChip } from './CopyBlock'
+import { HelpScreenshots, type HelpShot } from './HelpScreenshot'
 
 export interface HelpFlowStep {
   /** Stable list key. */
@@ -21,6 +22,8 @@ export interface HelpFlowStep {
   copyValues?: { value: string; note?: ReactNode }[]
   /** Anything that belongs under the description (lists, warnings, blocks). */
   extra?: ReactNode
+  /** Captures of the provider's page, so the reader recognises what to click. */
+  shots?: HelpShot[]
 }
 
 /**
@@ -60,6 +63,7 @@ export function HelpFlow({ steps }: { steps: HelpFlowStep[] }) {
               </ul>
             )}
             {step.extra}
+            {step.shots && <HelpScreenshots shots={step.shots} />}
             {step.url && (
               <button
                 type="button"

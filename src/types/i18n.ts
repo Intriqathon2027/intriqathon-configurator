@@ -34,6 +34,8 @@ export type TranslationKeys = {
   'btn.downloadEnv': string
   'help.title': string
   'help.flow.open': string
+  'help.shot.enlarge': string
+  'help.shot.close': string
   'lang.fr': string
   'lang.en': string
   'app.title': string

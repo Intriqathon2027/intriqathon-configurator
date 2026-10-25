@@ -2753,7 +2753,7 @@ ul.help-note li {
 /* Inside the panel the chain is indented and separated from the next service.
    It carries its own numbering, so it keeps the panel's list indent off. */
 .help-panel-body .help-flow {
-  margin: 0 0 var(--space-5) var(--space-4);
+  margin: 0 0 var(--space-5) var(--space-0);
   padding-left: 0;
 }
 
@@ -2824,6 +2824,124 @@ ul.help-note li {
 .help-flow__link:hover {
   background: var(--color-primary-light);
   border-color: var(--color-primary);
+}
+
+/* Captures of the provider's interface inside an action card.
+   The thumbnail opens the full-size capture over the window. */
+.help-shots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.help-shot {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.help-shot__thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+  cursor: zoom-in;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.help-shot__thumb:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.help-shot__thumb img,
+.help-shot__full img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.help-shot__zoom {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.help-shot__thumb:hover .help-shot__zoom,
+.help-shot__thumb:focus-visible .help-shot__zoom {
+  opacity: 1;
+}
+
+.help-shot__caption {
+  font: var(--type-caption);
+  color: var(--color-text);
+}
+
+/* Same badge as the markers burnt into the captures */
+.help-shot-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin: 0 1px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  vertical-align: 1px;
+}
+
+.help-shot__overlay {
+  cursor: zoom-out;
+}
+
+.help-shot__full {
+  position: relative;
+  margin: 0;
+  max-width: min(1100px, 92vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xl);
+  cursor: default;
+}
+
+.help-shot__full img {
+  max-height: calc(92vh - 90px);
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+.help-shot__close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: inline-flex;
+  padding: 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
 }
 
 /* Lists and notes nested inside a card */
