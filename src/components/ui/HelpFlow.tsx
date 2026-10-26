@@ -1,29 +1,29 @@
-import { Fragment, type ReactNode } from 'react'
-import { ArrowDown, ExternalLink } from 'lucide-react'
-import { useApp } from '../../context/AppContext'
-import { CopyChip } from './CopyBlock'
-import { HelpScreenshots, type HelpShot } from './HelpScreenshot'
+import { Fragment, type ReactNode } from "react";
+import { ArrowDown, ExternalLink } from "lucide-react";
+import { useApp } from "../../context/AppContext";
+import { CopyChip } from "./CopyBlock";
+import { HelpScreenshots, type HelpShot } from "./HelpScreenshot";
 
 export interface HelpFlowStep {
   /** Stable list key. */
-  key: string
+  key: string;
   /** The action to perform — the card's headline. */
-  title: string
+  title: string;
   /** How to reach that action in the provider's UI. */
-  desc: ReactNode
+  desc: ReactNode;
   /** Deep link straight to the action, when the provider exposes one. */
-  url?: string
+  url?: string;
   /** Overrides the default "Open" link label. */
-  linkLabel?: string
+  linkLabel?: string;
   /**
    * Literals the reader has to reproduce exactly — bucket names, callback URLs,
    * subdomains. Rendered as copy-to-clipboard chips.
    */
-  copyValues?: { value: string; note?: ReactNode }[]
+  copyValues?: { value: string; note?: ReactNode }[];
   /** Anything that belongs under the description (lists, warnings, blocks). */
-  extra?: ReactNode
+  extra?: ReactNode;
   /** Captures of the provider's page, so the reader recognises what to click. */
-  shots?: HelpShot[]
+  shots?: HelpShot[];
 }
 
 /**
@@ -35,7 +35,7 @@ export interface HelpFlowStep {
  * top-to-bottom with a connector arrow between cards rather than left-to-right.
  */
 export function HelpFlow({ steps }: { steps: HelpFlowStep[] }) {
-  const { t, openUrl } = useApp()
+  const { t, openUrl } = useApp();
 
   return (
     <ol className="help-flow">
@@ -54,10 +54,12 @@ export function HelpFlow({ steps }: { steps: HelpFlowStep[] }) {
             <p className="help-flow__desc">{step.desc}</p>
             {step.copyValues && (
               <ul className="help-flow__copy-list">
-                {step.copyValues.map(item => (
+                {step.copyValues.map((item) => (
                   <li key={item.value}>
                     <CopyChip value={item.value} />
-                    {item.note && <span className="help-flow__copy-note">{item.note}</span>}
+                    {item.note && (
+                      <span className="help-flow__copy-note">{item.note}</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -71,12 +73,12 @@ export function HelpFlow({ steps }: { steps: HelpFlowStep[] }) {
                 onClick={() => openUrl(step.url!)}
               >
                 <ExternalLink size={13} />
-                {step.linkLabel ?? t('help.flow.open')}
+                {step.linkLabel ?? t("help.flow.open")}
               </button>
             )}
           </li>
         </Fragment>
       ))}
     </ol>
-  )
+  );
 }

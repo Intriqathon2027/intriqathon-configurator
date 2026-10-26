@@ -820,7 +820,6 @@ body {
   width: 26px;
   height: 26px;
   font-size: var(--font-size-sm);
-  margin-right: var(--space-4);
 }
 
 .service-config-block__content {
