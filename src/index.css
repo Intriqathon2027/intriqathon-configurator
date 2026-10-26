@@ -110,7 +110,7 @@
        block   — cards inside a page */
   --gap-item: var(--space-3);
   --gap-section: var(--space-6);
-  --gap-block: var(--space-5);
+  --gap-block: var(--space-4);
 
   /* Border radius */
   --radius-sm: 6px;
@@ -1227,7 +1227,7 @@ body {
 .step-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-6) var(--space-8);
+  padding: var(--space-4) var(--space-4);
   /* `backwards`, not `both`: a fill that outlives the animation keeps a
      transform on this element, which makes it a stacking context — and then
      no card inside can be raised above the automation overlay. */

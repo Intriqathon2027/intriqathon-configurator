@@ -6,7 +6,7 @@ import { useApp } from '../../context/AppContext'
 export interface HelpShot {
   src: string
   alt: string
-  /** What to look at in the capture — usually refers to its numbered markers. */
+  /** What to look at in the capture — shown only once it is enlarged. */
   caption?: ReactNode
 }
 
@@ -15,7 +15,8 @@ export interface HelpShot {
  * who has never seen that page knows what they are looking for.
  *
  * The panel is narrow, so the image is a thumbnail: clicking it opens the full
- * capture over the whole window (Escape or a click outside closes it).
+ * capture over the whole window, with its caption (Escape or a click outside
+ * closes it).
  */
 export function HelpScreenshot({ src, alt, caption }: HelpShot) {
   const { t } = useApp()
@@ -41,7 +42,6 @@ export function HelpScreenshot({ src, alt, caption }: HelpShot) {
           <Maximize2 size={12} />
         </span>
       </button>
-      {caption && <figcaption className="help-shot__caption">{caption}</figcaption>}
 
       {zoomed && createPortal(
         <div
