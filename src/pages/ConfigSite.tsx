@@ -439,6 +439,119 @@ export function ConfigSite() {
     </div>
   );
 
+  /**
+   * The screens of the config.<domain> wizard, in order. Built on every render:
+   * the admin sign-in link follows the domain as it is typed.
+   */
+  const configScreens: HelpFlowStep[] = [
+    {
+      key: "supabase",
+      title: "Connect to Supabase",
+      desc: isEn
+        ? "Two fields. Both values are already in your configuration:"
+        : "Deux champs. Les deux valeurs sont déjà dans votre configuration :",
+      extra: (
+        <>
+          {supabaseUrl ? (
+            <CopyRow label="Instance URL" content={supabaseUrl} />
+          ) : (
+            <div className="info-box warning">
+              <AlertTriangle size={15} className="info-box-icon" />
+              <div className="info-box-text">
+                {isEn
+                  ? "SUPABASE_URL is still empty — fill it in at step 2 (API configuration)."
+                  : "SUPABASE_URL est encore vide — renseignez-la à l'étape 2 (Configuration par API)."}
+              </div>
+            </div>
+          )}
+          {serviceKeyField}
+        </>
+      ),
+    },
+    {
+      key: "admin",
+      title: "Create Admin User",
+      desc: isEn
+        ? "Email address, password and confirmation — your choice, 8 characters minimum."
+        : "Adresse email, mot de passe et confirmation — à votre convenance, 8 caractères minimum.",
+      url: adminLoginUrl,
+      linkLabel: `${t("step8.adminLogin.btn")} — ${domain}`,
+      extra: (
+        <div className="info-box info">
+          <UserPlus size={15} className="info-box-icon" />
+          <div className="info-box-text">
+            {isEn
+              ? "This is what creates the ORGANIZER account you then sign in with on the site — nothing else does."
+              : "C'est ce qui crée le compte ORGANIZER avec lequel vous vous connecterez ensuite au site — rien d'autre ne le fait."}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "discord",
+      title: "Discord Setup",
+      desc: isEn
+        ? "Informational only — the bot was already configured at step 3. Click Continue."
+        : "Purement informatif — le bot a déjà été configuré à l'étape 3. Cliquez sur Continue.",
+    },
+    {
+      key: "deploying",
+      title: "Deploying",
+      desc: isEn
+        ? "Informational only — the deployment already ran at step 4. Click Continue."
+        : "Purement informatif — le déploiement a déjà été fait à l'étape 4. Cliquez sur Continue.",
+    },
+    {
+      key: "complete",
+      title: "Setup Complete",
+      desc: isEn
+        ? "Recap of the four steps. Close Configuration ends the wizard — you can then sign in on the site with the account from screen 2."
+        : "Récapitulatif des quatre étapes. Close Configuration termine l'assistant — vous pouvez alors vous connecter au site avec le compte de l'écran 2.",
+    },
+  ];
+
+  const siteSteps: HelpFlowStep[] = [
+    {
+      key: "name",
+      title: isEn ? "Name the hackathon" : "Nommer le hackathon",
+      desc: isEn ? (
+        <>
+          Sign in with the account from screen 2, then <code>Settings</code> ➔{" "}
+          <code>Texts</code> and fill in the hackathon name (60 characters
+          max).
+        </>
+      ) : (
+        <>
+          Connectez-vous avec le compte de l'écran 2, puis{" "}
+          <code>Paramètres</code> ➔ <code>Textes</code> et renseignez le nom du
+          hackathon (60 caractères max).
+        </>
+      ),
+      extra: (
+        <div className="info-box warning">
+          <AlertTriangle size={15} className="info-box-icon" />
+          <div className="info-box-text">
+            {isEn ? (
+              <>
+                That name, spaces replaced by dashes, is the GitHub organization
+                the team repositories go into.{" "}
+                <strong>It must already exist on GitHub</strong> — the platform
+                never creates it.
+              </>
+            ) : (
+              <>
+                Ce nom, espaces remplacés par des tirets, désigne l'organisation
+                GitHub où atterrissent les dépôts des équipes.{" "}
+                <strong>Elle doit déjà exister sur GitHub</strong> — la
+                plateforme ne la crée jamais.
+              </>
+            )}
+          </div>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <WizardLayout
       title={t("step8.title")}
@@ -473,7 +586,7 @@ export function ConfigSite() {
           statusLabels={statusLabels}
           manualLabel={isEn ? "Manual Configuration" : "Configuration manuelle"}
         >
-          <div className="form-section">
+          <div className="form-section form-section--plain-code">
             <ManualSection
               title={
                 isEn
@@ -590,7 +703,7 @@ export function ConfigSite() {
           btnCancelLabel=""
           statusLabels={statusLabels}
         >
-          <div className="form-section">
+          <div className="form-section form-section--plain-code">
             <p className="step-lead">{t("step8.tip")}</p>
             <div className="link-buttons-row">
               <ExternalLinkBtn
@@ -612,102 +725,11 @@ export function ConfigSite() {
             {/* The config.<domain> wizard, screen by screen */}
             <div className="config-screens">
               <div className="config-screens__title">
-                {/* <KeyRound size={16} color="var(--color-primary-text)" /> */}
                 {isEn
                   ? `What config.${domain} asks for`
                   : `Ce que demande config.${domain}`}
               </div>
-
-              <ol className="config-screens__list">
-                <li className="config-screen">
-                  <span className="config-screen__index">1</span>
-                  <div className="config-screen__body">
-                    <div className="config-screen__name">
-                      Connect to Supabase
-                    </div>
-                    <p className="config-screen__desc">
-                      {isEn
-                        ? "Two fields. Both values are already in your configuration:"
-                        : "Deux champs. Les deux valeurs sont déjà dans votre configuration :"}
-                    </p>
-                    {supabaseUrl ? (
-                      <CopyRow label="Instance URL" content={supabaseUrl} />
-                    ) : (
-                      <div className="info-box warning">
-                        <AlertTriangle size={15} className="info-box-icon" />
-                        <div className="info-box-text">
-                          {isEn
-                            ? "SUPABASE_URL is still empty — fill it in at step 2 (API configuration)."
-                            : "SUPABASE_URL est encore vide — renseignez-la à l'étape 2 (Configuration par API)."}
-                        </div>
-                      </div>
-                    )}
-                    {serviceKeyField}
-                  </div>
-                </li>
-
-                <li className="config-screen">
-                  <span className="config-screen__index">2</span>
-                  <div className="config-screen__body">
-                    <div className="config-screen__name">Create Admin User</div>
-                    <p className="config-screen__desc">
-                      {isEn
-                        ? "Email address, password and confirmation — your choice, 8 characters minimum."
-                        : "Adresse email, mot de passe et confirmation — à votre convenance, 8 caractères minimum."}
-                    </p>
-                    <div className="link-buttons-row">
-                      <ExternalLinkBtn
-                        url={adminLoginUrl}
-                        label={`${t("step8.adminLogin.btn")} — ${domain}`}
-                      />
-                    </div>
-                    <div className="info-box info">
-                      <UserPlus size={15} className="info-box-icon" />
-                      <div className="info-box-text">
-                        {isEn
-                          ? "This is what creates the ORGANIZER account you then sign in with on the site — nothing else does."
-                          : "C'est ce qui crée le compte ORGANIZER avec lequel vous vous connecterez ensuite au site — rien d'autre ne le fait."}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-
-                <li className="config-screen">
-                  <span className="config-screen__index">3</span>
-                  <div className="config-screen__body">
-                    <div className="config-screen__name">Discord Setup</div>
-                    <p className="config-screen__desc">
-                      {isEn
-                        ? "Informational only — the bot was already configured at step 3. Click Continue."
-                        : "Purement informatif — le bot a déjà été configuré à l'étape 3. Cliquez sur Continue."}
-                    </p>
-                  </div>
-                </li>
-
-                <li className="config-screen">
-                  <span className="config-screen__index">4</span>
-                  <div className="config-screen__body">
-                    <div className="config-screen__name">Deploying</div>
-                    <p className="config-screen__desc">
-                      {isEn
-                        ? "Informational only — the deployment already ran at step 4. Click Continue."
-                        : "Purement informatif — le déploiement a déjà été fait à l'étape 4. Cliquez sur Continue."}
-                    </p>
-                  </div>
-                </li>
-
-                <li className="config-screen">
-                  <span className="config-screen__index">5</span>
-                  <div className="config-screen__body">
-                    <div className="config-screen__name">Setup Complete</div>
-                    <p className="config-screen__desc">
-                      {isEn
-                        ? "Recap of the four steps. Close Configuration ends the wizard — you can then sign in on the site with the account from screen 2."
-                        : "Récapitulatif des quatre étapes. Close Configuration termine l'assistant — vous pouvez alors vous connecter au site avec le compte de l'écran 2."}
-                    </p>
-                  </div>
-                </li>
-              </ol>
+              <HelpFlow steps={configScreens} />
             </div>
 
             {/* Done on the site itself, once the wizard is closed — and the
@@ -717,53 +739,7 @@ export function ConfigSite() {
               <div className="config-screens__title">
                 {isEn ? `Then, on ${domain}` : `Ensuite, sur ${domain}`}
               </div>
-
-              <ol className="config-screens__list">
-                <li className="config-screen">
-                  <span className="config-screen__index">1</span>
-                  <div className="config-screen__body">
-                    <div className="config-screen__name">
-                      {isEn ? "Name the hackathon" : "Nommer le hackathon"}
-                    </div>
-                    <p className="config-screen__desc">
-                      {isEn ? (
-                        <>
-                          Sign in with the account from screen 2, then{" "}
-                          <code>Settings</code> ➔ <code>Texts</code> and fill in
-                          the hackathon name (60 characters max).
-                        </>
-                      ) : (
-                        <>
-                          Connectez-vous avec le compte de l'écran 2, puis{" "}
-                          <code>Paramètres</code> ➔ <code>Textes</code> et
-                          renseignez le nom du hackathon (60 caractères max).
-                        </>
-                      )}
-                    </p>
-                    <div className="info-box warning">
-                      <AlertTriangle size={15} className="info-box-icon" />
-                      <div className="info-box-text">
-                        {isEn ? (
-                          <>
-                            That name, spaces replaced by dashes, is the GitHub
-                            organization the team repositories go into.{" "}
-                            <strong>It must already exist on GitHub</strong> —
-                            the platform never creates it.
-                          </>
-                        ) : (
-                          <>
-                            Ce nom, espaces remplacés par des tirets, désigne
-                            l'organisation GitHub où atterrissent les dépôts des
-                            équipes.{" "}
-                            <strong>Elle doit déjà exister sur GitHub</strong> —
-                            la plateforme ne la crée jamais.
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              </ol>
+              <HelpFlow steps={siteSteps} />
             </div>
 
             <div className="info-box warning">

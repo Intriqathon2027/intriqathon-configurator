@@ -803,7 +803,6 @@ body {
    A flex box centres the glyph box, not the glyph: neutralise the font's
    line box and its numeric side-bearings so the digit lands dead centre. */
 .service-config-block__step-number,
-.config-screen__index,
 .help-flow__index {
   flex-shrink: 0;
   border-radius: var(--radius-full);
@@ -2362,7 +2361,6 @@ body {
    is the same object, which is most of why these cards looked noisy. */
 .icon-row,
 .manual-check,
-.config-screen,
 .bucket-list,
 .service-config-block__help {
   background: var(--color-surface-sunken);
@@ -3115,48 +3113,11 @@ ul.help-note li {
   margin-bottom: var(--gap-item);
 }
 
-.config-screens__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-item);
-  min-width: 0;
-}
 
-.config-screen {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  min-width: 0;
-  padding: var(--space-3);
-}
 
-.config-screen__index {
-  width: 22px;
-  height: 22px;
-  font-size: var(--font-size-sm);
-}
 
-.config-screen__body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-item);
-}
 
-.config-screen__name {
-  font: var(--type-h4);
-  color: var(--color-text);
-}
 
-.config-screen__desc {
-  margin: 0;
-  font: var(--type-body);
-  color: var(--color-text);
-}
 
 .config-screen__note {
   margin: 0;
@@ -3165,12 +3126,26 @@ ul.help-note li {
 }
 
 /* The copy rows carry a JWT — they must truncate, never widen the card */
-.config-screen__body .copy-block-row {
+.help-flow__card {
   min-width: 0;
 }
 
-.config-screen__body .info-box {
+.help-flow__card .copy-block-row {
+  min-width: 0;
+}
+
+.help-flow__card .info-box {
   margin: 0;
+}
+
+/* Action and setting names in the step-8 walkthroughs: the body font in bold
+   rather than monospace, like the help panel */
+.form-section--plain-code code {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-code-accent);
+  white-space: nowrap;
 }
 
 /* Active help button state */
