@@ -24,7 +24,7 @@
 
   --color-bg: #F4F7FA;
   --color-bg-secondary: #E9EEF4;
-  --color-bg-transparent: rgba(255, 255, 255, 0.78);
+  --color-bg-transparent: rgba(255, 255, 255, 0.50);
   --color-surface: #FFFFFF;
   --color-surface-hover: #F1F5F9;
   /* The ground under a recessed row sitting on a card. All but white: the
@@ -100,6 +100,11 @@
   --space-10: 34px;
   --space-12: 41px;
   --space-16: 54px;
+
+  /* The bottom nav floats over the step, which scrolls underneath it — the
+     step reserves this much room so its last block can clear the bar. */
+  --bottom-nav-height: 58px;
+  --bottom-nav-offset: var(--space-4);
 
   /* Three gaps, and every stack in the app picks one of them. Spacing lives
      on containers as a `gap`; a child that sets its own margin spaces
@@ -1226,6 +1231,11 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: var(--space-4) var(--space-4);
+  /* The bottom nav sits over the end of this area: the content runs on under
+     it, and this keeps the last block clear of it once scrolled to the end.
+     The scroll padding does the same for anything focused or scrolled to. */
+  padding-bottom: calc(var(--bottom-nav-height) + var(--bottom-nav-offset) + var(--space-6));
+  scroll-padding-bottom: calc(var(--bottom-nav-height) + var(--bottom-nav-offset) + var(--space-4));
   /* `backwards`, not `both`: a fill that outlives the animation keeps a
      transform on this element, which makes it a stacking context — and then
      no card inside can be raised above the automation overlay. */
@@ -1308,15 +1318,48 @@ body {
 /* =============================================
    BOTTOM NAV
    ============================================= */
+/* Floats over the step rather than taking a row of its own: the page shows
+   through, blurred, so the bar reads as part of the window instead of a slab
+   cutting it off. Same glass as the top-right island. */
 .bottom-nav {
-  height: 62px;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
+  /* Inset by its offsets alone: a margin on top of `left: 0; right: 0` and
+     a 100% width pushed it past the right edge of the window. */
+  position: absolute;
+  right: var(--bottom-nav-offset);
+  left: var(--bottom-nav-offset);
+  bottom: var(--bottom-nav-offset);
+  z-index: 50;
+  box-sizing: border-box;
+  height: var(--bottom-nav-height);
+  background: var(--color-bg-transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-8);
+  padding: var(--space-3) var(--space-3);
   flex-shrink: 0;
+  border-radius: var(--space-4);
+  /* Lifts the bar off the page scrolling under it. Kept tight: the offset
+     is all the room it has before the window edge clips it. */
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Slid out below the window on a scroll up, back in on a scroll down. The
+   extra 8px carries the shadow out of sight with it. */
+.bottom-nav {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.bottom-nav--hidden {
+  transform: translateY(calc(100% + var(--bottom-nav-offset) + 8px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .bottom-nav {
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .bottom-nav-left {
@@ -2269,6 +2312,80 @@ body {
   width: 1%;
   text-align: right;
   white-space: nowrap;
+}
+
+/* Every cell carries its own copy button, shown on hover or keyboard focus
+   only. Overlaid rather than given room: reserving it would cost each column
+   its width for a control that is invisible most of the time. */
+.dns-table__cell {
+  position: relative;
+}
+
+.dns-table__cell-copy {
+  position: absolute;
+  top: 50%;
+  right: var(--space-1);
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius-md) - 3px);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast), background var(--transition-fast),
+    border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.dns-table__cell:hover .dns-table__cell-copy,
+.dns-table__cell-copy:focus-visible,
+.dns-table__cell-copy--copied {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dns-table__cell-copy:hover,
+.dns-table__cell-copy--copied {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+/* The host as some registrars want it — whole, domain included. Muted: most
+   of them take the short form above, so this is the fallback, not the value. */
+.dns-table__fqdn {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+/* A cell holding two values — the generic host, short and in full — gives
+   each its own line and its own button, one beside each. */
+.dns-table__line {
+  display: block;
+  position: relative;
+  padding-right: 26px;
+}
+
+.dns-table__line + .dns-table__line {
+  margin-top: var(--space-2);
+}
+
+.dns-table__line .dns-table__cell-copy {
+  right: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.dns-table__empty {
+  color: var(--color-text-placeholder);
 }
 
 /* A DKIM value is a few hundred characters of base64 — left to its own
