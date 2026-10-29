@@ -96,6 +96,7 @@ jobs:
             release/*.exe
             release/*.dmg
             release/*.AppImage
+            release/*.deb
             !release/*.blockmap
             !release/builder-effective-config.yaml
           if-no-files-found: error
@@ -121,7 +122,7 @@ jobs:
       - name: Publish GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "release-artifacts/*.exe,release-artifacts/*.dmg,release-artifacts/*.AppImage"
+          artifacts: "release-artifacts/*.exe,release-artifacts/*.dmg,release-artifacts/*.AppImage,release-artifacts/*.deb"
           tag: ${{ needs.prepare.outputs.tag_name }}
           name: ${{ needs.prepare.outputs.release_name }}
           draft: ${{ github.event.inputs.is_draft || false }}
