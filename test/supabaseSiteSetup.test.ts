@@ -190,7 +190,7 @@ describe('SupabaseSiteSetupService', () => {
     expect(ctx.done()).toBeDefined()
     expect(ctx.done()?.payload.patch?.SUPABASE_PANEL_SERVICE_KEY).toBeUndefined()
     expect(ctx.error()).toBeUndefined()
-    expect(ctx.logs().some(m => m.includes('Aucune clé service_role legacy'))).toBe(true)
+    expect(ctx.logs().some(m => m.includes('No legacy service_role key'))).toBe(true)
   })
 
   it('does not fail the run when the key lookup throws', async () => {
@@ -201,7 +201,7 @@ describe('SupabaseSiteSetupService', () => {
 
     expect(ctx.done()).toBeDefined()
     expect(ctx.error()).toBeUndefined()
-    expect(ctx.logs().some(m => m.includes('Clé service_role legacy indisponible'))).toBe(true)
+    expect(ctx.logs().some(m => m.includes('Legacy service_role key unavailable'))).toBe(true)
   })
 
   it('exposes the public schema when it is missing, keeping the others', async () => {
@@ -243,7 +243,7 @@ describe('SupabaseSiteSetupService', () => {
     expect(client.updateAuthConfig).toHaveBeenCalled()
     // …but the run reports the gap rather than claiming success.
     expect(ctx.done()).toBeUndefined()
-    expect(ctx.error()?.payload.message).toContain('déploiement')
+    expect(ctx.error()?.payload.message).toContain('deployment')
   })
 
   it('names the tables it did find when the expected one is not among them', async () => {
@@ -253,7 +253,7 @@ describe('SupabaseSiteSetupService', () => {
 
     const message = ctx.error()?.payload.message ?? ''
     expect(message).toContain('Team, User')
-    expect(message).toContain('projet')
+    expect(message).toContain('project')
   })
 
   it('raises the tables RLS could not be enabled on', async () => {
@@ -321,8 +321,8 @@ describe('waiting for the deployment’s migrations', () => {
     const { ctx, start } = run(makeClient({ publicTables: [], matchedTable: null }))
     await start(false)
 
-    expect(ctx.error()?.payload.message).toMatch(/le schéma public est vide/)
-    expect(ctx.logs().some(l => l.includes('attente des tables'))).toBe(false)
+    expect(ctx.error()?.payload.message).toMatch(/public schema is empty/)
+    expect(ctx.logs().some(l => l.includes('waiting for tables'))).toBe(false)
   })
 
   it('waits for them when one did, and carries on once they land', async () => {
@@ -334,8 +334,8 @@ describe('waiting for the deployment’s migrations', () => {
       await vi.advanceTimersByTimeAsync(5_000)
       await running
 
-      expect(ctx.logs().some(l => l.includes('attente des tables'))).toBe(true)
-      expect(ctx.logs().some(l => l.includes('2 table(s) trouvée(s)'))).toBe(true)
+      expect(ctx.logs().some(l => l.includes('waiting for tables'))).toBe(true)
+      expect(ctx.logs().some(l => l.includes('2 table(s) found'))).toBe(true)
       expect(ctx.error()).toBeUndefined()
     } finally {
       vi.useRealTimers()

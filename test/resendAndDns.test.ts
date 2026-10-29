@@ -155,7 +155,7 @@ describe('ResendApiClient', () => {
       .catch((e: unknown) => e)
 
     expect(error).toBeInstanceOf(ResendApiError)
-    expect((error as ResendApiError).message).toMatch(/Clé API Resend refusée/)
+    expect((error as ResendApiError).message).toMatch(/Resend API key rejected/)
   })
 
   it('does not retry a refusal', async () => {

@@ -99,11 +99,11 @@ export class SshKeyService {
         '-f', privatePath,
       ])
     } catch (err: any) {
-      throw new Error(`Échec de la génération de clé SSH avec ssh-keygen : ${err.message || String(err)}`)
+      throw new Error(`Failed to generate SSH key with ssh-keygen: ${err.message || String(err)}`)
     }
 
     if (!fs.existsSync(pubPath)) {
-      throw new Error('La clé publique générée est introuvable après ssh-keygen')
+      throw new Error('Generated public key not found after ssh-keygen')
     }
 
     const content = fs.readFileSync(pubPath, 'utf-8').trim()

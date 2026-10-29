@@ -43,7 +43,7 @@ export class ScalewayService {
         errorType = parsed.type
       }
       if (parsed.help) {
-        errorHelp = ` (Conseil: ${parsed.help})`
+        errorHelp = ` (Hint: ${parsed.help})`
       }
       if (parsed.fields && typeof parsed.fields === 'object') {
         const fieldDetails = Object.entries(parsed.fields)
@@ -55,7 +55,7 @@ export class ScalewayService {
           })
           .join(' ; ')
         if (fieldDetails) {
-          parsedMessage += ` [Champs: ${fieldDetails}]`
+          parsedMessage += ` [Fields: ${fieldDetails}]`
         }
       }
     } catch {
@@ -63,18 +63,18 @@ export class ScalewayService {
     }
 
     if (status === 401 || status === 403) {
-      return `[ERREUR ${status}] Accès refusé par Scaleway lors de: ${context}. Vérifiez que votre SCW_SECRET_KEY est correcte (étape 1) et possède les droits IAM nécessaires. Détail: "${parsedMessage}"${errorHelp}`
+      return `[ERROR ${status}] Access denied by Scaleway while: ${context}. Verify that your SCW_SECRET_KEY is correct (Step 1) and has the required IAM permissions. Detail: "${parsedMessage}"${errorHelp}`
     }
 
     if (status === 404) {
-      return `[ERREUR 404] Ressource ou Projet Scaleway introuvable lors de: ${context}. Vérifiez l'ID de votre projet (SCW_DEFAULT_PROJECT_ID) à l'étape 1. Détail: "${parsedMessage}"`
+      return `[ERROR 404] Resource or Scaleway Project not found while: ${context}. Verify your project ID (SCW_DEFAULT_PROJECT_ID) in Step 1. Detail: "${parsedMessage}"`
     }
 
     if (status === 400) {
-      return `[ERREUR 400] Paramètre invalide lors de: ${context}. Détail: "${parsedMessage}"${errorType ? ` (${errorType})` : ''}${errorHelp}`
+      return `[ERROR 400] Invalid parameter while: ${context}. Detail: "${parsedMessage}"${errorType ? ` (${errorType})` : ''}${errorHelp}`
     }
 
-    return `[ERREUR HTTP ${status}] Échec lors de: ${context}. Détail: "${parsedMessage}"${errorType ? ` (${errorType})` : ''}`
+    return `[HTTP ERROR ${status}] Failed while: ${context}. Detail: "${parsedMessage}"${errorType ? ` (${errorType})` : ''}`
   }
 
   /**
@@ -84,7 +84,7 @@ export class ScalewayService {
     const { secretKey, projectId, sshPublicKey, sshKeyName = 'intriqathon-key' } = options
     const normalizedKey = sshPublicKey.trim().split(/\s+/).slice(0, 2).join(' ')
 
-    this.log(win, 'Vérification de la présence de la clé SSH sur Scaleway (API IAM)...', 'running', 15)
+    this.log(win, 'Checking for SSH key on Scaleway (IAM API)...', 'running', 15)
 
     let listRes: Response
     try {
@@ -95,14 +95,14 @@ export class ScalewayService {
         },
       })
     } catch (netErr: any) {
-      const msg = `[ERREUR RÉSEAU] Impossible de contacter l'API Scaleway IAM: ${netErr.message || String(netErr)}`
+      const msg = `[NETWORK ERROR] Unable to contact Scaleway IAM API: ${netErr.message || String(netErr)}`
       this.log(win, msg, 'error')
       throw new Error(msg)
     }
 
     if (!listRes.ok) {
       const errBody = await listRes.text()
-      const formatted = this.formatScalewayError(listRes.status, errBody, 'Vérification des clés SSH IAM')
+      const formatted = this.formatScalewayError(listRes.status, errBody, 'Checking IAM SSH keys')
       this.log(win, formatted, 'error')
       throw new Error(formatted)
     }
@@ -114,12 +114,12 @@ export class ScalewayService {
     })
 
     if (existing) {
-      this.log(win, `Clé SSH déjà enregistrée sur votre compte Scaleway (${existing.name}).`, 'info', 25)
+      this.log(win, `SSH key already registered on your Scaleway account (${existing.name}).`, 'info', 25)
       return
     }
 
     const finalKeyName = `${sshKeyName}-${Date.now().toString().slice(-4)}`
-    this.log(win, `Ajout de la clé SSH ("${finalKeyName}") sur Scaleway...`, 'running', 20)
+    this.log(win, `Adding SSH key ("${finalKeyName}") to Scaleway...`, 'running', 20)
 
     let createRes: Response
     try {
@@ -136,7 +136,7 @@ export class ScalewayService {
         }),
       })
     } catch (netErr: any) {
-      const msg = `[ERREUR RÉSEAU] Impossible d'envoyer la clé SSH à Scaleway: ${netErr.message || String(netErr)}`
+      const msg = `[NETWORK ERROR] Unable to upload SSH key to Scaleway: ${netErr.message || String(netErr)}`
       this.log(win, msg, 'error')
       throw new Error(msg)
     }
@@ -144,15 +144,15 @@ export class ScalewayService {
     if (!createRes.ok) {
       const errBody = await createRes.text()
       if (createRes.status === 409 || errBody.toLowerCase().includes('already exist')) {
-        this.log(win, 'Clé SSH déjà présente sur Scaleway.', 'info', 30)
+        this.log(win, 'SSH key already exists on Scaleway.', 'info', 30)
         return
       }
-      const formatted = this.formatScalewayError(createRes.status, errBody, 'Ajout de la clé SSH IAM')
+      const formatted = this.formatScalewayError(createRes.status, errBody, 'Adding IAM SSH key')
       this.log(win, formatted, 'error')
       throw new Error(formatted)
     }
 
-    this.log(win, 'Clé SSH ajoutée avec succès sur votre compte Scaleway.', 'info', 30)
+    this.log(win, 'SSH key successfully added to your Scaleway account.', 'info', 30)
   }
 
   /**
@@ -187,20 +187,20 @@ export class ScalewayService {
     const zone = options.zone || 'fr-par-1'
     const commercialType = options.commercialType || 'DEV1-M'
 
-    this.log(win, `Démarrage de la configuration automatisée Scaleway (Zone: ${zone})...`, 'running', 5)
+    this.log(win, `Starting automated Scaleway configuration (Zone: ${zone})...`, 'running', 5)
 
     try {
       // 1. Ensure SSH key is uploaded
       await this.ensureSshKey(options, win)
-      if (this.isCancelled) throw new Error('Opération annulée par l\'utilisateur')
+      if (this.isCancelled) throw new Error('Operation cancelled by user')
 
       // 2. Resolve image
-      this.log(win, 'Recherche de l\'image système Ubuntu 24.04 LTS (Noble Numbat)...', 'running', 35)
+      this.log(win, 'Looking up Ubuntu 24.04 LTS (Noble Numbat) system image...', 'running', 35)
       const imageId = await this.resolveUbuntuNobleImage(zone, commercialType)
-      this.log(win, `Image Ubuntu 24.04 identifiée: ${imageId}`, 'info', 40)
+      this.log(win, `Ubuntu 24.04 image identified: ${imageId}`, 'info', 40)
 
       // 3. Create server
-      this.log(win, `Création de l'instance (${commercialType})...`, 'running', 45)
+      this.log(win, `Creating instance (${commercialType})...`, 'running', 45)
 
       const createPayload = {
         name: `intriqathon-${Date.now().toString().slice(-4)}`,
@@ -221,14 +221,14 @@ export class ScalewayService {
           body: JSON.stringify(createPayload),
         })
       } catch (netErr: any) {
-        const msg = `[ERREUR RÉSEAU] Impossible de contacter l'API Scaleway Instances: ${netErr.message || String(netErr)}`
+        const msg = `[NETWORK ERROR] Unable to contact Scaleway Instances API: ${netErr.message || String(netErr)}`
         this.log(win, msg, 'error')
         throw new Error(msg)
       }
 
       if (!serverRes.ok) {
         const errBody = await serverRes.text()
-        const formatted = this.formatScalewayError(serverRes.status, errBody, `Création du serveur (${commercialType})`)
+        const formatted = this.formatScalewayError(serverRes.status, errBody, `Creating server (${commercialType})`)
         this.log(win, formatted, 'error')
         throw new Error(formatted)
       }
@@ -237,10 +237,10 @@ export class ScalewayService {
       const server = serverData.server
       const serverId = server.id
 
-      this.log(win, `Instance créée avec succès (ID: ${serverId}, Nom: ${server.name}).`, 'info', 55)
+      this.log(win, `Instance created successfully (ID: ${serverId}, Name: ${server.name}).`, 'info', 55)
 
       // 4. Power on server
-      this.log(win, 'Démarrage (poweron) de l\'instance...', 'running', 60)
+      this.log(win, 'Starting (poweron) instance...', 'running', 60)
 
       let actionRes: Response | null = null
       try {
@@ -253,16 +253,16 @@ export class ScalewayService {
           body: JSON.stringify({ action: 'poweron' }),
         })
       } catch (netErr: any) {
-        this.log(win, `Avertissement réseau poweron: ${netErr.message || String(netErr)}`, 'info', 62)
+        this.log(win, `Poweron network warning: ${netErr.message || String(netErr)}`, 'info', 62)
       }
 
       if (actionRes && !actionRes.ok) {
         const errBody = await actionRes.text()
-        this.log(win, `Notification démarrage : ${errBody}`, 'info', 65)
+        this.log(win, `Startup notification: ${errBody}`, 'info', 65)
       }
 
       // 5. Poll for server status 'running' and IP
-      this.log(win, 'Attente de l\'initialisation et de l\'attribution de l\'IPv4 publique...', 'running', 70)
+      this.log(win, 'Waiting for initialization and allocation of public IPv4...', 'running', 70)
 
       let ipv4 = server.public_ip?.address || ''
       let isRunning = server.state === 'running'
@@ -271,7 +271,7 @@ export class ScalewayService {
 
       while ((!isRunning || !ipv4) && attempts < maxAttempts) {
         if (this.isCancelled) {
-          throw new Error('Opération annulée par l\'utilisateur')
+          throw new Error('Operation cancelled by user')
         }
 
         await new Promise(r => setTimeout(r, 3000))
@@ -292,7 +292,7 @@ export class ScalewayService {
             ipv4 = currentServer.public_ip?.address || ipv4
 
             const currentProgress = Math.min(70 + Math.floor((attempts / maxAttempts) * 25), 95)
-            this.log(win, `Statut instance : ${currentServer.state} (IP: ${ipv4 || 'en cours d\'attribution'})...`, 'running', currentProgress)
+            this.log(win, `Instance status: ${currentServer.state} (IP: ${ipv4 || 'allocation in progress'})...`, 'running', currentProgress)
           }
         } catch {
           // Poll retry
@@ -300,17 +300,17 @@ export class ScalewayService {
       }
 
       if (!ipv4) {
-        const msg = '[ERREUR] L\'instance a démarré mais aucune IPv4 publique n\'a été attribuée après 3 minutes.'
+        const msg = '[ERROR] Instance started but no public IPv4 was assigned after 3 minutes.'
         this.log(win, msg, 'error')
         throw new Error(msg)
       }
 
-      this.log(win, `✓ Instance opérationnelle ! IPv4 publique allouée : ${ipv4}`, 'done', 100)
+      this.log(win, `✓ Instance operational! Public IPv4 allocated: ${ipv4}`, 'done', 100)
       return { ipv4, serverId }
     } catch (err: any) {
       const msg = err.message || String(err)
-      if (!msg.startsWith('[ERREUR')) {
-        this.log(win, `[ERREUR] ${msg}`, 'error')
+      if (!msg.startsWith('[ERROR') && !msg.startsWith('[ERREUR')) {
+        this.log(win, `[ERROR] ${msg}`, 'error')
       }
       throw err
     }

@@ -129,7 +129,7 @@ describe('SupabaseApiClient', () => {
     // this single word, which tells the reader nothing on its own.
     const fetchImpl = vi.fn(async () => jsonResponse({ message: 'Unauthorized' }, 401)) as unknown as typeof fetch
 
-    await expect(makeClient(fetchImpl).listOrganizations()).rejects.toThrowError(/révoqué ou régénéré/)
+    await expect(makeClient(fetchImpl).listOrganizations()).rejects.toThrowError(/revoked or regenerated/)
     await expect(makeClient(fetchImpl).listOrganizations()).rejects.not.toThrowError(/^HTTP 401/)
   })
 

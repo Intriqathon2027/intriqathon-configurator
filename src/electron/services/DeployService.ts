@@ -64,7 +64,7 @@ export class DeployService {
   prepareDeployDirectory(envContent?: string): string {
     const sourceDir = this.getBundledDeployPath()
     if (!fs.existsSync(sourceDir)) {
-      throw new Error(`Dossier hackathon-deploy introuvable dans : ${sourceDir}`)
+      throw new Error(`hackathon-deploy folder not found in: ${sourceDir}`)
     }
 
     const targetDir = this.getDeployPath()
@@ -96,7 +96,7 @@ export class DeployService {
       if (runId !== this.runId) return false
       if (await probePort(ipv4, 22, SSH_PROBE_TIMEOUT_MS)) {
         if (runId !== this.runId) return false
-        win.webContents.send('deploy:stdout', `Serveur SSH joignable sur ${ipv4}:22`)
+        win.webContents.send('deploy:stdout', `SSH server reachable on ${ipv4}:22`)
         return true
       }
       if (runId !== this.runId) return false
@@ -105,7 +105,7 @@ export class DeployService {
       if (attempt === 1 || attempt % 5 === 0) {
         win.webContents.send(
           'deploy:stdout',
-          `En attente du serveur SSH sur ${ipv4}:22 (tentative ${attempt}/${maxAttempts})…`,
+          `Waiting for SSH server on ${ipv4}:22 (attempt ${attempt}/${maxAttempts})…`,
         )
       }
       await new Promise((r) => setTimeout(r, SSH_PROBE_INTERVAL_MS))
@@ -114,8 +114,8 @@ export class DeployService {
     if (runId !== this.runId) return false
     win.webContents.send(
       'deploy:error',
-      `Le serveur ${ipv4} n'accepte pas de connexion SSH (port 22) après ${SSH_WAIT_TIMEOUT_MS / 60000} min. ` +
-        `Vérifiez que l'instance est démarrée, que l'IPv4 est correcte et que le port 22 n'est pas bloqué (pare-feu, VPN).`,
+      `Server ${ipv4} does not accept SSH connections (port 22) after ${SSH_WAIT_TIMEOUT_MS / 60000} min. ` +
+        `Verify that the instance is running, IPv4 is correct, and port 22 is not blocked (firewall, VPN).`,
     )
     return false
   }
@@ -131,25 +131,25 @@ export class DeployService {
     let effectiveSourceDir = sourceDir || defaultDir
     if (!fs.existsSync(effectiveSourceDir)) {
       try {
-        this.debug(win, 'Préparation des fichiers de déploiement...')
+        this.debug(win, 'Preparing deployment files...')
         effectiveSourceDir = this.prepareDeployDirectory()
-        this.debug(win, `Dossier de déploiement préparé : ${effectiveSourceDir}`)
+        this.debug(win, `Deployment directory prepared: ${effectiveSourceDir}`)
       } catch (err: any) {
-        this.debug(win, `Erreur préparation : ${err.message}`)
-        win.webContents.send('deploy:error', `Erreur préparation : ${err.message}`)
+        this.debug(win, `Preparation error: ${err.message}`)
+        win.webContents.send('deploy:error', `Preparation error: ${err.message}`)
         return
       }
     }
 
     // ── Pre-flight diagnostics ─────────────────────────────────────────────
-    this.debug(win, `Plateforme : ${process.platform}`)
-    this.debug(win, `Script : ${scriptPath}`)
-    this.debug(win, `Existe : ${fs.existsSync(scriptPath)}`)
-    this.debug(win, `IPV4 : ${ipv4}`)
-    this.debug(win, `SOURCE_DIR : ${effectiveSourceDir}`)
+    this.debug(win, `Platform: ${process.platform}`)
+    this.debug(win, `Script: ${scriptPath}`)
+    this.debug(win, `Exists: ${fs.existsSync(scriptPath)}`)
+    this.debug(win, `IPV4: ${ipv4}`)
+    this.debug(win, `SOURCE_DIR: ${effectiveSourceDir}`)
 
     if (!fs.existsSync(scriptPath)) {
-      win.webContents.send('deploy:error', `Script introuvable : ${scriptPath}`)
+      win.webContents.send('deploy:error', `Script not found: ${scriptPath}`)
       return
     }
 
@@ -157,9 +157,9 @@ export class DeployService {
     if (!isWin) {
       try {
         fs.chmodSync(scriptPath, 0o755)
-        this.debug(win, 'chmod 755 appliqué au script')
+        this.debug(win, 'chmod 755 applied to script')
       } catch (e) {
-        this.debug(win, `chmod échoué (non bloquant) : ${String(e)}`)
+        this.debug(win, `chmod failed (non-blocking): ${String(e)}`)
       }
     }
 
@@ -170,11 +170,11 @@ export class DeployService {
     
     if (sshPassword) {
       env.SSHPASS = sshPassword
-      this.debug(win, `SSHPASS configuré pour l'authentification`)
+      this.debug(win, 'SSHPASS configured for authentication')
     }
     if (sshKeyPath) {
       env.SSH_KEY_PATH = sshKeyPath
-      this.debug(win, `SSH_KEY_PATH configuré : ${sshKeyPath}`)
+      this.debug(win, `SSH_KEY_PATH configured: ${sshKeyPath}`)
     }
 
     if (!(await this.waitForSsh(ipv4, win, runId))) return
@@ -183,13 +183,13 @@ export class DeployService {
       ? ['cmd.exe', ['/c', scriptPath, ipv4, sourceDir]]
       : ['bash', [scriptPath, ipv4, sourceDir]]
 
-    this.debug(win, `Commande : ${args[0]} ${(args[1] as string[]).join(' ')}`)
+    this.debug(win, `Command: ${args[0]} ${(args[1] as string[]).join(' ')}`)
 
     const spawnOpts = { env, stdio: ['pipe', 'pipe', 'pipe'] as ['pipe', 'pipe', 'pipe'] }
 
     this.childProcess = spawn(args[0] as string, args[1] as string[], spawnOpts)
 
-    this.debug(win, `PID : ${this.childProcess?.pid ?? 'N/A'}`)
+    this.debug(win, `PID: ${this.childProcess?.pid ?? 'N/A'}`)
 
     this.childProcess?.stdout?.on('data', (data: Buffer) => {
       const lines = data.toString().split('\n')
@@ -210,13 +210,13 @@ export class DeployService {
     })
 
     this.childProcess?.on('close', (code, signal) => {
-      this.debug(win, `Processus terminé — code: ${code}, signal: ${signal}`)
+      this.debug(win, `Process exited — code: ${code}, signal: ${signal}`)
       win.webContents.send('deploy:exit', code)
       this.childProcess = null
     })
 
     this.childProcess?.on('error', (err) => {
-      this.debug(win, `Erreur spawn : ${err.message}`)
+      this.debug(win, `Spawn error: ${err.message}`)
       win.webContents.send('deploy:error', err.message)
       this.childProcess = null
     })
@@ -229,22 +229,22 @@ export class DeployService {
     const scriptPath = this.getScriptPath('restart_docker')
     const isWin = PlatformService.isWindows()
 
-    this.debug(win, `Plateforme : ${process.platform}`)
-    this.debug(win, `Script : ${scriptPath}`)
-    this.debug(win, `Existe : ${fs.existsSync(scriptPath)}`)
-    this.debug(win, `IPV4 : ${ipv4}`)
+    this.debug(win, `Platform: ${process.platform}`)
+    this.debug(win, `Script: ${scriptPath}`)
+    this.debug(win, `Exists: ${fs.existsSync(scriptPath)}`)
+    this.debug(win, `IPV4: ${ipv4}`)
 
     if (!fs.existsSync(scriptPath)) {
-      win.webContents.send('deploy:error', `Script introuvable : ${scriptPath}`)
+      win.webContents.send('deploy:error', `Script not found: ${scriptPath}`)
       return
     }
 
     if (!isWin) {
       try {
         fs.chmodSync(scriptPath, 0o755)
-        this.debug(win, 'chmod 755 appliqué au script')
+        this.debug(win, 'chmod 755 applied to script')
       } catch (e) {
-        this.debug(win, `chmod échoué (non bloquant) : ${String(e)}`)
+        this.debug(win, `chmod failed (non-blocking): ${String(e)}`)
       }
     }
 
@@ -255,11 +255,11 @@ export class DeployService {
     
     if (sshPassword) {
       env.SSHPASS = sshPassword
-      this.debug(win, `SSHPASS configuré pour l'authentification`)
+      this.debug(win, 'SSHPASS configured for authentication')
     }
     if (sshKeyPath) {
       env.SSH_KEY_PATH = sshKeyPath
-      this.debug(win, `SSH_KEY_PATH configuré : ${sshKeyPath}`)
+      this.debug(win, `SSH_KEY_PATH configured: ${sshKeyPath}`)
     }
 
     if (!(await this.waitForSsh(ipv4, win, runId))) return
@@ -268,12 +268,12 @@ export class DeployService {
       ? ['cmd.exe', ['/c', scriptPath, ipv4]]
       : ['bash', [scriptPath, ipv4]]
 
-    this.debug(win, `Commande : ${args[0]} ${(args[1] as string[]).join(' ')}`)
+    this.debug(win, `Command: ${args[0]} ${(args[1] as string[]).join(' ')}`)
 
     const spawnOpts = { env, stdio: ['pipe', 'pipe', 'pipe'] as ['pipe', 'pipe', 'pipe'] }
     this.childProcess = spawn(args[0] as string, args[1] as string[], spawnOpts)
 
-    this.debug(win, `PID : ${this.childProcess?.pid ?? 'N/A'}`)
+    this.debug(win, `PID: ${this.childProcess?.pid ?? 'N/A'}`)
 
     this.childProcess?.stdout?.on('data', (data: Buffer) => {
       const lines = data.toString().split('\n')
@@ -294,13 +294,13 @@ export class DeployService {
     })
 
     this.childProcess?.on('close', (code, signal) => {
-      this.debug(win, `Processus terminé — code: ${code}, signal: ${signal}`)
+      this.debug(win, `Process exited — code: ${code}, signal: ${signal}`)
       win.webContents.send('deploy:exit', code)
       this.childProcess = null
     })
 
     this.childProcess?.on('error', (err) => {
-      this.debug(win, `Erreur spawn : ${err.message}`)
+      this.debug(win, `Spawn error: ${err.message}`)
       win.webContents.send('deploy:error', err.message)
       this.childProcess = null
     })

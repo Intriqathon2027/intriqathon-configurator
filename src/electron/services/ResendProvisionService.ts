@@ -72,19 +72,19 @@ export class ResendProvisionService {
     })
 
     try {
-      if (!req.mailSubdomain) throw new Error("Sous-domaine d'envoi non renseigné (étape 1).")
+      if (!req.mailSubdomain) throw new Error('Sending subdomain not specified (Step 1).')
 
       const domain = await this.resolveDomain(win, client, req)
       const records = this.normaliseRecords(domain.records ?? [], req.domain)
 
       if (records.length === 0) {
         throw new Error(
-          "Resend n'a renvoyé aucun enregistrement DNS pour ce domaine. Ouvrez resend.com/domains pour les relever à la main.",
+          'Resend returned no DNS records for this domain. Open resend.com/domains to check them manually.',
         )
       }
 
       this.progress(win, 40)
-      this.log(win, `Enregistrements demandés par Resend (${records.length}) :`)
+      this.log(win, `Records requested by Resend (${records.length}):`)
       for (const record of records) {
         this.log(win, `  ${record.type}  ${record.host}  ➔  ${this.shorten(record.answer)}`)
       }
@@ -100,7 +100,7 @@ export class ResendProvisionService {
         this.progress(win, 100)
         this.log(
           win,
-          'Domaine créé chez Resend. Publiez les enregistrements ci-dessus chez votre registrar, puis relancez pour lancer la vérification.',
+          'Domain created in Resend. Publish the records above with your registrar, then rerun to start verification.',
           'done',
         )
         win.webContents.send('provision:done', { service: SERVICE, patch })
@@ -120,16 +120,16 @@ export class ResendProvisionService {
        * next step and comes back to a card that confirms itself.
        */
       if (domain.status === 'verified') {
-        this.log(win, 'Domaine déjà vérifié par Resend — les envois sont possibles.', 'done')
+        this.log(win, 'Domain already verified by Resend — sending is enabled.', 'done')
         patch.RESEND_DOMAIN_VERIFIED_AT = new Date().toISOString()
         patch.RESEND_VERIFICATION_PENDING_SINCE = ''
       } else {
-        this.log(win, 'Demande de vérification à Resend…')
+        this.log(win, 'Requesting verification from Resend…')
         await client.verifyDomain(domain.id)
         patch.RESEND_VERIFICATION_PENDING_SINCE = new Date().toISOString()
         this.log(
           win,
-          "Vérification demandée. La propagation DNS peut prendre jusqu'à 15 minutes : cette étape est terminée, Resend confirmera de son côté. Inutile d'attendre ici — « Relancer la vérification Resend » redemandera le contrôle.",
+          'Verification requested. DNS propagation can take up to 15 minutes: this step is complete, Resend will verify automatically. No need to wait here — "Rerun Resend verification" can check again anytime.',
           'done',
         )
       }
@@ -138,7 +138,7 @@ export class ResendProvisionService {
       win.webContents.send('provision:done', { service: SERVICE, patch })
     } catch (err) {
       if (this.wasCancelled()) {
-        this.log(win, 'Configuration annulée.', 'info')
+        this.log(win, 'Configuration cancelled.', 'info')
         win.webContents.send('provision:cancelled', { service: SERVICE })
       } else {
         const message =
@@ -228,7 +228,7 @@ export class ResendProvisionService {
     const known = (await client.listDomains()).find(d => d.name === req.mailSubdomain)
     if (!known) {
       throw new Error(
-        `${req.mailSubdomain} n'est pas (ou plus) enregistré sur ce compte Resend. Lancez l'étape pour le créer, ou ajoutez-le depuis resend.com/domains.`,
+        `${req.mailSubdomain} is not (or no longer) registered on this Resend account. Run the step to create it, or add it from resend.com/domains.`,
       )
     }
     return known.id
@@ -248,27 +248,27 @@ export class ResendProvisionService {
     if (req.domainId) {
       try {
         const known = await client.getDomain(req.domainId)
-        this.log(win, `Domaine ${known.name} déjà créé — réutilisation.`)
+        this.log(win, `Domain ${known.name} already created — reusing.`)
         return known
       } catch (err) {
         if (this.wasCancelled()) throw err
         // Deleted from the dashboard since, or belonging to another account:
         // fall through and resolve it by name like a first run would.
-        this.log(win, 'Le domaine enregistré précédemment est introuvable — nouvelle recherche.')
+        this.log(win, 'Previously saved domain not found — searching again.')
       }
     }
 
-    this.log(win, `Recherche de ${req.mailSubdomain} sur le compte Resend…`)
+    this.log(win, `Searching for ${req.mailSubdomain} on Resend account…`)
     const existing = (await client.listDomains()).find(d => d.name === req.mailSubdomain)
     if (existing) {
-      this.log(win, `Domaine trouvé (${existing.status}) — récupération des enregistrements.`)
+      this.log(win, `Domain found (${existing.status}) — retrieving records.`)
       // The listing carries no records; only fetching the domain does.
       return client.getDomain(existing.id)
     }
 
-    this.log(win, `Création du domaine ${req.mailSubdomain}…`)
+    this.log(win, `Creating domain ${req.mailSubdomain}…`)
     const created = await client.createDomain(req.mailSubdomain)
-    this.log(win, 'Domaine créé.', 'done')
+    this.log(win, 'Domain created.', 'done')
     return created
   }
 
@@ -300,7 +300,7 @@ export class ResendProvisionService {
     req: ResendProvisionRequest,
     records: DnsRecord[],
   ): Promise<void> {
-    this.log(win, `Publication des enregistrements chez Spaceship sur ${req.domain}…`)
+    this.log(win, `Publishing records with Spaceship for ${req.domain}…`)
 
     const spaceship = new SpaceshipApiClient({
       apiKey: req.spaceshipApiKey!,
@@ -310,6 +310,6 @@ export class ResendProvisionService {
 
     await spaceship.saveRecords(req.domain, records)
     this.progress(win, 60)
-    this.log(win, 'Enregistrements publiés.', 'done')
+    this.log(win, 'Records published.', 'done')
   }
 }

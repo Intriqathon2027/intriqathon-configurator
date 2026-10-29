@@ -58,7 +58,7 @@ ipcMain.handle('open-external-url', async (_event, url: string) => {
 // IPC: Save .env file
 ipcMain.handle('save-env-file', async (_event, content: string) => {
   const result = await dialog.showSaveDialog(win!, {
-    title: 'Sauvegarder le fichier .env',
+    title: 'Save .env file',
     defaultPath: '.env',
     filters: [{ name: 'Env Files', extensions: ['env'] }],
   })
