@@ -24,7 +24,7 @@
 
   --color-bg: #F4F7FA;
   --color-bg-secondary: #E9EEF4;
-  --color-bg-transparent: rgba(255, 255, 255, 0.78);
+  --color-bg-transparent: rgba(255, 255, 255, 0.50);
   --color-surface: #FFFFFF;
   --color-surface-hover: #F1F5F9;
   /* The ground under a recessed row sitting on a card. All but white: the
@@ -101,6 +101,11 @@
   --space-12: 41px;
   --space-16: 54px;
 
+  /* The bottom nav floats over the step, which scrolls underneath it — the
+     step reserves this much room so its last block can clear the bar. */
+  --bottom-nav-height: 58px;
+  --bottom-nav-offset: var(--space-4);
+
   /* Three gaps, and every stack in the app picks one of them. Spacing lives
      on containers as a `gap`; a child that sets its own margin spaces
      differently depending on where it lands, which is what kept these pages
@@ -110,7 +115,7 @@
        block   — cards inside a page */
   --gap-item: var(--space-3);
   --gap-section: var(--space-6);
-  --gap-block: var(--space-5);
+  --gap-block: var(--space-4);
 
   /* Border radius */
   --radius-sm: 6px;
@@ -303,8 +308,7 @@
   box-shadow: 0 0 0 3px rgba(23, 144, 111, 0.28);
 }
 
-[data-theme="dark"] .modal-body code,
-[data-theme="dark"] .help-panel-body code {
+[data-theme="dark"] .modal-body code {
   background: var(--color-code-bg);
   border: 1px solid var(--color-border-strong);
 }
@@ -804,7 +808,6 @@ body {
    A flex box centres the glyph box, not the glyph: neutralise the font's
    line box and its numeric side-bearings so the digit lands dead centre. */
 .service-config-block__step-number,
-.config-screen__index,
 .help-flow__index {
   flex-shrink: 0;
   border-radius: var(--radius-full);
@@ -822,7 +825,6 @@ body {
   width: 26px;
   height: 26px;
   font-size: var(--font-size-sm);
-  margin-right: var(--space-4);
 }
 
 .service-config-block__content {
@@ -1228,7 +1230,12 @@ body {
 .step-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-6) var(--space-8);
+  padding: var(--space-4) var(--space-4);
+  /* The bottom nav sits over the end of this area: the content runs on under
+     it, and this keeps the last block clear of it once scrolled to the end.
+     The scroll padding does the same for anything focused or scrolled to. */
+  padding-bottom: calc(var(--bottom-nav-height) + var(--bottom-nav-offset) + var(--space-6));
+  scroll-padding-bottom: calc(var(--bottom-nav-height) + var(--bottom-nav-offset) + var(--space-4));
   /* `backwards`, not `both`: a fill that outlives the animation keeps a
      transform on this element, which makes it a stacking context — and then
      no card inside can be raised above the automation overlay. */
@@ -1311,15 +1318,48 @@ body {
 /* =============================================
    BOTTOM NAV
    ============================================= */
+/* Floats over the step rather than taking a row of its own: the page shows
+   through, blurred, so the bar reads as part of the window instead of a slab
+   cutting it off. Same glass as the top-right island. */
 .bottom-nav {
-  height: 62px;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
+  /* Inset by its offsets alone: a margin on top of `left: 0; right: 0` and
+     a 100% width pushed it past the right edge of the window. */
+  position: absolute;
+  right: var(--bottom-nav-offset);
+  left: var(--bottom-nav-offset);
+  bottom: var(--bottom-nav-offset);
+  z-index: 50;
+  box-sizing: border-box;
+  height: var(--bottom-nav-height);
+  background: var(--color-bg-transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-8);
+  padding: var(--space-3) var(--space-3);
   flex-shrink: 0;
+  border-radius: var(--space-4);
+  /* Lifts the bar off the page scrolling under it. Kept tight: the offset
+     is all the room it has before the window edge clips it. */
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Slid out below the window on a scroll up, back in on a scroll down. The
+   extra 8px carries the shadow out of sight with it. */
+.bottom-nav {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.bottom-nav--hidden {
+  transform: translateY(calc(100% + var(--bottom-nav-offset) + 8px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .bottom-nav {
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .bottom-nav-left {
@@ -2274,6 +2314,80 @@ body {
   white-space: nowrap;
 }
 
+/* Every cell carries its own copy button, shown on hover or keyboard focus
+   only. Overlaid rather than given room: reserving it would cost each column
+   its width for a control that is invisible most of the time. */
+.dns-table__cell {
+  position: relative;
+}
+
+.dns-table__cell-copy {
+  position: absolute;
+  top: 50%;
+  right: var(--space-1);
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius-md) - 3px);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast), background var(--transition-fast),
+    border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.dns-table__cell:hover .dns-table__cell-copy,
+.dns-table__cell-copy:focus-visible,
+.dns-table__cell-copy--copied {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dns-table__cell-copy:hover,
+.dns-table__cell-copy--copied {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+/* The host as some registrars want it — whole, domain included. Muted: most
+   of them take the short form above, so this is the fallback, not the value. */
+.dns-table__fqdn {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+/* A cell holding two values — the generic host, short and in full — gives
+   each its own line and its own button, one beside each. */
+.dns-table__line {
+  display: block;
+  position: relative;
+  padding-right: 26px;
+}
+
+.dns-table__line + .dns-table__line {
+  margin-top: var(--space-2);
+}
+
+.dns-table__line .dns-table__cell-copy {
+  right: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.dns-table__empty {
+  color: var(--color-text-placeholder);
+}
+
 /* A DKIM value is a few hundred characters of base64 — left to its own
    devices it stretches the card past the window. */
 .dns-table td:nth-child(3) {
@@ -2363,7 +2477,6 @@ body {
    is the same object, which is most of why these cards looked noisy. */
 .icon-row,
 .manual-check,
-.config-screen,
 .bucket-list,
 .service-config-block__help {
   background: var(--color-surface-sunken);
@@ -2580,22 +2693,20 @@ body {
   opacity: 0.3;
 }
 
+/* No title bar: only the close button, floating top right over the content
+   so the panel's text starts at the very top */
 .help-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-  padding-top: 44px; /* Account for window titlebar */
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+  -webkit-app-region: no-drag;
 }
 
-.help-panel-title {
-  font: var(--type-h2);
-  color: var(--color-text);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+.help-panel-header .btn {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 .help-panel-body {
@@ -2649,15 +2760,12 @@ body {
 }
 
 /* Every action name in the panel — walkthrough card, click path, note — gets
-   the same chip: one appearance, and never broken across two lines. */
+   the same look: body font in bold and accent colour, never broken across two
+   lines. No box around it: the boxed chip is kept for values that can be copied. */
 .help-panel-body code {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: var(--font-size-mono);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border-strong);
-  padding: 1px 5px;
-  border-radius: var(--radius-sm);
-  color: var(--color-code-accent);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: var(--font-weight-bold);
   white-space: nowrap;
 }
 
@@ -2753,7 +2861,7 @@ ul.help-note li {
 /* Inside the panel the chain is indented and separated from the next service.
    It carries its own numbering, so it keeps the panel's list indent off. */
 .help-panel-body .help-flow {
-  margin: 0 0 var(--space-5) var(--space-4);
+  margin: 0 0 var(--space-5) var(--space-0);
   padding-left: 0;
 }
 
@@ -2824,6 +2932,134 @@ ul.help-note li {
 .help-flow__link:hover {
   background: var(--color-primary-light);
   border-color: var(--color-primary);
+}
+
+/* Captures of the provider's interface inside an action card.
+   The thumbnail opens the full-size capture over the window. */
+.help-shots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.help-shot {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.help-shot__thumb {
+  position: relative;
+  display: block;
+  /* Sized by the image, not stretched to the card: a tall, narrow capture
+     blown up to the panel's width turned into a blurry wall. */
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+  cursor: zoom-in;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.help-shot__thumb:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.help-shot__thumb img {
+  display: block;
+  /* Captures are rendered at 2x: never show them above half their size */
+  width: auto;
+  max-width: 100%;
+  max-height: 220px;
+}
+
+.help-shot__full img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.help-shot__zoom {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.help-shot__thumb:hover .help-shot__zoom,
+.help-shot__thumb:focus-visible .help-shot__zoom {
+  opacity: 1;
+}
+
+.help-shot__caption {
+  font: var(--type-caption);
+  color: var(--color-text);
+}
+
+/* Same badge as the markers burnt into the captures */
+.help-shot-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin: 0 1px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  vertical-align: 1px;
+}
+
+.help-shot__overlay {
+  cursor: zoom-out;
+}
+
+.help-shot__full {
+  position: relative;
+  margin: 0;
+  max-width: min(1100px, 92vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xl);
+  cursor: default;
+}
+
+.help-shot__full img {
+  max-height: calc(92vh - 90px);
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+.help-shot__close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: inline-flex;
+  padding: 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
 }
 
 /* Lists and notes nested inside a card */
@@ -2901,7 +3137,7 @@ ul.help-note li {
 .help-service + .help-service {
   position: relative;
   padding-top: var(--space-5);
-  margin-top: var(--space-2);
+  margin-top: var(--space-5);
 }
 
 /* Full-bleed rule: a border would stop at the section box, which sits inset
@@ -2910,10 +3146,23 @@ ul.help-note li {
 .help-service + .help-service::before {
   content: "";
   position: absolute;
-  top: 0;
+  top: -4px;
   left: calc(var(--space-5) * -1);
   right: calc(var(--space-5) * -1);
-  border-top: 1px solid var(--color-border-strong);
+  height: 8px;
+  /* A small sine wave instead of a flat rule. The wave is a mask over the
+     border colour, so it follows the theme like the rule it replaces. */
+  background: var(--color-border-strong);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='8' viewBox='0 0 24 8'%3E%3Cpath d='M0 4 C 3 0.5, 9 0.5, 12 4 S 21 7.5, 24 4' fill='none' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E") repeat-x left center / 24px 8px;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='8' viewBox='0 0 24 8'%3E%3Cpath d='M0 4 C 3 0.5, 9 0.5, 12 4 S 21 7.5, 24 4' fill='none' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E") repeat-x left center / 24px 8px;
+}
+
+/* What the service is for, read before its walkthrough: body size, and a
+   clear gap so it does not run into the first action card */
+.help-service .help-service__intro {
+  font: var(--type-body);
+  color: var(--color-text);
+  margin: 0 0 var(--space-4);
 }
 
 .help-service > h3:first-child {
@@ -2980,48 +3229,11 @@ ul.help-note li {
   margin-bottom: var(--gap-item);
 }
 
-.config-screens__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-item);
-  min-width: 0;
-}
 
-.config-screen {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  min-width: 0;
-  padding: var(--space-3);
-}
 
-.config-screen__index {
-  width: 22px;
-  height: 22px;
-  font-size: var(--font-size-sm);
-}
 
-.config-screen__body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-item);
-}
 
-.config-screen__name {
-  font: var(--type-h4);
-  color: var(--color-text);
-}
 
-.config-screen__desc {
-  margin: 0;
-  font: var(--type-body);
-  color: var(--color-text);
-}
 
 .config-screen__note {
   margin: 0;
@@ -3030,12 +3242,26 @@ ul.help-note li {
 }
 
 /* The copy rows carry a JWT — they must truncate, never widen the card */
-.config-screen__body .copy-block-row {
+.help-flow__card {
   min-width: 0;
 }
 
-.config-screen__body .info-box {
+.help-flow__card .copy-block-row {
+  min-width: 0;
+}
+
+.help-flow__card .info-box {
   margin: 0;
+}
+
+/* Action and setting names in the step-8 walkthroughs: the body font in bold
+   rather than monospace, like the help panel */
+.form-section--plain-code code {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-code-accent);
+  white-space: nowrap;
 }
 
 /* Active help button state */

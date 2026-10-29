@@ -1,12 +1,10 @@
 import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
-import { HelpCircle, X } from 'lucide-react'
-import { useApp } from '../../context/AppContext'
+import { X } from 'lucide-react'
 import type { HelpFocus } from '../../context/HelpNavContext'
 
 interface HelpPanelProps {
   helpOpen: boolean
   setHelpOpen: (open: boolean) => void
-  title: string
   helpContent?: ReactNode
   /** Set by a "Learn more" button: service block to scroll to and flash. */
   focus?: HelpFocus | null
@@ -62,8 +60,7 @@ function smoothScrollTo(container: HTMLElement, to: number): () => void {
   return () => cancelAnimationFrame(frame)
 }
 
-export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent, focus }: HelpPanelProps) {
-  const { t } = useApp()
+export function HelpPanel({ helpOpen, setHelpOpen, helpContent, focus }: HelpPanelProps) {
   const flashedRef = useRef<HTMLElement | null>(null)
   const bodyRef = useRef<HTMLDivElement | null>(null)
   const cancelScrollRef = useRef<() => void>(() => {})
@@ -176,12 +173,8 @@ export function HelpPanel({ helpOpen, setHelpOpen, title, helpContent, focus }: 
       }}
     >
       <div className="help-panel-resizer" onMouseDown={startResizing} />
-      <div className="help-panel-content-wrapper" style={{ width: width, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div className="help-panel-content-wrapper" style={{ width: width, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
         <div className="help-panel-header">
-          <div className="help-panel-title">
-            <HelpCircle size={16} color="var(--color-primary-text)" />
-            {t('help.title')} — {title}
-          </div>
           <button className="btn btn-icon btn-ghost" onClick={() => setHelpOpen(false)} title="Fermer">
             <X size={16} />
           </button>

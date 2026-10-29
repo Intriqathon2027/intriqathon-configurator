@@ -121,6 +121,10 @@ export function ApiConfiguration() {
     ttl: t("step4.dns.ttl"),
     copy: t("btn.copy"),
     copyRow: isEn ? "Copy the whole row" : "Copier la ligne entière",
+    copyCell: isEn ? "Copy" : "Copier",
+    copied: isEn ? "Copied" : "Copié",
+    priority: isEn ? "Priority" : "Priorité",
+    fullName: isEn ? "Full name" : "Nom complet",
   };
 
   const specs: IconRowItem[] = [
@@ -390,7 +394,12 @@ export function ApiConfiguration() {
           }
         : {}),
       ...(config.SCW_SECRET_KEY && config.IPV4_INSTANCE
-        ? { scaleway: { secretKey: config.SCW_SECRET_KEY, ipv4: config.IPV4_INSTANCE } }
+        ? {
+            scaleway: {
+              secretKey: config.SCW_SECRET_KEY,
+              ipv4: config.IPV4_INSTANCE,
+            },
+          }
         : {}),
       ...(!usesOtherDomainProvider &&
       config.SPACESHIP_API_KEY &&
@@ -674,6 +683,12 @@ export function ApiConfiguration() {
               title={t("apiConfig.supabase.buckets.title")}
               desc={t("apiConfig.supabase.buckets.desc")}
             >
+              <div className="link-buttons-row">
+                <ExternalLinkBtn
+                  url={BUCKETS_URL}
+                  label={t("apiConfig.supabase.buckets.btn")}
+                />
+              </div>
               <ul className="bucket-list">
                 {STORAGE_BUCKETS.map((b) => (
                   <li key={b.name}>
@@ -696,12 +711,6 @@ export function ApiConfiguration() {
                   </li>
                 ))}
               </ul>
-              <div className="link-buttons-row">
-                <ExternalLinkBtn
-                  url={BUCKETS_URL}
-                  label={t("apiConfig.supabase.buckets.btn")}
-                />
-              </div>
               {/* The buckets leave nothing in the config — without this box,
                   nothing downstream can tell they exist. */}
               <ManualCheck
@@ -947,43 +956,85 @@ export function ApiConfiguration() {
           <div className="form-section">
             <ManualSection
               title={t("step4.dns.title")}
-              desc={t("apiConfig.spaceship.dnsPath")}
+              desc={
+                usesOtherDomainProvider
+                  ? isEn
+                    ? "In your registrar's DNS zone editor, add one record per row. Each cell can be copied on its own: hover it."
+                    : "Dans l'éditeur de zone DNS de votre registrar, ajoutez un enregistrement par ligne. Chaque case se copie seule : survolez-la."
+                  : t("apiConfig.spaceship.dnsPath")
+              }
             >
-              {!usesOtherDomainProvider && (
-                <div className="link-buttons-row">
-                  <ExternalLinkBtn
-                    url={SPACESHIP_LAUNCHPAD_URL}
-                    label="Launchpad"
-                  />
-                  <ExternalLinkBtn
-                    url={SPACESHIP_DNS_HELP_URL}
-                    label={isEn ? "Spaceship DNS help" : "Aide DNS Spaceship"}
-                  />
-                </div>
-              )}
-              {/* Refreshed when the panel opens, and on demand: a subdomain
+              <div className="service-config-block__help">
+                {!usesOtherDomainProvider && (
+                  <div className="link-buttons-row">
+                    <ExternalLinkBtn
+                      url={SPACESHIP_LAUNCHPAD_URL}
+                      label="Launchpad"
+                    />
+                    <ExternalLinkBtn
+                      url={SPACESHIP_DNS_HELP_URL}
+                      label={isEn ? "Spaceship DNS help" : "Aide DNS Spaceship"}
+                    />
+                    <ExternalLinkBtn
+                      url={RESEND_DOMAINS_URL}
+                      label={t("apiConfig.resend.domainsBtn")}
+                    />
+                  </div>
+                )}
+                {/* Refreshed when the panel opens, and on demand: a subdomain
                   added at Resend a moment ago has records nothing here can
                   guess, and the reader should not have to reload the app to
                   see them appear. */}
-              {!!config.RESEND_API_KEY && (
-                <div className="link-buttons-row">
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => {
-                      void syncResendDomain(true);
-                      void syncManualChecks();
-                    }}
-                    disabled={syncingResend}
-                    type="button"
-                  >
-                    <RefreshCw size={14} />
-                    {syncingResend
-                      ? t("apiConfig.dns.refreshing")
-                      : t("apiConfig.dns.refresh")}
-                  </button>
-                </div>
-              )}
-              <DnsTable records={allDnsRecords} labels={dnsLabels} />
+                {!!config.RESEND_API_KEY && (
+                  <div className="link-buttons-row">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        void syncResendDomain(true);
+                        void syncManualChecks();
+                      }}
+                      disabled={syncingResend}
+                      type="button"
+                    >
+                      <RefreshCw size={14} />
+                      {syncingResend
+                        ? t("apiConfig.dns.refreshing")
+                        : t("apiConfig.dns.refresh")}
+                    </button>
+                    {!!config.RESEND_API_KEY && (
+                      <button
+                        className="btn btn-secondary"
+                        onClick={handleVerifyResend}
+                        disabled={verifyingResend}
+                        type="button"
+                      >
+                        <RefreshCw size={14} />
+                        {verifyingResend
+                          ? t("apiConfig.resend.verify.running")
+                          : t("apiConfig.resend.verify.btn")}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              <DnsTable
+                records={allDnsRecords}
+                labels={dnsLabels}
+                variant={usesOtherDomainProvider ? "generic" : "spaceship"}
+                domain={domain}
+              />
+              <ManualCheck
+                checkKey="spaceship-dns"
+                label={
+                  usesOtherDomainProvider
+                    ? isEn
+                      ? "These records are added at my registrar"
+                      : "Ces enregistrements sont ajoutés chez mon registrar"
+                    : isEn
+                      ? "These records are added in Advanced DNS"
+                      : "Ces enregistrements sont ajoutés dans Advanced DNS"
+                }
+              />
               {/* The API is the only thing that knows a DKIM key — when it has
                   not answered, the dashboard still shows the same lines, so
                   the reader is sent to read them there rather than left with
@@ -1001,7 +1052,11 @@ export function ApiConfiguration() {
               <div className="info-box info">
                 <Info size={15} className="info-box-icon" />
                 <div className="info-box-text">
-                  {t("apiConfig.spaceship.hostNote")}
+                  {usesOtherDomainProvider
+                    ? isEn
+                      ? "Most registrars take the name without the domain (@ for the domain itself). If yours asks for the full name, or adds the domain for you twice, use the one shown underneath. TXT values go in without quotes: the registrar adds them if it needs to. If your registrar has no 3600 TTL, its default (often \"Auto\") will do."
+                      : "La plupart des registrars attendent le nom sans le domaine (@ pour le domaine lui-même). Si le vôtre demande le nom complet, ou ajoute le domaine en double, utilisez celui affiché en dessous. Les valeurs TXT se collent sans guillemets : le registrar les ajoute s'il en a besoin. Si votre registrar ne propose pas de TTL à 3600, sa valeur par défaut (souvent « Auto ») convient."
+                    : t("apiConfig.spaceship.hostNote")}
                 </div>
               </div>
               <div className="info-box warning">
@@ -1012,33 +1067,6 @@ export function ApiConfiguration() {
                   out whether they took: Resend checks on its own schedule and
                   offers no way to ask sooner, so the button that does sits
                   with the table rather than a card away. */}
-              <div className="link-buttons-row">
-                {!!config.RESEND_API_KEY && (
-                  <button
-                    className="btn btn-secondary"
-                    onClick={handleVerifyResend}
-                    disabled={verifyingResend}
-                    type="button"
-                  >
-                    <RefreshCw size={14} />
-                    {verifyingResend
-                      ? t("apiConfig.resend.verify.running")
-                      : t("apiConfig.resend.verify.btn")}
-                  </button>
-                )}
-                <ExternalLinkBtn
-                  url={RESEND_DOMAINS_URL}
-                  label={t("apiConfig.resend.domainsBtn")}
-                />
-              </div>
-              <ManualCheck
-                checkKey="spaceship-dns"
-                label={
-                  isEn
-                    ? "These records are added in Advanced DNS"
-                    : "Ces enregistrements sont ajoutés dans Advanced DNS"
-                }
-              />
             </ManualSection>
           </div>
         </ServiceConfigBlock>
