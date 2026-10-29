@@ -163,7 +163,7 @@ export class SupabaseProvisionService {
         const panelKey = await this.resolvePanelServiceKey(win, client, ref)
 
         this.progress(win, 100)
-        this.log(win, 'Projet prêt. Les clés et les buckets seront récupérés à l\'étape 2.', 'done')
+        this.log(win, 'Project ready. Keys and buckets will be retrieved in Step 2.', 'done')
         win.webContents.send('provision:done', {
           service: SERVICE,
           patch: {
@@ -195,11 +195,11 @@ export class SupabaseProvisionService {
       }
 
       this.progress(win, 100)
-      this.log(win, 'Configuration Supabase terminée.', 'done')
+      this.log(win, 'Supabase configuration completed.', 'done')
       win.webContents.send('provision:done', { service: SERVICE, patch })
     } catch (err) {
       if (this.wasCancelled()) {
-        this.log(win, 'Configuration annulée.', 'info')
+        this.log(win, 'Configuration cancelled.', 'info')
         win.webContents.send('provision:cancelled', { service: SERVICE })
       } else {
         const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err)
@@ -221,25 +221,25 @@ export class SupabaseProvisionService {
     this.progress(win, 5)
 
     if (req.ref) {
-      this.log(win, `Projet ${req.ref} : vérification…`)
+      this.log(win, `Project ${req.ref}: verifying…`)
       const project = await client.getProject(req.ref)
       await this.waitUntilReady(win, client, project)
       return project.ref
     }
 
-    this.log(win, 'Recherche du projet Supabase…')
+    this.log(win, 'Searching for Supabase project…')
     const projects = await client.listProjects()
     const usable = projects.filter(p => p.status !== 'REMOVED' && p.status !== 'INIT_FAILED')
 
     if (usable.length === 0) {
-      throw new Error("Aucun projet Supabase sur ce compte. Créez-en un depuis l'étape 1, ou renseignez les champs manuellement.")
+      throw new Error('No Supabase project found on this account. Create one from Step 1, or fill in fields manually.')
     }
     if (usable.length > 1) {
       const names = usable.map(p => `${p.name} (${p.ref})`).join(', ')
-      throw new Error(`Plusieurs projets Supabase trouvés — choisissez-en un à l'étape 1 : ${names}`)
+      throw new Error(`Multiple Supabase projects found — select one in Step 1: ${names}`)
     }
 
-    this.log(win, `Projet trouvé : ${usable[0].name}`)
+    this.log(win, `Project found: ${usable[0].name}`)
     await this.waitUntilReady(win, client, usable[0])
     return usable[0].ref
   }
@@ -256,16 +256,16 @@ export class SupabaseProvisionService {
     // Idempotence guard: a ref already on file means the project exists and a
     // second click must not create (and bill) another one.
     if (req.ref) {
-      this.log(win, `Projet ${req.ref} déjà créé — réutilisation.`)
+      this.log(win, `Project ${req.ref} already created — reusing.`)
       const existing = await client.getProject(req.ref)
       await this.waitUntilReady(win, client, existing)
       return existing.ref
     }
 
-    if (!req.organizationSlug) throw new Error("Organisation Supabase non renseignée — impossible de créer le projet.")
-    if (!req.projectName) throw new Error('Nom de projet non renseigné.')
+    if (!req.organizationSlug) throw new Error('Supabase organization not specified — cannot create project.')
+    if (!req.projectName) throw new Error('Project name not specified.')
 
-    this.log(win, `Création du projet « ${req.projectName} »…`)
+    this.log(win, `Creating project "${req.projectName}"…`)
     const project = await client.createProject({
       name: req.projectName,
       organization_slug: req.organizationSlug,
@@ -273,7 +273,7 @@ export class SupabaseProvisionService {
       region_selection: req.regionCode ? { type: 'specific', code: req.regionCode } : undefined,
     })
 
-    this.log(win, `Projet créé : ${project.ref}`, 'done')
+    this.log(win, `Project created: ${project.ref}`, 'done')
     await this.waitUntilReady(win, client, project)
     return project.ref
   }
@@ -290,14 +290,14 @@ export class SupabaseProvisionService {
     }
 
     const deadline = Date.now() + READY_TIMEOUT_MS
-    this.log(win, 'Attente du démarrage du projet (1 à 2 minutes)…')
+    this.log(win, 'Waiting for project to start (1 to 2 minutes)…')
 
     let current = project
     while (current.status !== 'ACTIVE_HEALTHY') {
       if (this.wasCancelled()) throw new DOMException('Aborted', 'AbortError')
-      if (current.status === 'INIT_FAILED') throw new Error(`Le projet ${current.ref} n'a pas pu démarrer (INIT_FAILED).`)
+      if (current.status === 'INIT_FAILED') throw new Error(`Project ${current.ref} failed to start (INIT_FAILED).`)
       if (Date.now() > deadline) {
-        throw new Error(`Le projet ${current.ref} est toujours en ${current.status} après 6 minutes. Réessayez plus tard.`)
+        throw new Error(`Project ${current.ref} is still in ${current.status} after 6 minutes. Please retry later.`)
       }
 
       await new Promise(resolve => setTimeout(resolve, READY_POLL_INTERVAL_MS))
@@ -305,7 +305,7 @@ export class SupabaseProvisionService {
       this.progress(win, 30)
     }
 
-    this.log(win, 'Projet actif.', 'done')
+    this.log(win, 'Project active.', 'done')
     this.progress(win, 45)
   }
 
@@ -316,7 +316,7 @@ export class SupabaseProvisionService {
     client: SupabaseApiClient,
     ref: string,
   ): Promise<{ anon: string; service: string; panel: string | null }> {
-    this.log(win, 'Récupération des clés API…')
+    this.log(win, 'Retrieving API keys…')
 
     let keys = await client.listApiKeys(ref)
     let pair = resolveKeyPair(keys)
@@ -325,7 +325,7 @@ export class SupabaseProvisionService {
     if (needsKeyProvisioning(pair)) {
       const legacy = await client.getLegacyKeysEnabled(ref)
       if (legacy && !legacy.enabled) {
-        this.log(win, 'Clés JWT legacy désactivées — réactivation…')
+        this.log(win, 'Legacy JWT keys disabled — re-enabling…')
         await client.setLegacyKeysEnabled(ref, true)
         keys = await client.listApiKeys(ref)
         pair = resolveKeyPair(keys)
@@ -337,11 +337,11 @@ export class SupabaseProvisionService {
     if (needsKeyProvisioning(pair)) {
       const minted: SupabaseApiKey[] = []
       if (!pair.anon) {
-        this.log(win, 'Création d\'une clé publishable…')
+        this.log(win, 'Creating publishable key…')
         minted.push(await client.createApiKey(ref, 'publishable', MANAGED_KEY_NAME))
       }
       if (!pair.service) {
-        this.log(win, 'Création d\'une clé secret…')
+        this.log(win, 'Creating secret key…')
         minted.push(await client.createApiKey(ref, 'secret', MANAGED_KEY_NAME))
       }
       pair = resolveKeyPair([...minted, ...keys])
@@ -349,14 +349,14 @@ export class SupabaseProvisionService {
 
     if (!pair.anon || !pair.service) {
       throw new Error(
-        "Impossible de récupérer une paire de clés utilisable. Ouvrez « Configuration manuelle » et copiez-les depuis le dashboard.",
+        'Unable to retrieve a usable key pair. Open "Manual Configuration" and copy them from the dashboard.',
       )
     }
 
     this.redactor.add(pair.anon.value, pair.service.value)
     this.log(
       win,
-      `Clés récupérées — anon : ${describeKeyFormat(pair.anon.format)}, service : ${describeKeyFormat(pair.service.format)}.`,
+      `Keys retrieved — anon: ${describeKeyFormat(pair.anon.format)}, service: ${describeKeyFormat(pair.service.format)}.`,
       'done',
     )
     this.progress(win, 60)
@@ -393,13 +393,13 @@ export class SupabaseProvisionService {
     ref: string,
   ): Promise<string | null> {
     try {
-      this.log(win, 'Récupération de la clé service_role legacy (pour le panneau de configuration)…')
+      this.log(win, 'Retrieving legacy service_role key (for the configuration panel)…')
       let key = findLegacyServiceKey(await client.listApiKeys(ref))
 
       if (!key) {
         const legacy = await client.getLegacyKeysEnabled(ref)
         if (legacy && !legacy.enabled) {
-          this.log(win, 'Clés JWT legacy désactivées — réactivation…')
+          this.log(win, 'Legacy JWT keys disabled — re-enabling…')
           await client.setLegacyKeysEnabled(ref, true)
           key = findLegacyServiceKey(await client.listApiKeys(ref))
         }
@@ -408,7 +408,7 @@ export class SupabaseProvisionService {
       if (!key) {
         this.log(
           win,
-          'Aucune clé service_role legacy sur ce projet — elle pourra être récupérée depuis le dashboard.',
+          'No legacy service_role key on this project — it can be retrieved from the dashboard.',
           'error',
         )
         return null
@@ -416,12 +416,12 @@ export class SupabaseProvisionService {
 
       // Registered before it can reach a log line or an error message.
       this.redactor.add(key)
-      this.log(win, 'Clé service_role legacy récupérée.', 'done')
+      this.log(win, 'Legacy service_role key retrieved.', 'done')
       return key
     } catch (err) {
       if (this.wasCancelled()) throw err
       const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err)
-      this.log(win, `Clé service_role legacy indisponible : ${this.redactor.redact(message)}`, 'error')
+      this.log(win, `Legacy service_role key unavailable: ${this.redactor.redact(message)}`, 'error')
       return null
     }
   }
@@ -434,7 +434,7 @@ export class SupabaseProvisionService {
     ref: string,
     dbPassword: string,
   ): Promise<{ DATABASE_URL: string; DIRECT_URL: string }> {
-    this.log(win, 'Récupération des URLs Postgres…')
+    this.log(win, 'Retrieving Postgres URLs…')
 
     const pooler = await client.getPoolerConfig(ref)
     const project = await client.getProject(ref)
@@ -445,7 +445,7 @@ export class SupabaseProvisionService {
       databaseHost: project.database?.host,
     })
 
-    this.log(win, 'URLs Postgres construites (mot de passe injecté et encodé).', 'done')
+    this.log(win, 'Postgres URLs constructed (password injected and encoded).', 'done')
     this.progress(win, 75)
 
     return { DATABASE_URL: databaseUrl, DIRECT_URL: directUrl }
@@ -459,13 +459,13 @@ export class SupabaseProvisionService {
     ref: string,
     serviceKey: string,
   ): Promise<void> {
-    this.log(win, `Création des ${STORAGE_BUCKETS.length} buckets de stockage…`)
+    this.log(win, `Creating ${STORAGE_BUCKETS.length} storage buckets…`)
     const origin = projectUrl(ref)
 
     for (const bucket of STORAGE_BUCKETS) {
       if (this.wasCancelled()) throw new DOMException('Aborted', 'AbortError')
       const created = await client.createBucket(origin, serviceKey, bucket)
-      this.log(win, created ? `  ${bucket.name} : créé` : `  ${bucket.name} : déjà présent`)
+      this.log(win, created ? `  ${bucket.name}: created` : `  ${bucket.name}: already present`)
     }
 
     // Read the list back: a bucket created through the Storage API but missing
@@ -475,10 +475,10 @@ export class SupabaseProvisionService {
     const names = new Set(existing.map(b => b.name))
     const missing = STORAGE_BUCKETS.filter(b => !names.has(b.name)).map(b => b.name)
     if (missing.length > 0) {
-      throw new Error(`Buckets manquants après création : ${missing.join(', ')}`)
+      throw new Error(`Buckets missing after creation: ${missing.join(', ')}`)
     }
 
-    this.log(win, 'Buckets vérifiés.', 'done')
+    this.log(win, 'Buckets verified.', 'done')
     this.progress(win, 90)
   }
 }

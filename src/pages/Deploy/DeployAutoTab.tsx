@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database, FolderOpen } from 'lucide-react'
+import { Upload, X, Rocket, CheckCircle2, AlertCircle, Ban, Terminal, Info, Globe, Database } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import { useSession } from '../../context/SessionContext'
 import { useAutomationLock } from '../../context/AutomationLockContext'
@@ -78,19 +78,7 @@ export function DeployAutoTab() {
     }
   }, [logs])
 
-  const [localDeployPath, setLocalDeployPath] = useState(config.DEPLOY_PATH || '')
-
-  const handleBrowse = async () => {
-    if (window.electronAPI) {
-      const selected = await window.electronAPI.openFolderDialog()
-      if (selected) {
-        setLocalDeployPath(selected)
-        setField('DEPLOY_PATH', selected)
-      }
-    }
-  }
-
-  const deployPath = localDeployPath || '/path/to/hackathon-deploy'
+  const deployPath = config.DEPLOY_PATH || '/path/to/hackathon-deploy'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const domain = config.DOMAIN || 'example.com'
 
@@ -140,35 +128,6 @@ export function DeployAutoTab() {
         title={t('step6.auto.title')}
         className={automationFocused ? 'automation-focus' : ''}
       >
-        {/* Deploy path selector */}
-        <div className="deploy-path-selector" style={{ marginBottom: 'var(--space-3)' }}>
-          <label className="form-label" style={{ marginBottom: 'var(--space-2)', display: 'block' }}>
-            {t('step6.auto.deployPath')}
-          </label>
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-            <input
-              className="form-input"
-              type="text"
-              value={localDeployPath}
-              onChange={(e) => {
-                setLocalDeployPath(e.target.value)
-                setField('DEPLOY_PATH', e.target.value)
-              }}
-              placeholder="/path/to/hackathon-deploy"
-              style={{ flex: 1 }}
-              id="input-deploy-path"
-            />
-            <button
-              className="btn btn-secondary"
-              onClick={handleBrowse}
-              id="btn-deploy-browse"
-              title={t('step6.auto.browse')}
-            >
-              <FolderOpen size={16} />
-            </button>
-          </div>
-        </div>
-
         {/* SSH key selector */}
         <SshKeySelector
           ref={sshSelectorRef}

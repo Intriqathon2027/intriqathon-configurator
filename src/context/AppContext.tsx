@@ -415,6 +415,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     checkVault()
   }, [])
 
+  // Synchronize DEPLOY_PATH with the internal temp directory created/copied for deployment
+  useEffect(() => {
+    let cancelled = false
+    const initDeployPath = async () => {
+      if (window.electronAPI?.getDeployPath) {
+        try {
+          let targetPath = ''
+          if (window.electronAPI.prepareDeployDir) {
+            targetPath = await window.electronAPI.prepareDeployDir()
+          } else {
+            targetPath = await window.electronAPI.getDeployPath()
+          }
+          if (!cancelled && targetPath && state.config.DEPLOY_PATH !== targetPath) {
+            dispatch({ type: 'SET_FIELD', key: 'DEPLOY_PATH', value: targetPath })
+          }
+        } catch (err) {
+          console.error('Failed to initialize DEPLOY_PATH:', err)
+        }
+      } else {
+        const fallbackPath = '/tmp/intriqathon-deploy'
+        if (!cancelled && !state.config.DEPLOY_PATH) {
+          dispatch({ type: 'SET_FIELD', key: 'DEPLOY_PATH', value: fallbackPath })
+        }
+      }
+    }
+    initDeployPath()
+    return () => { cancelled = true }
+  }, [state.currentStep, state.isVaultUnlocked])
+
   /**
    * The sending subdomain and the sender address follow the domain — until one
    * of them is edited, after which it is left alone.

@@ -19,7 +19,7 @@ export const ACCOUNT_REQUIRED_FIELDS: Record<AccountService, (keyof Config)[]> =
   supabase: ['SUPABASE_ACCESS_TOKEN', 'SUPABASE_DB_PASSWORD', 'SUPABASE_PROJECT_REF'],
   resend: ['RESEND_API_KEY'],
   spaceship: ['DOMAIN', 'SPACESHIP_API_KEY', 'SPACESHIP_API_SECRET'],
-  scaleway: ['SCW_SECRET_KEY', 'SCW_DEFAULT_PROJECT_ID', 'DEPLOY_PATH'],
+  scaleway: ['SCW_SECRET_KEY', 'SCW_DEFAULT_PROJECT_ID'],
 }
 
 export function isAccountComplete(config: Config, service: AccountService): boolean {

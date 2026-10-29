@@ -84,7 +84,7 @@ class MockDeployBridge implements DeployBridge {
       if (this.cancelled) return
       this.stdout('Upload du fichier .env : Done')
       
-      this.stdout(`Synchronisation des fichiers depuis ${sourceDir}…`)
+      this.stdout(`Synchronisation des fichiers hackathon-deploy…`)
       await this.wait(1500)
       if (this.cancelled) return
       this.stdout('Synchronisation des fichiers : Done')

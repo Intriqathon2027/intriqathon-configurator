@@ -12,6 +12,7 @@ export class PlatformService {
 
   static writeEnvFile(dirPath: string, content: string): { success: boolean; error?: string } {
     try {
+      fs.mkdirSync(dirPath, { recursive: true })
       fs.writeFileSync(path.join(dirPath, '.env'), content)
       return { success: true }
     } catch (err: any) {

@@ -2,7 +2,6 @@ let electron = require("electron");
 //#region electron/preload.ts
 electron.contextBridge.exposeInMainWorld("electronAPI", {
 	openExternalUrl: (url) => electron.ipcRenderer.invoke("open-external-url", url),
-	openFolderDialog: () => electron.ipcRenderer.invoke("open-folder-dialog"),
 	saveEnvFile: (content) => electron.ipcRenderer.invoke("save-env-file", content),
 	saveLocalConfig: (config) => electron.ipcRenderer.invoke("save-local-config", config),
 	loadLocalConfig: () => electron.ipcRenderer.invoke("load-local-config"),
@@ -32,6 +31,8 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
 		};
 	},
 	getPlatform: () => electron.ipcRenderer.invoke("deploy:get-platform"),
+	getDeployPath: () => electron.ipcRenderer.invoke("deploy:get-deploy-path"),
+	prepareDeployDir: (envContent) => electron.ipcRenderer.invoke("deploy:prepare-deploy-dir", envContent),
 	writeEnvToDir: (dir, content) => electron.ipcRenderer.invoke("deploy:write-env", dir, content),
 	startDeploy: (ipv4, sourceDir, sshPassword, sshKeyPath) => electron.ipcRenderer.invoke("deploy:start", ipv4, sourceDir, sshPassword, sshKeyPath),
 	restartDocker: (ipv4, sshPassword, sshKeyPath) => electron.ipcRenderer.invoke("deploy:restart", ipv4, sshPassword, sshKeyPath),

@@ -54,23 +54,23 @@ export class SpaceshipProvisionService {
     })
 
     try {
-      if (!req.domain) throw new Error('Nom de domaine non renseigné.')
+      if (!req.domain) throw new Error('Domain name not specified.')
       if (!req.ipv4) {
         throw new Error(
-          "IPv4 de l'instance inconnue — lancez l'étape Scaleway avant de publier les enregistrements DNS.",
+          'Instance IPv4 unknown — run the Scaleway step before publishing DNS records.',
         )
       }
 
       const records = buildInfraDnsRecords(req.domain, req.ipv4, req.mailSubdomain)
 
       this.progress(win, 10)
-      this.log(win, `Enregistrements à publier sur ${req.domain} :`)
+      this.log(win, `Records to publish on ${req.domain}:`)
       for (const record of records) {
         this.log(win, `  ${record.type}  ${record.host}  ➔  ${record.answer}`)
       }
 
       this.progress(win, 35)
-      this.log(win, 'Écriture chez Spaceship (les enregistrements de même nom sont remplacés)…')
+      this.log(win, 'Writing to Spaceship (records with the same name are replaced)…')
       await client.saveRecords(req.domain, records)
       this.progress(win, 75)
 
@@ -78,11 +78,11 @@ export class SpaceshipProvisionService {
       await this.restoreResendRecords(win, client, req.domain, req.resendRecords ?? [])
 
       this.progress(win, 100)
-      this.log(win, 'Enregistrements DNS publiés.', 'done')
+      this.log(win, 'DNS records published.', 'done')
       win.webContents.send('provision:done', { service: SERVICE, patch: {} })
     } catch (err) {
       if (this.wasCancelled()) {
-        this.log(win, 'Configuration annulée.', 'info')
+        this.log(win, 'Configuration cancelled.', 'info')
         win.webContents.send('provision:cancelled', { service: SERVICE })
       } else {
         const message = err instanceof SpaceshipApiError || err instanceof Error ? err.message : String(err)
@@ -116,7 +116,7 @@ export class SpaceshipProvisionService {
   ): Promise<void> {
     if (resendRecords.length === 0) return
 
-    this.log(win, 'Contrôle des enregistrements demandés par Resend…')
+    this.log(win, 'Checking records requested by Resend…')
     const existing = await client.listRecords(domain)
     const present = new Set(
       existing.map(item => `${item.name.toLowerCase().replace(/\.$/, '')}|${item.type.toUpperCase()}`),
@@ -127,11 +127,11 @@ export class SpaceshipProvisionService {
     )
 
     if (missing.length === 0) {
-      this.log(win, `Enregistrements Resend en place (${resendRecords.length}).`, 'done')
+      this.log(win, `Resend records in place (${resendRecords.length}).`, 'done')
       return
     }
 
-    this.log(win, `Enregistrements Resend absents de la zone (${missing.length}) — republication :`)
+    this.log(win, `Resend records missing from zone (${missing.length}) — republishing:`)
     for (const record of missing) {
       this.log(win, `  ${record.type}  ${record.host}`)
     }
@@ -156,7 +156,7 @@ export class SpaceshipProvisionService {
     domain: string,
     records: DnsRecord[],
   ): Promise<void> {
-    this.log(win, 'Relecture de la zone…')
+    this.log(win, 'Reading back DNS zone…')
     const existing = await client.listRecords(domain)
     const present = new Set(
       existing.map(item => `${item.name.toLowerCase().replace(/\.$/, '')}|${item.type.toUpperCase()}`),
@@ -167,13 +167,13 @@ export class SpaceshipProvisionService {
     )
     if (missing.length > 0) {
       throw new Error(
-        `Enregistrements absents de la zone après écriture : ${missing
+        `Records missing from zone after writing: ${missing
           .map(r => `${r.type} ${r.host}`)
-          .join(', ')}. Ajoutez-les à la main depuis « Configuration manuelle ».`,
+          .join(', ')}. Add them manually via "Manual Configuration".`,
       )
     }
 
     this.progress(win, 90)
-    this.log(win, `Zone relue — ${records.length} enregistrement(s) en place.`, 'done')
+    this.log(win, `Zone read back — ${records.length} record(s) in place.`, 'done')
   }
 }
