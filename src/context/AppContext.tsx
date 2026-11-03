@@ -573,7 +573,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'VAULT_UNLOCKED' })
         return { success: true }
       }
-      return { success: false, error: res.error || 'Erreur' }
+      return { success: false, error: res.error || 'Error' }
     } else {
       dispatch({ type: 'VAULT_UNLOCKED' })
       return { success: true }

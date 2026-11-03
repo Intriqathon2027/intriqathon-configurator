@@ -137,9 +137,9 @@ class MockProvisionBridge implements ProvisionBridge {
     // Mirrors the real service, including the early exit: step 1's button only
     // provisions the project, step 2 does the rest.
     const projectSteps: [string, number][] = [
-      [req.mode === 'create' ? `Création du projet « ${req.projectName || 'demo'} »…` : 'Recherche du projet Supabase…', 10],
-      ['Projet actif.', 45],
-      ['Clé service_role legacy récupérée.', 50],
+      [req.mode === 'create' ? `Creating project "${req.projectName || 'demo'}"…` : 'Searching for Supabase project…', 10],
+      ['Project active.', 45],
+      ['Legacy service_role key retrieved.', 50],
     ]
 
     if (req.stopAfterProject) {
@@ -167,12 +167,12 @@ class MockProvisionBridge implements ProvisionBridge {
 
     const script: [string, number][] = [
       ...projectSteps,
-      ['Récupération des clés API…', 55],
-      ['Clés récupérées — anon : JWT legacy, service : JWT legacy.', 60],
-      ['Récupération des URLs Postgres…', 70],
-      ['URLs Postgres construites (mot de passe injecté et encodé).', 75],
-      ['Création des 5 buckets de stockage…', 80],
-      ['Buckets vérifiés.', 90],
+      ['Retrieving API keys…', 55],
+      ['Keys retrieved — anon: legacy JWT, service: legacy JWT.', 60],
+      ['Retrieving Postgres URLs…', 70],
+      ['Postgres URLs constructed (password injected and encoded).', 75],
+      ['Creating the 5 storage buckets…', 80],
+      ['Buckets verified.', 90],
     ]
 
     for (const [message, value] of script) {
@@ -211,12 +211,12 @@ class MockProvisionBridge implements ProvisionBridge {
     this.cancelled = false
 
     const script: [string, number][] = [
-      ['Projet demo (abcdefghijklmnopqrst) — configuration finale…', 5],
-      ['Privilèges appliqués (anon, authenticated, service_role).', 25],
-      ['Schémas exposés mis à jour : public, graphql_public.', 45],
-      ['Announcement ajoutée à supabase_realtime.', 60],
-      ["Confirmation d'email désactivée — le compte organisateur pourra se connecter.", 80],
-      ['RLS activée sur 3 table(s) : Announcement, Team, User.', 95],
+      ['Project demo (abcdefghijklmnopqrst) — final configuration…', 5],
+      ['Privileges applied (anon, authenticated, service_role).', 25],
+      ['Exposed schemas updated: public, graphql_public.', 45],
+      ['Announcement added to supabase_realtime.', 60],
+      ["Email confirmation disabled — organizer account will be able to log in.", 80],
+      ['RLS enabled on 3 table(s): Announcement, Team, User.', 95],
     ]
 
     for (const [message, value] of script) {
@@ -242,13 +242,13 @@ class MockProvisionBridge implements ProvisionBridge {
 
     const records = buildInfraDnsRecords(req.domain, req.ipv4, req.mailSubdomain)
     const script: [string, number][] = [
-      [`Enregistrements à publier sur ${req.domain} :`, 10],
+      [`Records to publish on ${req.domain}:`, 10],
       ...records.map(
         (r): [string, number] => [`  ${r.type}  ${r.host}  ➔  ${r.answer}`, 20],
       ),
-      ['Écriture chez Spaceship (les enregistrements de même nom sont remplacés)…', 35],
-      ['Relecture de la zone…', 75],
-      [`Zone relue — ${records.length} enregistrement(s) en place.`, 90],
+      ['Writing to Spaceship (records with the same name are replaced)…', 35],
+      ['Reading back DNS zone…', 75],
+      [`Zone read back — ${records.length} record(s) in place.`, 90],
     ]
 
     for (const [message, value] of script) {
@@ -278,16 +278,16 @@ class MockProvisionBridge implements ProvisionBridge {
     ]
 
     const script: [string, number][] = [
-      [`Recherche de ${req.mailSubdomain} sur le compte Resend…`, 10],
-      [`Création du domaine ${req.mailSubdomain}…`, 25],
-      [`Enregistrements demandés par Resend (${records.length}) :`, 40],
+      [`Searching for ${req.mailSubdomain} on Resend account…`, 10],
+      [`Creating domain ${req.mailSubdomain}…`, 25],
+      [`Records requested by Resend (${records.length}):`, 40],
       ...records.map(
         (r): [string, number] => [`  ${r.type}  ${r.host}  ➔  ${r.answer.slice(0, 57)}`, 45],
       ),
-      [`Publication des enregistrements chez Spaceship sur ${req.domain}…`, 55],
-      ['Enregistrements publiés.', 60],
-      ['Demande de vérification à Resend…', 70],
-      ["Vérification demandée. La propagation DNS peut prendre jusqu'à 15 minutes : cette étape est terminée.", 90],
+      [`Publishing records with Spaceship for ${req.domain}…`, 55],
+      ['Records published.', 60],
+      ['Requesting verification from Resend…', 70],
+      ["Verification requested. DNS propagation may take up to 15 minutes: this step is complete.", 90],
     ]
 
     for (const [message, value] of script) {
@@ -376,7 +376,7 @@ class MockProvisionBridge implements ProvisionBridge {
     // deleted project, or one left over in a saved config — comes back 404.
     const known = this.accountProjects.find(p => p.ref === ref)
     if (!known) {
-      return { success: false, error: 'Ressource introuvable chez Supabase. (Resource has been removed)' }
+      return { success: false, error: 'Resource not found at Supabase. (Resource has been removed)' }
     }
 
     return {

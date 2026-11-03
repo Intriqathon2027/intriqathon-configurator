@@ -63,11 +63,11 @@ class MockDeployBridge implements DeployBridge {
     return { success: true }
   }
   
-  async startDeploy(ipv4: string, sourceDir: string, _sshPassword?: string, _sshKeyPath?: string) {
+  async startDeploy(ipv4: string, _sourceDir: string, _sshPassword?: string, _sshKeyPath?: string) {
     this.cancelled = false
     
     try {
-      this.stdout(`Connexion SSH à root@${ipv4}…`)
+      this.stdout(`SSH connection to root@${ipv4}…`)
       await this.wait(800)
       if (this.cancelled) return
       
@@ -75,19 +75,19 @@ class MockDeployBridge implements DeployBridge {
       await this.waitForInput()
       if (this.cancelled) return
       
-      this.stdout(`Connexion SSH à root@${ipv4}… Authentifié`)
+      this.stdout(`SSH connection to root@${ipv4}… Authenticated`)
       await this.wait(600)
       if (this.cancelled) return
       
-      this.stdout('Upload du fichier .env…')
+      this.stdout('Uploading .env file…')
       await this.wait(1200)
       if (this.cancelled) return
-      this.stdout('Upload du fichier .env : Done')
+      this.stdout('Uploading .env file: Done')
       
-      this.stdout(`Synchronisation des fichiers hackathon-deploy…`)
+      this.stdout(`Synchronizing hackathon-deploy files…`)
       await this.wait(1500)
       if (this.cancelled) return
-      this.stdout('Synchronisation des fichiers : Done')
+      this.stdout('Synchronizing files: Done')
       
       await this.wait(500)
       if (this.cancelled) return
@@ -95,29 +95,29 @@ class MockDeployBridge implements DeployBridge {
       await this.waitForInput()
       if (this.cancelled) return
       
-      this.stdout('Configuration de la base de données…')
+      this.stdout('Configuring database…')
       await this.wait(1800)
       if (this.cancelled) return
-      this.stdout('Configuration de la base de données : Done')
+      this.stdout('Configuring database: Done')
       
-      this.stdout('Configuration de l\'API…')
+      this.stdout('Configuring API…')
       await this.wait(1400)
       if (this.cancelled) return
-      this.stdout('Configuration de l\'API : Done')
+      this.stdout('Configuring API: Done')
       
-      this.stdout('Configuration SSL / Nginx…')
+      this.stdout('Configuring SSL / Nginx…')
       await this.wait(2000)
       if (this.cancelled) return
-      this.stdout('Configuration SSL / Nginx : Done')
+      this.stdout('Configuring SSL / Nginx: Done')
       
-      this.stdout('Démarrage des services Docker…')
+      this.stdout('Starting Docker services…')
       await this.wait(1600)
       if (this.cancelled) return
-      this.stdout('Démarrage des services Docker : Done')
+      this.stdout('Starting Docker services: Done')
       
       await this.wait(500)
       if (this.cancelled) return
-      this.stdout(`Déploiement terminé avec succès !`)
+      this.stdout(`Deployment completed successfully!`)
       
       this.exitCbs.forEach(cb => cb(0))
     } catch {
@@ -131,15 +131,15 @@ class MockDeployBridge implements DeployBridge {
     this.cancelled = false
 
     try {
-      this.stdout(`Connexion SSH à root@${ipv4}…`)
+      this.stdout(`SSH connection to root@${ipv4}…`)
       await this.wait(800)
       if (this.cancelled) return
 
-      this.stdout(`Exécution de docker restart discord_bot...`)
+      this.stdout(`Executing docker restart discord_bot...`)
       await this.wait(1500)
       if (this.cancelled) return
 
-      this.stdout(`Redémarrage de Docker terminé avec succès !`)
+      this.stdout(`Docker restart completed successfully!`)
       this.exitCbs.forEach(cb => cb(0))
     } catch {
       if (!this.cancelled) {

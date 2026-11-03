@@ -404,7 +404,7 @@ var CryptoService = class {
 		const vaultPath = this.getVaultPath();
 		if (!fs.existsSync(vaultPath)) return {
 			success: false,
-			error: "Vault introuvable"
+			error: "Vault not found"
 		};
 		try {
 			const raw = fs.readFileSync(vaultPath, "utf8");
@@ -418,7 +418,7 @@ var CryptoService = class {
 		} catch (err) {
 			return {
 				success: false,
-				error: "Mot de passe incorrect ou données corrompues"
+				error: "Incorrect password or corrupted data"
 			};
 		}
 	}
@@ -1158,11 +1158,11 @@ var SupabaseApiClient = class {
 			const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : BASE_BACKOFF_MS$2 * 2 ** (attempt - 1);
 			await this.sleepImpl(waitMs, this.signal);
 		}
-		throw lastError ?? new SupabaseApiError(0, url, "Échec inconnu");
+		throw lastError ?? new SupabaseApiError(0, url, "Unknown failure");
 	}
 	async requireJson(method, path, opts = {}) {
 		const result = await this.request(method, path, opts);
-		if (result === null) throw new SupabaseApiError(0, path, "Réponse vide");
+		if (result === null) throw new SupabaseApiError(0, path, "Empty response");
 		return result;
 	}
 	listOrganizations() {
@@ -2304,7 +2304,7 @@ var SpaceshipApiClient = class {
 			const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : BASE_BACKOFF_MS$1 * 2 ** (attempt - 1);
 			await this.sleepImpl(waitMs, this.signal);
 		}
-		throw lastError ?? new SpaceshipApiError(0, url, "Échec inconnu");
+		throw lastError ?? new SpaceshipApiError(0, url, "Unknown failure");
 	}
 	/** Cheap authenticated read — used to tell a bad key from a bad domain. */
 	async listDomains() {
@@ -2568,7 +2568,7 @@ var ResendApiClient = class {
 			const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : BASE_BACKOFF_MS * 2 ** (attempt - 1);
 			await this.sleepImpl(waitMs, this.signal);
 		}
-		throw lastError ?? new ResendApiError(0, url, "Échec inconnu");
+		throw lastError ?? new ResendApiError(0, url, "Unknown failure");
 	}
 	async listDomains() {
 		return (await this.request("GET", "/domains"))?.data ?? [];
@@ -2579,12 +2579,12 @@ var ResendApiClient = class {
 			name,
 			...region ? { region } : {}
 		});
-		if (!created) throw new ResendApiError(0, "/domains", "Réponse vide");
+		if (!created) throw new ResendApiError(0, "/domains", "Empty response");
 		return created;
 	}
 	async getDomain(id) {
 		const domain = await this.request("GET", `/domains/${id}`);
-		if (!domain) throw new ResendApiError(0, `/domains/${id}`, "Réponse vide");
+		if (!domain) throw new ResendApiError(0, `/domains/${id}`, "Empty response");
 		return domain;
 	}
 	/** Asks Resend to look at the DNS now; the check itself runs asynchronously. */

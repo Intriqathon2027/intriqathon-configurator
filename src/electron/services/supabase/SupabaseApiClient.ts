@@ -179,12 +179,12 @@ export class SupabaseApiClient {
       await this.sleepImpl(waitMs, this.signal)
     }
 
-    throw lastError ?? new SupabaseApiError(0, url, 'Échec inconnu')
+    throw lastError ?? new SupabaseApiError(0, url, 'Unknown failure')
   }
 
   private async requireJson<T>(method: string, path: string, opts: RequestOptions = {}): Promise<T> {
     const result = await this.request<T>(method, path, opts)
-    if (result === null) throw new SupabaseApiError(0, path, 'Réponse vide')
+    if (result === null) throw new SupabaseApiError(0, path, 'Empty response')
     return result
   }
 

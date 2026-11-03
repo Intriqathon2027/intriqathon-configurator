@@ -147,7 +147,7 @@ export class CryptoService {
   public static unlockVault(password: string): { success: boolean; data?: Record<string, string>; error?: string } {
     const vaultPath = this.getVaultPath()
     if (!fs.existsSync(vaultPath)) {
-      return { success: false, error: 'Vault introuvable' }
+      return { success: false, error: 'Vault not found' }
     }
 
     try {
@@ -157,7 +157,7 @@ export class CryptoService {
       this.sessionPassword = password
       return { success: true, data }
     } catch (err) {
-      return { success: false, error: 'Mot de passe incorrect ou données corrompues' }
+      return { success: false, error: 'Incorrect password or corrupted data' }
     }
   }
 

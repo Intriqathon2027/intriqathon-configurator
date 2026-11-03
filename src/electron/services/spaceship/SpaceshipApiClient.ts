@@ -178,7 +178,7 @@ export class SpaceshipApiClient {
       await this.sleepImpl(waitMs, this.signal)
     }
 
-    throw lastError ?? new SpaceshipApiError(0, url, 'Échec inconnu')
+    throw lastError ?? new SpaceshipApiError(0, url, 'Unknown failure')
   }
 
   /** Cheap authenticated read — used to tell a bad key from a bad domain. */

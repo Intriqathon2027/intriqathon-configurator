@@ -145,13 +145,14 @@ export function ServiceConfigBlock({
     .reverse()
     .find(
       (l) =>
+        l.includes("[ERROR") ||
         l.includes("[ERREUR") ||
         l.toLowerCase().includes("erreur") ||
         l.toLowerCase().includes("error") ||
         l.includes("Échec"),
     );
   const cleanErrorMessage = lastError
-    ? lastError.replace(/^\[ERREUR\]\s*/, "")
+    ? lastError.replace(/^\[(ERREUR|ERROR)\]\s*/, "")
     : undefined;
 
   /**
@@ -291,6 +292,7 @@ export function ServiceConfigBlock({
           <div className="service-config-block__terminal" ref={terminalRef}>
             {logs.map((line, i) => {
               const isErr =
+                line.includes("[ERROR") ||
                 line.includes("[ERREUR") ||
                 line.toLowerCase().includes("erreur") ||
                 line.toLowerCase().includes("error") ||

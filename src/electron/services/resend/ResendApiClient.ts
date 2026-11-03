@@ -144,7 +144,7 @@ export class ResendApiClient {
       await this.sleepImpl(waitMs, this.signal)
     }
 
-    throw lastError ?? new ResendApiError(0, url, 'Échec inconnu')
+    throw lastError ?? new ResendApiError(0, url, 'Unknown failure')
   }
 
   async listDomains(): Promise<ResendDomain[]> {
@@ -158,13 +158,13 @@ export class ResendApiClient {
       name,
       ...(region ? { region } : {}),
     })
-    if (!created) throw new ResendApiError(0, '/domains', 'Réponse vide')
+    if (!created) throw new ResendApiError(0, '/domains', 'Empty response')
     return created
   }
 
   async getDomain(id: string): Promise<ResendDomain> {
     const domain = await this.request<ResendDomain>('GET', `/domains/${id}`)
-    if (!domain) throw new ResendApiError(0, `/domains/${id}`, 'Réponse vide')
+    if (!domain) throw new ResendApiError(0, `/domains/${id}`, 'Empty response')
     return domain
   }
 

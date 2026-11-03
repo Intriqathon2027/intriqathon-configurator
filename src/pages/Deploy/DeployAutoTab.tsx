@@ -41,7 +41,7 @@ function getGlobalStatusIcon(status: DeploymentStatus) {
 }
 
 export function DeployAutoTab() {
-  const { t, config, setField, selectedSshKey, state } = useApp()
+  const { t, config, selectedSshKey, state } = useApp()
   const { isRunDone, markRunDone, isManualChecked, confirmManual } = useSession()
   const isEn = state.language === 'en'
   const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
