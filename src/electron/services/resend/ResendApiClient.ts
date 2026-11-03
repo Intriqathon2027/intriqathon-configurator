@@ -9,15 +9,15 @@ const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504])
 function explainStatus(status: number): string | null {
   switch (status) {
     case 401:
-      return "Clé API Resend refusée. Vérifiez la clé copiée depuis resend.com/api-keys (étape 1) — elle n'est affichée qu'à sa création."
+      return 'Resend API key rejected. Check the key copied from resend.com/api-keys (Step 1) — it is only displayed upon creation.'
     case 403:
-      return "Accès refusé par Resend — la clé API est en lecture seule ou restreinte. Il en faut une avec les droits « Full access » pour créer et vérifier un domaine."
+      return 'Access denied by Resend — API key is read-only or restricted. A key with "Full access" permissions is required to create and verify a domain.'
     case 404:
-      return 'Domaine introuvable chez Resend.'
+      return 'Domain not found at Resend.'
     case 422:
-      return "Resend a refusé le domaine. Un sous-domaine déjà enregistré sur un autre compte Resend, ou un nom mal formé, sont les deux causes habituelles."
+      return 'Resend rejected the domain. A subdomain already registered on another Resend account or a malformed name are typical causes.'
     case 429:
-      return 'Trop de requêtes envoyées à Resend. Patientez une minute avant de relancer.'
+      return 'Too many requests sent to Resend. Please wait a minute before retrying.'
     default:
       return null
   }
@@ -144,7 +144,7 @@ export class ResendApiClient {
       await this.sleepImpl(waitMs, this.signal)
     }
 
-    throw lastError ?? new ResendApiError(0, url, 'Échec inconnu')
+    throw lastError ?? new ResendApiError(0, url, 'Unknown failure')
   }
 
   async listDomains(): Promise<ResendDomain[]> {
@@ -158,13 +158,13 @@ export class ResendApiClient {
       name,
       ...(region ? { region } : {}),
     })
-    if (!created) throw new ResendApiError(0, '/domains', 'Réponse vide')
+    if (!created) throw new ResendApiError(0, '/domains', 'Empty response')
     return created
   }
 
   async getDomain(id: string): Promise<ResendDomain> {
     const domain = await this.request<ResendDomain>('GET', `/domains/${id}`)
-    if (!domain) throw new ResendApiError(0, `/domains/${id}`, 'Réponse vide')
+    if (!domain) throw new ResendApiError(0, `/domains/${id}`, 'Empty response')
     return domain
   }
 

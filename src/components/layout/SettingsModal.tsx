@@ -81,7 +81,7 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
         await handleImportSuccess(result.data, result.path)
       }
     } else {
-      alert('Non supporté sur le web')
+      alert('Not supported on the web')
     }
   }
 
@@ -99,7 +99,7 @@ export function SettingsModal({ settingsOpen, setSettingsOpen }: SettingsModalPr
       }
       setSettingsOpen(false)
     } else {
-      alert('Non supporté sur le web')
+      alert('Not supported on the web')
     }
   }
 

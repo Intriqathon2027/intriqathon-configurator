@@ -115,7 +115,7 @@ export function VaultGate({ children }: VaultGateProps) {
     try {
       const res = await createVault(password)
       if (!res.success) {
-        setError(res.error || 'Erreur lors de la création')
+        setError(res.error || 'Error during creation')
       } else {
         setPassword('')
         setConfirmPassword('')
@@ -131,7 +131,7 @@ export function VaultGate({ children }: VaultGateProps) {
         })
       }
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de la création')
+      setError(err.message || 'Error during creation')
     } finally {
       setIsLoading(false)
     }

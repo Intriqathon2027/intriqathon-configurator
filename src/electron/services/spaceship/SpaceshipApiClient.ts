@@ -11,13 +11,13 @@ const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504])
 function explainStatus(status: number): string | null {
   switch (status) {
     case 401:
-      return "Clé API Spaceship refusée. Vérifiez la clé et le secret copiés depuis l'API Manager de Spaceship (étape 1) — un secret n'est affiché qu'à sa création."
+      return 'Spaceship API key rejected. Check the key and secret copied from the Spaceship API Manager (Step 1) — a secret is only displayed upon creation.'
     case 403:
-      return "Accès refusé par Spaceship — la clé API n'a pas les permissions nécessaires. Activez `dnsrecords:read` et `dnsrecords:write` sur la clé, et vérifiez que le domaine appartient bien à ce compte."
+      return 'Access denied by Spaceship — the API key lacks required permissions. Enable `dnsrecords:read` and `dnsrecords:write` on the key, and verify that the domain belongs to this account.'
     case 404:
-      return "Domaine introuvable chez Spaceship. Vérifiez le nom de domaine de l'étape 1 : il doit être enregistré sur ce compte."
+      return 'Domain not found at Spaceship. Check the domain name from Step 1: it must be registered on this account.'
     case 429:
-      return 'Trop de requêtes envoyées à Spaceship. Patientez quelques minutes avant de relancer.'
+      return 'Too many requests sent to Spaceship. Please wait a few minutes before retrying.'
     default:
       return null
   }
@@ -178,7 +178,7 @@ export class SpaceshipApiClient {
       await this.sleepImpl(waitMs, this.signal)
     }
 
-    throw lastError ?? new SpaceshipApiError(0, url, 'Échec inconnu')
+    throw lastError ?? new SpaceshipApiError(0, url, 'Unknown failure')
   }
 
   /** Cheap authenticated read — used to tell a bad key from a bad domain. */

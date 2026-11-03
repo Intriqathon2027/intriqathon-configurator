@@ -17,6 +17,7 @@ var PlatformService = class {
 	}
 	static writeEnvFile(dirPath, content) {
 		try {
+			fs.mkdirSync(dirPath, { recursive: true });
 			fs.writeFileSync(path.join(dirPath, ".env"), content);
 			return { success: true };
 		} catch (err) {
@@ -66,6 +67,25 @@ var DeployService = class {
 		if (__dirname$1.includes("app.asar") && process.resourcesPath) return path.join(process.resourcesPath, "src/cmd_scripts", scriptName);
 		return path.join(process.env.APP_ROOT, "src/cmd_scripts", scriptName);
 	}
+	getDeployPath() {
+		return path.join(app.getPath("temp"), "intriqathon-deploy");
+	}
+	getBundledDeployPath() {
+		if (__dirname$1.includes("app.asar") && process.resourcesPath) return path.join(process.resourcesPath, "hackathon-deploy");
+		return path.join(process.env.APP_ROOT, "hackathon-deploy");
+	}
+	prepareDeployDirectory(envContent) {
+		const sourceDir = this.getBundledDeployPath();
+		if (!fs.existsSync(sourceDir)) throw new Error(`hackathon-deploy folder not found in: ${sourceDir}`);
+		const targetDir = this.getDeployPath();
+		fs.mkdirSync(targetDir, { recursive: true });
+		fs.cpSync(sourceDir, targetDir, {
+			recursive: true,
+			force: true
+		});
+		if (envContent) PlatformService.writeEnvFile(targetDir, envContent);
+		return targetDir;
+	}
 	debug(win, msg) {
 		win.webContents.send("deploy:stdout", `[DEBUG] ${msg}`);
 	}
@@ -82,15 +102,15 @@ var DeployService = class {
 			if (runId !== this.runId) return false;
 			if (await probePort(ipv4, 22, SSH_PROBE_TIMEOUT_MS)) {
 				if (runId !== this.runId) return false;
-				win.webContents.send("deploy:stdout", `Serveur SSH joignable sur ${ipv4}:22`);
+				win.webContents.send("deploy:stdout", `SSH server reachable on ${ipv4}:22`);
 				return true;
 			}
 			if (runId !== this.runId) return false;
-			if (attempt === 1 || attempt % 5 === 0) win.webContents.send("deploy:stdout", `En attente du serveur SSH sur ${ipv4}:22 (tentative ${attempt}/${maxAttempts})…`);
+			if (attempt === 1 || attempt % 5 === 0) win.webContents.send("deploy:stdout", `Waiting for SSH server on ${ipv4}:22 (attempt ${attempt}/${maxAttempts})…`);
 			await new Promise((r) => setTimeout(r, SSH_PROBE_INTERVAL_MS));
 		}
 		if (runId !== this.runId) return false;
-		win.webContents.send("deploy:error", `Le serveur ${ipv4} n'accepte pas de connexion SSH (port 22) après ${SSH_WAIT_TIMEOUT_MS / 6e4} min. Vérifiez que l'instance est démarrée, que l'IPv4 est correcte et que le port 22 n'est pas bloqué (pare-feu, VPN).`);
+		win.webContents.send("deploy:error", `Server ${ipv4} does not accept SSH connections (port 22) after ${SSH_WAIT_TIMEOUT_MS / 6e4} min. Verify that the instance is running, IPv4 is correct, and port 22 is not blocked (firewall, VPN).`);
 		return false;
 	}
 	async start(ipv4, sourceDir, win, sshPassword, sshKeyPath) {
@@ -98,20 +118,31 @@ var DeployService = class {
 		const runId = this.runId;
 		const scriptPath = this.getScriptPath();
 		const isWin = PlatformService.isWindows();
-		this.debug(win, `Plateforme : ${process.platform}`);
-		this.debug(win, `Script : ${scriptPath}`);
-		this.debug(win, `Existe : ${fs.existsSync(scriptPath)}`);
-		this.debug(win, `IPV4 : ${ipv4}`);
-		this.debug(win, `SOURCE_DIR : ${sourceDir}`);
+		const defaultDir = this.getDeployPath();
+		let effectiveSourceDir = sourceDir || defaultDir;
+		if (!fs.existsSync(effectiveSourceDir)) try {
+			this.debug(win, "Preparing deployment files...");
+			effectiveSourceDir = this.prepareDeployDirectory();
+			this.debug(win, `Deployment directory prepared: ${effectiveSourceDir}`);
+		} catch (err) {
+			this.debug(win, `Preparation error: ${err.message}`);
+			win.webContents.send("deploy:error", `Preparation error: ${err.message}`);
+			return;
+		}
+		this.debug(win, `Platform: ${process.platform}`);
+		this.debug(win, `Script: ${scriptPath}`);
+		this.debug(win, `Exists: ${fs.existsSync(scriptPath)}`);
+		this.debug(win, `IPV4: ${ipv4}`);
+		this.debug(win, `SOURCE_DIR: ${effectiveSourceDir}`);
 		if (!fs.existsSync(scriptPath)) {
-			win.webContents.send("deploy:error", `Script introuvable : ${scriptPath}`);
+			win.webContents.send("deploy:error", `Script not found: ${scriptPath}`);
 			return;
 		}
 		if (!isWin) try {
 			fs.chmodSync(scriptPath, 493);
-			this.debug(win, "chmod 755 appliqué au script");
+			this.debug(win, "chmod 755 applied to script");
 		} catch (e) {
-			this.debug(win, `chmod échoué (non bloquant) : ${String(e)}`);
+			this.debug(win, `chmod failed (non-blocking): ${String(e)}`);
 		}
 		const env = {
 			...process.env,
@@ -119,11 +150,11 @@ var DeployService = class {
 		};
 		if (sshPassword) {
 			env.SSHPASS = sshPassword;
-			this.debug(win, `SSHPASS configuré pour l'authentification`);
+			this.debug(win, "SSHPASS configured for authentication");
 		}
 		if (sshKeyPath) {
 			env.SSH_KEY_PATH = sshKeyPath;
-			this.debug(win, `SSH_KEY_PATH configuré : ${sshKeyPath}`);
+			this.debug(win, `SSH_KEY_PATH configured: ${sshKeyPath}`);
 		}
 		if (!await this.waitForSsh(ipv4, win, runId)) return;
 		const args = isWin ? ["cmd.exe", [
@@ -136,7 +167,7 @@ var DeployService = class {
 			ipv4,
 			sourceDir
 		]];
-		this.debug(win, `Commande : ${args[0]} ${args[1].join(" ")}`);
+		this.debug(win, `Command: ${args[0]} ${args[1].join(" ")}`);
 		const spawnOpts = {
 			env,
 			stdio: [
@@ -146,7 +177,7 @@ var DeployService = class {
 			]
 		};
 		this.childProcess = spawn(args[0], args[1], spawnOpts);
-		this.debug(win, `PID : ${this.childProcess?.pid ?? "N/A"}`);
+		this.debug(win, `PID: ${this.childProcess?.pid ?? "N/A"}`);
 		this.childProcess?.stdout?.on("data", (data) => {
 			const lines = data.toString().split("\n");
 			for (const line of lines) if (line.trim()) win.webContents.send("deploy:stdout", line.trimEnd());
@@ -156,12 +187,12 @@ var DeployService = class {
 			for (const line of lines) if (line.trim()) win.webContents.send("deploy:stderr", line.trimEnd());
 		});
 		this.childProcess?.on("close", (code, signal) => {
-			this.debug(win, `Processus terminé — code: ${code}, signal: ${signal}`);
+			this.debug(win, `Process exited — code: ${code}, signal: ${signal}`);
 			win.webContents.send("deploy:exit", code);
 			this.childProcess = null;
 		});
 		this.childProcess?.on("error", (err) => {
-			this.debug(win, `Erreur spawn : ${err.message}`);
+			this.debug(win, `Spawn error: ${err.message}`);
 			win.webContents.send("deploy:error", err.message);
 			this.childProcess = null;
 		});
@@ -171,19 +202,19 @@ var DeployService = class {
 		const runId = this.runId;
 		const scriptPath = this.getScriptPath("restart_docker");
 		const isWin = PlatformService.isWindows();
-		this.debug(win, `Plateforme : ${process.platform}`);
-		this.debug(win, `Script : ${scriptPath}`);
-		this.debug(win, `Existe : ${fs.existsSync(scriptPath)}`);
-		this.debug(win, `IPV4 : ${ipv4}`);
+		this.debug(win, `Platform: ${process.platform}`);
+		this.debug(win, `Script: ${scriptPath}`);
+		this.debug(win, `Exists: ${fs.existsSync(scriptPath)}`);
+		this.debug(win, `IPV4: ${ipv4}`);
 		if (!fs.existsSync(scriptPath)) {
-			win.webContents.send("deploy:error", `Script introuvable : ${scriptPath}`);
+			win.webContents.send("deploy:error", `Script not found: ${scriptPath}`);
 			return;
 		}
 		if (!isWin) try {
 			fs.chmodSync(scriptPath, 493);
-			this.debug(win, "chmod 755 appliqué au script");
+			this.debug(win, "chmod 755 applied to script");
 		} catch (e) {
-			this.debug(win, `chmod échoué (non bloquant) : ${String(e)}`);
+			this.debug(win, `chmod failed (non-blocking): ${String(e)}`);
 		}
 		const env = {
 			...process.env,
@@ -191,11 +222,11 @@ var DeployService = class {
 		};
 		if (sshPassword) {
 			env.SSHPASS = sshPassword;
-			this.debug(win, `SSHPASS configuré pour l'authentification`);
+			this.debug(win, "SSHPASS configured for authentication");
 		}
 		if (sshKeyPath) {
 			env.SSH_KEY_PATH = sshKeyPath;
-			this.debug(win, `SSH_KEY_PATH configuré : ${sshKeyPath}`);
+			this.debug(win, `SSH_KEY_PATH configured: ${sshKeyPath}`);
 		}
 		if (!await this.waitForSsh(ipv4, win, runId)) return;
 		const args = isWin ? ["cmd.exe", [
@@ -203,7 +234,7 @@ var DeployService = class {
 			scriptPath,
 			ipv4
 		]] : ["bash", [scriptPath, ipv4]];
-		this.debug(win, `Commande : ${args[0]} ${args[1].join(" ")}`);
+		this.debug(win, `Command: ${args[0]} ${args[1].join(" ")}`);
 		const spawnOpts = {
 			env,
 			stdio: [
@@ -213,7 +244,7 @@ var DeployService = class {
 			]
 		};
 		this.childProcess = spawn(args[0], args[1], spawnOpts);
-		this.debug(win, `PID : ${this.childProcess?.pid ?? "N/A"}`);
+		this.debug(win, `PID: ${this.childProcess?.pid ?? "N/A"}`);
 		this.childProcess?.stdout?.on("data", (data) => {
 			const lines = data.toString().split("\n");
 			for (const line of lines) if (line.trim()) win.webContents.send("deploy:stdout", line.trimEnd());
@@ -223,12 +254,12 @@ var DeployService = class {
 			for (const line of lines) if (line.trim()) win.webContents.send("deploy:stderr", line.trimEnd());
 		});
 		this.childProcess?.on("close", (code, signal) => {
-			this.debug(win, `Processus terminé — code: ${code}, signal: ${signal}`);
+			this.debug(win, `Process exited — code: ${code}, signal: ${signal}`);
 			win.webContents.send("deploy:exit", code);
 			this.childProcess = null;
 		});
 		this.childProcess?.on("error", (err) => {
-			this.debug(win, `Erreur spawn : ${err.message}`);
+			this.debug(win, `Spawn error: ${err.message}`);
 			win.webContents.send("deploy:error", err.message);
 			this.childProcess = null;
 		});
@@ -253,6 +284,8 @@ function registerDeployHandlers(getWin) {
 	const deployService = new DeployService();
 	ipcMain.handle("deploy:get-platform", () => PlatformService.getPlatform());
 	ipcMain.handle("deploy:write-env", (_event, dirPath, content) => PlatformService.writeEnvFile(dirPath, content));
+	ipcMain.handle("deploy:get-deploy-path", () => deployService.getDeployPath());
+	ipcMain.handle("deploy:prepare-deploy-dir", (_event, envContent) => deployService.prepareDeployDirectory(envContent));
 	ipcMain.handle("deploy:start", (_event, ipv4, sourceDir, sshPassword, sshKeyPath) => {
 		const win = getWin();
 		if (!win) throw new Error("No active window");
@@ -311,7 +344,7 @@ var CryptoService = class {
 	* Decrypt an encrypted payload using the provided password
 	*/
 	static decrypt(payload, password) {
-		if (payload.algorithm !== "aes-256-gcm") throw new Error(`Algorithme non supporté: ${payload.algorithm}`);
+		if (payload.algorithm !== "aes-256-gcm") throw new Error(`Unsupported algorithm: ${payload.algorithm}`);
 		const salt = Buffer.from(payload.salt, "hex");
 		const iv = Buffer.from(payload.iv, "hex");
 		const tag = Buffer.from(payload.tag, "hex");
@@ -371,7 +404,7 @@ var CryptoService = class {
 		const vaultPath = this.getVaultPath();
 		if (!fs.existsSync(vaultPath)) return {
 			success: false,
-			error: "Vault introuvable"
+			error: "Vault not found"
 		};
 		try {
 			const raw = fs.readFileSync(vaultPath, "utf8");
@@ -385,7 +418,7 @@ var CryptoService = class {
 		} catch (err) {
 			return {
 				success: false,
-				error: "Mot de passe incorrect ou données corrompues"
+				error: "Incorrect password or corrupted data"
 			};
 		}
 	}
@@ -394,7 +427,7 @@ var CryptoService = class {
 	*/
 	static saveVault(config, password) {
 		const pwd = password || this.sessionPassword;
-		if (!pwd) throw new Error("Vault verrouillé : impossible de sauvegarder sans mot de passe");
+		if (!pwd) throw new Error("Vault locked: cannot save without password");
 		const encrypted = this.encrypt(config, pwd);
 		fs.writeFileSync(this.getVaultPath(), JSON.stringify(encrypted, null, 2), "utf8");
 		return true;
@@ -419,7 +452,7 @@ var CryptoService = class {
 	*/
 	static changePassword(oldPassword, newPassword) {
 		const unlockResult = this.unlockVault(oldPassword);
-		if (!unlockResult.success || !unlockResult.data) throw new Error("Ancien mot de passe incorrect");
+		if (!unlockResult.success || !unlockResult.data) throw new Error("Incorrect current password");
 		this.sessionPassword = newPassword;
 		return this.saveVault(unlockResult.data, newPassword);
 	}
@@ -453,7 +486,7 @@ function registerVaultHandlers(getWin) {
 		} catch (err) {
 			return {
 				success: false,
-				error: err.message || "Erreur lors de la création du coffre"
+				error: err.message || "Error while creating vault"
 			};
 		}
 	});
@@ -466,7 +499,7 @@ function registerVaultHandlers(getWin) {
 		} catch (err) {
 			return {
 				success: false,
-				error: err.message || "Impossible de sauvegarder dans le coffre"
+				error: err.message || "Unable to save to vault"
 			};
 		}
 	});
@@ -483,7 +516,7 @@ function registerVaultHandlers(getWin) {
 		} catch (err) {
 			return {
 				success: false,
-				error: err.message || "Erreur lors du changement de mot de passe"
+				error: err.message || "Error while changing password"
 			};
 		}
 	});
@@ -496,17 +529,17 @@ function registerVaultHandlers(getWin) {
 		} catch (err) {
 			return {
 				success: false,
-				error: "Mot de passe incorrect pour déchiffrer ce fichier"
+				error: "Incorrect password to decrypt this file"
 			};
 		}
 	});
 	ipcMain.handle("export-config", async (_event, config) => {
 		const win = getWin();
 		const result = await dialog.showSaveDialog(win, {
-			title: "Exporter la configuration chiffrée",
+			title: "Export Encrypted Configuration",
 			defaultPath: "intriqathon-config.enc.json",
 			filters: [{
-				name: "Fichiers JSON chiffrés",
+				name: "Encrypted JSON Files",
 				extensions: ["json"]
 			}]
 		});
@@ -514,7 +547,7 @@ function registerVaultHandlers(getWin) {
 			const pwd = CryptoService.getSessionPassword();
 			if (!pwd) return {
 				success: false,
-				error: "Coffre non déverrouillé pour chiffrer l'export"
+				error: "Vault not unlocked to encrypt export"
 			};
 			const encrypted = CryptoService.encrypt(config, pwd);
 			fs.writeFileSync(result.filePath, JSON.stringify(encrypted, null, 2), "utf-8");
@@ -528,10 +561,10 @@ function registerVaultHandlers(getWin) {
 	ipcMain.handle("import-config", async () => {
 		const win = getWin();
 		const result = await dialog.showOpenDialog(win, {
-			title: "Importer la configuration",
+			title: "Import Configuration",
 			properties: ["openFile"],
 			filters: [{
-				name: "Fichiers JSON",
+				name: "JSON Files",
 				extensions: ["json"]
 			}]
 		});
@@ -604,7 +637,7 @@ function registerVaultHandlers(getWin) {
 		}
 		return {
 			success: false,
-			error: "Vault non déverrouillé"
+			error: "Vault not unlocked"
 		};
 	});
 	ipcMain.handle("load-local-config", async () => {
@@ -682,9 +715,9 @@ var SshKeyService = class {
 				privatePath
 			]);
 		} catch (err) {
-			throw new Error(`Échec de la génération de clé SSH avec ssh-keygen : ${err.message || String(err)}`);
+			throw new Error(`Failed to generate SSH key with ssh-keygen: ${err.message || String(err)}`);
 		}
-		if (!fs.existsSync(pubPath)) throw new Error("La clé publique générée est introuvable après ssh-keygen");
+		if (!fs.existsSync(pubPath)) throw new Error("Generated public key not found after ssh-keygen");
 		const content = fs.readFileSync(pubPath, "utf-8").trim();
 		const parts = content.split(/\s+/);
 		const keyType = parts[0] || "ssh-ed25519";
@@ -742,19 +775,19 @@ var ScalewayService = class {
 			const parsed = JSON.parse(rawBody);
 			if (parsed.message) parsedMessage = parsed.message;
 			if (parsed.type) errorType = parsed.type;
-			if (parsed.help) errorHelp = ` (Conseil: ${parsed.help})`;
+			if (parsed.help) errorHelp = ` (Hint: ${parsed.help})`;
 			if (parsed.fields && typeof parsed.fields === "object") {
 				const fieldDetails = Object.entries(parsed.fields).map(([k, v]) => {
 					if (Array.isArray(v)) return `${k}: ${v.map((item) => typeof item === "object" ? item.message || JSON.stringify(item) : item).join(", ")}`;
 					return `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`;
 				}).join(" ; ");
-				if (fieldDetails) parsedMessage += ` [Champs: ${fieldDetails}]`;
+				if (fieldDetails) parsedMessage += ` [Fields: ${fieldDetails}]`;
 			}
 		} catch {}
-		if (status === 401 || status === 403) return `[ERREUR ${status}] Accès refusé par Scaleway lors de: ${context}. Vérifiez que votre SCW_SECRET_KEY est correcte (étape 1) et possède les droits IAM nécessaires. Détail: "${parsedMessage}"${errorHelp}`;
-		if (status === 404) return `[ERREUR 404] Ressource ou Projet Scaleway introuvable lors de: ${context}. Vérifiez l'ID de votre projet (SCW_DEFAULT_PROJECT_ID) à l'étape 1. Détail: "${parsedMessage}"`;
-		if (status === 400) return `[ERREUR 400] Paramètre invalide lors de: ${context}. Détail: "${parsedMessage}"${errorType ? ` (${errorType})` : ""}${errorHelp}`;
-		return `[ERREUR HTTP ${status}] Échec lors de: ${context}. Détail: "${parsedMessage}"${errorType ? ` (${errorType})` : ""}`;
+		if (status === 401 || status === 403) return `[ERROR ${status}] Access denied by Scaleway while: ${context}. Verify that your SCW_SECRET_KEY is correct (Step 1) and has the required IAM permissions. Detail: "${parsedMessage}"${errorHelp}`;
+		if (status === 404) return `[ERROR 404] Resource or Scaleway Project not found while: ${context}. Verify your project ID (SCW_DEFAULT_PROJECT_ID) in Step 1. Detail: "${parsedMessage}"`;
+		if (status === 400) return `[ERROR 400] Invalid parameter while: ${context}. Detail: "${parsedMessage}"${errorType ? ` (${errorType})` : ""}${errorHelp}`;
+		return `[HTTP ERROR ${status}] Failed while: ${context}. Detail: "${parsedMessage}"${errorType ? ` (${errorType})` : ""}`;
 	}
 	/**
 	* Upload SSH key to Scaleway IAM if not already present
@@ -762,7 +795,7 @@ var ScalewayService = class {
 	async ensureSshKey(options, win) {
 		const { secretKey, projectId, sshPublicKey, sshKeyName = "intriqathon-key" } = options;
 		const normalizedKey = sshPublicKey.trim().split(/\s+/).slice(0, 2).join(" ");
-		this.log(win, "Vérification de la présence de la clé SSH sur Scaleway (API IAM)...", "running", 15);
+		this.log(win, "Checking for SSH key on Scaleway (IAM API)...", "running", 15);
 		let listRes;
 		try {
 			listRes = await fetch("https://api.scaleway.com/iam/v1alpha1/ssh-keys?page_size=100", { headers: {
@@ -770,13 +803,13 @@ var ScalewayService = class {
 				"Content-Type": "application/json"
 			} });
 		} catch (netErr) {
-			const msg = `[ERREUR RÉSEAU] Impossible de contacter l'API Scaleway IAM: ${netErr.message || String(netErr)}`;
+			const msg = `[NETWORK ERROR] Unable to contact Scaleway IAM API: ${netErr.message || String(netErr)}`;
 			this.log(win, msg, "error");
 			throw new Error(msg);
 		}
 		if (!listRes.ok) {
 			const errBody = await listRes.text();
-			const formatted = this.formatScalewayError(listRes.status, errBody, "Vérification des clés SSH IAM");
+			const formatted = this.formatScalewayError(listRes.status, errBody, "Checking IAM SSH keys");
 			this.log(win, formatted, "error");
 			throw new Error(formatted);
 		}
@@ -784,11 +817,11 @@ var ScalewayService = class {
 			return (k.public_key || "").trim().split(/\s+/).slice(0, 2).join(" ") === normalizedKey;
 		});
 		if (existing) {
-			this.log(win, `Clé SSH déjà enregistrée sur votre compte Scaleway (${existing.name}).`, "info", 25);
+			this.log(win, `SSH key already registered on your Scaleway account (${existing.name}).`, "info", 25);
 			return;
 		}
 		const finalKeyName = `${sshKeyName}-${Date.now().toString().slice(-4)}`;
-		this.log(win, `Ajout de la clé SSH ("${finalKeyName}") sur Scaleway...`, "running", 20);
+		this.log(win, `Adding SSH key ("${finalKeyName}") to Scaleway...`, "running", 20);
 		let createRes;
 		try {
 			createRes = await fetch("https://api.scaleway.com/iam/v1alpha1/ssh-keys", {
@@ -804,21 +837,21 @@ var ScalewayService = class {
 				})
 			});
 		} catch (netErr) {
-			const msg = `[ERREUR RÉSEAU] Impossible d'envoyer la clé SSH à Scaleway: ${netErr.message || String(netErr)}`;
+			const msg = `[NETWORK ERROR] Unable to upload SSH key to Scaleway: ${netErr.message || String(netErr)}`;
 			this.log(win, msg, "error");
 			throw new Error(msg);
 		}
 		if (!createRes.ok) {
 			const errBody = await createRes.text();
 			if (createRes.status === 409 || errBody.toLowerCase().includes("already exist")) {
-				this.log(win, "Clé SSH déjà présente sur Scaleway.", "info", 30);
+				this.log(win, "SSH key already exists on Scaleway.", "info", 30);
 				return;
 			}
-			const formatted = this.formatScalewayError(createRes.status, errBody, "Ajout de la clé SSH IAM");
+			const formatted = this.formatScalewayError(createRes.status, errBody, "Adding IAM SSH key");
 			this.log(win, formatted, "error");
 			throw new Error(formatted);
 		}
-		this.log(win, "Clé SSH ajoutée avec succès sur votre compte Scaleway.", "info", 30);
+		this.log(win, "SSH key successfully added to your Scaleway account.", "info", 30);
 	}
 	/**
 	* Resolve Ubuntu 24.04 local image ID for the given zone and commercial type
@@ -844,14 +877,14 @@ var ScalewayService = class {
 		this.isCancelled = false;
 		const zone = options.zone || "fr-par-1";
 		const commercialType = options.commercialType || "DEV1-M";
-		this.log(win, `Démarrage de la configuration automatisée Scaleway (Zone: ${zone})...`, "running", 5);
+		this.log(win, `Starting automated Scaleway configuration (Zone: ${zone})...`, "running", 5);
 		try {
 			await this.ensureSshKey(options, win);
-			if (this.isCancelled) throw new Error("Opération annulée par l'utilisateur");
-			this.log(win, "Recherche de l'image système Ubuntu 24.04 LTS (Noble Numbat)...", "running", 35);
+			if (this.isCancelled) throw new Error("Operation cancelled by user");
+			this.log(win, "Looking up Ubuntu 24.04 LTS (Noble Numbat) system image...", "running", 35);
 			const imageId = await this.resolveUbuntuNobleImage(zone, commercialType);
-			this.log(win, `Image Ubuntu 24.04 identifiée: ${imageId}`, "info", 40);
-			this.log(win, `Création de l'instance (${commercialType})...`, "running", 45);
+			this.log(win, `Ubuntu 24.04 image identified: ${imageId}`, "info", 40);
+			this.log(win, `Creating instance (${commercialType})...`, "running", 45);
 			const createPayload = {
 				name: `intriqathon-${Date.now().toString().slice(-4)}`,
 				project: options.projectId,
@@ -870,20 +903,20 @@ var ScalewayService = class {
 					body: JSON.stringify(createPayload)
 				});
 			} catch (netErr) {
-				const msg = `[ERREUR RÉSEAU] Impossible de contacter l'API Scaleway Instances: ${netErr.message || String(netErr)}`;
+				const msg = `[NETWORK ERROR] Unable to contact Scaleway Instances API: ${netErr.message || String(netErr)}`;
 				this.log(win, msg, "error");
 				throw new Error(msg);
 			}
 			if (!serverRes.ok) {
 				const errBody = await serverRes.text();
-				const formatted = this.formatScalewayError(serverRes.status, errBody, `Création du serveur (${commercialType})`);
+				const formatted = this.formatScalewayError(serverRes.status, errBody, `Creating server (${commercialType})`);
 				this.log(win, formatted, "error");
 				throw new Error(formatted);
 			}
 			const server = (await serverRes.json()).server;
 			const serverId = server.id;
-			this.log(win, `Instance créée avec succès (ID: ${serverId}, Nom: ${server.name}).`, "info", 55);
-			this.log(win, "Démarrage (poweron) de l'instance...", "running", 60);
+			this.log(win, `Instance created successfully (ID: ${serverId}, Name: ${server.name}).`, "info", 55);
+			this.log(win, "Starting (poweron) instance...", "running", 60);
 			let actionRes = null;
 			try {
 				actionRes = await fetch(`https://api.scaleway.com/instance/v1/zones/${zone}/servers/${serverId}/action`, {
@@ -895,19 +928,19 @@ var ScalewayService = class {
 					body: JSON.stringify({ action: "poweron" })
 				});
 			} catch (netErr) {
-				this.log(win, `Avertissement réseau poweron: ${netErr.message || String(netErr)}`, "info", 62);
+				this.log(win, `Poweron network warning: ${netErr.message || String(netErr)}`, "info", 62);
 			}
 			if (actionRes && !actionRes.ok) {
 				const errBody = await actionRes.text();
-				this.log(win, `Notification démarrage : ${errBody}`, "info", 65);
+				this.log(win, `Startup notification: ${errBody}`, "info", 65);
 			}
-			this.log(win, "Attente de l'initialisation et de l'attribution de l'IPv4 publique...", "running", 70);
+			this.log(win, "Waiting for initialization and allocation of public IPv4...", "running", 70);
 			let ipv4 = server.public_ip?.address || "";
 			let isRunning = server.state === "running";
 			let attempts = 0;
 			const maxAttempts = 60;
 			while ((!isRunning || !ipv4) && attempts < maxAttempts) {
-				if (this.isCancelled) throw new Error("Opération annulée par l'utilisateur");
+				if (this.isCancelled) throw new Error("Operation cancelled by user");
 				await new Promise((r) => setTimeout(r, 3e3));
 				attempts++;
 				try {
@@ -920,23 +953,23 @@ var ScalewayService = class {
 						isRunning = currentServer.state === "running";
 						ipv4 = currentServer.public_ip?.address || ipv4;
 						const currentProgress = Math.min(70 + Math.floor(attempts / maxAttempts * 25), 95);
-						this.log(win, `Statut instance : ${currentServer.state} (IP: ${ipv4 || "en cours d'attribution"})...`, "running", currentProgress);
+						this.log(win, `Instance status: ${currentServer.state} (IP: ${ipv4 || "allocation in progress"})...`, "running", currentProgress);
 					}
 				} catch {}
 			}
 			if (!ipv4) {
-				const msg = "[ERREUR] L'instance a démarré mais aucune IPv4 publique n'a été attribuée après 3 minutes.";
+				const msg = "[ERROR] Instance started but no public IPv4 was assigned after 3 minutes.";
 				this.log(win, msg, "error");
 				throw new Error(msg);
 			}
-			this.log(win, `✓ Instance opérationnelle ! IPv4 publique allouée : ${ipv4}`, "done", 100);
+			this.log(win, `✓ Instance operational! Public IPv4 allocated: ${ipv4}`, "done", 100);
 			return {
 				ipv4,
 				serverId
 			};
 		} catch (err) {
 			const msg = err.message || String(err);
-			if (!msg.startsWith("[ERREUR")) this.log(win, `[ERREUR] ${msg}`, "error");
+			if (!msg.startsWith("[ERROR") && !msg.startsWith("[ERREUR")) this.log(win, `[ERROR] ${msg}`, "error");
 			throw err;
 		}
 	}
@@ -1029,10 +1062,10 @@ var GENERIC_DETAILS = new Set([
 ]);
 function explainStatus$2(status) {
 	switch (status) {
-		case 401: return "Jeton d'accès Supabase refusé. Il est bien formé mais Supabase ne le reconnaît pas : vérifiez qu'il n'a pas été révoqué ou régénéré, et qu'il a été copié en entier depuis Account ➔ Access Tokens.";
-		case 403: return "Accès refusé par Supabase — le jeton n'a pas les droits nécessaires sur cette organisation, ou une limite de plan est atteinte.";
-		case 404: return "Ressource introuvable chez Supabase.";
-		case 429: return "Trop de requêtes envoyées à Supabase. Patientez une minute avant de relancer.";
+		case 401: return "Supabase access token rejected. The token is well-formed but Supabase does not recognize it: check that it has not been revoked or regenerated, and was copied completely from Account ➔ Access Tokens.";
+		case 403: return "Access denied by Supabase — the token does not have required permissions on this organization, or a plan limit has been reached.";
+		case 404: return "Resource not found at Supabase.";
+		case 429: return "Too many requests sent to Supabase. Please wait a minute before retrying.";
 		default: return null;
 	}
 }
@@ -1125,11 +1158,11 @@ var SupabaseApiClient = class {
 			const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : BASE_BACKOFF_MS$2 * 2 ** (attempt - 1);
 			await this.sleepImpl(waitMs, this.signal);
 		}
-		throw lastError ?? new SupabaseApiError(0, url, "Échec inconnu");
+		throw lastError ?? new SupabaseApiError(0, url, "Unknown failure");
 	}
 	async requireJson(method, path, opts = {}) {
 		const result = await this.request(method, path, opts);
-		if (result === null) throw new SupabaseApiError(0, path, "Réponse vide");
+		if (result === null) throw new SupabaseApiError(0, path, "Empty response");
 		return result;
 	}
 	listOrganizations() {
@@ -1505,7 +1538,7 @@ var SupabaseProvisionService = class {
 			if (req.stopAfterProject) {
 				const panelKey = await this.resolvePanelServiceKey(win, client, ref);
 				this.progress(win, 100);
-				this.log(win, "Projet prêt. Les clés et les buckets seront récupérés à l'étape 2.", "done");
+				this.log(win, "Project ready. Keys and buckets will be retrieved in Step 2.", "done");
 				win.webContents.send("provision:done", {
 					service: SERVICE$3,
 					patch: {
@@ -1528,14 +1561,14 @@ var SupabaseProvisionService = class {
 				...urls
 			};
 			this.progress(win, 100);
-			this.log(win, "Configuration Supabase terminée.", "done");
+			this.log(win, "Supabase configuration completed.", "done");
 			win.webContents.send("provision:done", {
 				service: SERVICE$3,
 				patch
 			});
 		} catch (err) {
 			if (this.wasCancelled()) {
-				this.log(win, "Configuration annulée.", "info");
+				this.log(win, "Configuration cancelled.", "info");
 				win.webContents.send("provision:cancelled", { service: SERVICE$3 });
 			} else {
 				const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
@@ -1552,33 +1585,33 @@ var SupabaseProvisionService = class {
 	async adoptProject(win, client, req) {
 		this.progress(win, 5);
 		if (req.ref) {
-			this.log(win, `Projet ${req.ref} : vérification…`);
+			this.log(win, `Project ${req.ref}: verifying…`);
 			const project = await client.getProject(req.ref);
 			await this.waitUntilReady(win, client, project);
 			return project.ref;
 		}
-		this.log(win, "Recherche du projet Supabase…");
+		this.log(win, "Searching for Supabase project…");
 		const usable = (await client.listProjects()).filter((p) => p.status !== "REMOVED" && p.status !== "INIT_FAILED");
-		if (usable.length === 0) throw new Error("Aucun projet Supabase sur ce compte. Créez-en un depuis l'étape 1, ou renseignez les champs manuellement.");
+		if (usable.length === 0) throw new Error("No Supabase project found on this account. Create one from Step 1, or fill in fields manually.");
 		if (usable.length > 1) {
 			const names = usable.map((p) => `${p.name} (${p.ref})`).join(", ");
-			throw new Error(`Plusieurs projets Supabase trouvés — choisissez-en un à l'étape 1 : ${names}`);
+			throw new Error(`Multiple Supabase projects found — select one in Step 1: ${names}`);
 		}
-		this.log(win, `Projet trouvé : ${usable[0].name}`);
+		this.log(win, `Project found: ${usable[0].name}`);
 		await this.waitUntilReady(win, client, usable[0]);
 		return usable[0].ref;
 	}
 	async createProject(win, client, req) {
 		this.progress(win, 5);
 		if (req.ref) {
-			this.log(win, `Projet ${req.ref} déjà créé — réutilisation.`);
+			this.log(win, `Project ${req.ref} already created — reusing.`);
 			const existing = await client.getProject(req.ref);
 			await this.waitUntilReady(win, client, existing);
 			return existing.ref;
 		}
-		if (!req.organizationSlug) throw new Error("Organisation Supabase non renseignée — impossible de créer le projet.");
-		if (!req.projectName) throw new Error("Nom de projet non renseigné.");
-		this.log(win, `Création du projet « ${req.projectName} »…`);
+		if (!req.organizationSlug) throw new Error("Supabase organization not specified — cannot create project.");
+		if (!req.projectName) throw new Error("Project name not specified.");
+		this.log(win, `Creating project "${req.projectName}"…`);
 		const project = await client.createProject({
 			name: req.projectName,
 			organization_slug: req.organizationSlug,
@@ -1588,7 +1621,7 @@ var SupabaseProvisionService = class {
 				code: req.regionCode
 			} : void 0
 		});
-		this.log(win, `Projet créé : ${project.ref}`, "done");
+		this.log(win, `Project created: ${project.ref}`, "done");
 		await this.waitUntilReady(win, client, project);
 		return project.ref;
 	}
@@ -1599,27 +1632,27 @@ var SupabaseProvisionService = class {
 			return;
 		}
 		const deadline = Date.now() + READY_TIMEOUT_MS;
-		this.log(win, "Attente du démarrage du projet (1 à 2 minutes)…");
+		this.log(win, "Waiting for project to start (1 to 2 minutes)…");
 		let current = project;
 		while (current.status !== "ACTIVE_HEALTHY") {
 			if (this.wasCancelled()) throw new DOMException("Aborted", "AbortError");
-			if (current.status === "INIT_FAILED") throw new Error(`Le projet ${current.ref} n'a pas pu démarrer (INIT_FAILED).`);
-			if (Date.now() > deadline) throw new Error(`Le projet ${current.ref} est toujours en ${current.status} après 6 minutes. Réessayez plus tard.`);
+			if (current.status === "INIT_FAILED") throw new Error(`Project ${current.ref} failed to start (INIT_FAILED).`);
+			if (Date.now() > deadline) throw new Error(`Project ${current.ref} is still in ${current.status} after 6 minutes. Please retry later.`);
 			await new Promise((resolve) => setTimeout(resolve, READY_POLL_INTERVAL_MS));
 			current = await client.getProject(current.ref);
 			this.progress(win, 30);
 		}
-		this.log(win, "Projet actif.", "done");
+		this.log(win, "Project active.", "done");
 		this.progress(win, 45);
 	}
 	async resolveKeys(win, client, ref) {
-		this.log(win, "Récupération des clés API…");
+		this.log(win, "Retrieving API keys…");
 		let keys = await client.listApiKeys(ref);
 		let pair = resolveKeyPair(keys);
 		if (needsKeyProvisioning(pair)) {
 			const legacy = await client.getLegacyKeysEnabled(ref);
 			if (legacy && !legacy.enabled) {
-				this.log(win, "Clés JWT legacy désactivées — réactivation…");
+				this.log(win, "Legacy JWT keys disabled — re-enabling…");
 				await client.setLegacyKeysEnabled(ref, true);
 				keys = await client.listApiKeys(ref);
 				pair = resolveKeyPair(keys);
@@ -1628,18 +1661,18 @@ var SupabaseProvisionService = class {
 		if (needsKeyProvisioning(pair)) {
 			const minted = [];
 			if (!pair.anon) {
-				this.log(win, "Création d'une clé publishable…");
+				this.log(win, "Creating publishable key…");
 				minted.push(await client.createApiKey(ref, "publishable", MANAGED_KEY_NAME));
 			}
 			if (!pair.service) {
-				this.log(win, "Création d'une clé secret…");
+				this.log(win, "Creating secret key…");
 				minted.push(await client.createApiKey(ref, "secret", MANAGED_KEY_NAME));
 			}
 			pair = resolveKeyPair([...minted, ...keys]);
 		}
-		if (!pair.anon || !pair.service) throw new Error("Impossible de récupérer une paire de clés utilisable. Ouvrez « Configuration manuelle » et copiez-les depuis le dashboard.");
+		if (!pair.anon || !pair.service) throw new Error("Unable to retrieve a usable key pair. Open \"Manual Configuration\" and copy them from the dashboard.");
 		this.redactor.add(pair.anon.value, pair.service.value);
-		this.log(win, `Clés récupérées — anon : ${describeKeyFormat(pair.anon.format)}, service : ${describeKeyFormat(pair.service.format)}.`, "done");
+		this.log(win, `Keys retrieved — anon: ${describeKeyFormat(pair.anon.format)}, service: ${describeKeyFormat(pair.service.format)}.`, "done");
 		this.progress(win, 60);
 		/**
 		* The browser panel needs the JWT one specifically. When the service key
@@ -1669,39 +1702,39 @@ var SupabaseProvisionService = class {
 	*/
 	async resolvePanelServiceKey(win, client, ref) {
 		try {
-			this.log(win, "Récupération de la clé service_role legacy (pour le panneau de configuration)…");
+			this.log(win, "Retrieving legacy service_role key (for the configuration panel)…");
 			let key = findLegacyServiceKey(await client.listApiKeys(ref));
 			if (!key) {
 				const legacy = await client.getLegacyKeysEnabled(ref);
 				if (legacy && !legacy.enabled) {
-					this.log(win, "Clés JWT legacy désactivées — réactivation…");
+					this.log(win, "Legacy JWT keys disabled — re-enabling…");
 					await client.setLegacyKeysEnabled(ref, true);
 					key = findLegacyServiceKey(await client.listApiKeys(ref));
 				}
 			}
 			if (!key) {
-				this.log(win, "Aucune clé service_role legacy sur ce projet — elle pourra être récupérée depuis le dashboard.", "error");
+				this.log(win, "No legacy service_role key on this project — it can be retrieved from the dashboard.", "error");
 				return null;
 			}
 			this.redactor.add(key);
-			this.log(win, "Clé service_role legacy récupérée.", "done");
+			this.log(win, "Legacy service_role key retrieved.", "done");
 			return key;
 		} catch (err) {
 			if (this.wasCancelled()) throw err;
 			const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
-			this.log(win, `Clé service_role legacy indisponible : ${this.redactor.redact(message)}`, "error");
+			this.log(win, `Legacy service_role key unavailable: ${this.redactor.redact(message)}`, "error");
 			return null;
 		}
 	}
 	async buildUrls(win, client, ref, dbPassword) {
-		this.log(win, "Récupération des URLs Postgres…");
+		this.log(win, "Retrieving Postgres URLs…");
 		const { databaseUrl, directUrl } = buildPostgresUrls({
 			ref,
 			password: dbPassword,
 			pooler: await client.getPoolerConfig(ref),
 			databaseHost: (await client.getProject(ref)).database?.host
 		});
-		this.log(win, "URLs Postgres construites (mot de passe injecté et encodé).", "done");
+		this.log(win, "Postgres URLs constructed (password injected and encoded).", "done");
 		this.progress(win, 75);
 		return {
 			DATABASE_URL: databaseUrl,
@@ -1709,18 +1742,18 @@ var SupabaseProvisionService = class {
 		};
 	}
 	async ensureBuckets(win, client, ref, serviceKey) {
-		this.log(win, `Création des ${STORAGE_BUCKETS.length} buckets de stockage…`);
+		this.log(win, `Creating ${STORAGE_BUCKETS.length} storage buckets…`);
 		const origin = projectUrl(ref);
 		for (const bucket of STORAGE_BUCKETS) {
 			if (this.wasCancelled()) throw new DOMException("Aborted", "AbortError");
 			const created = await client.createBucket(origin, serviceKey, bucket);
-			this.log(win, created ? `  ${bucket.name} : créé` : `  ${bucket.name} : déjà présent`);
+			this.log(win, created ? `  ${bucket.name}: created` : `  ${bucket.name}: already present`);
 		}
 		const existing = await client.listBuckets(ref);
 		const names = new Set(existing.map((b) => b.name));
 		const missing = STORAGE_BUCKETS.filter((b) => !names.has(b.name)).map((b) => b.name);
-		if (missing.length > 0) throw new Error(`Buckets manquants après création : ${missing.join(", ")}`);
-		this.log(win, "Buckets vérifiés.", "done");
+		if (missing.length > 0) throw new Error(`Buckets missing after creation: ${missing.join(", ")}`);
+		this.log(win, "Buckets verified.", "done");
 		this.progress(win, 90);
 	}
 };
@@ -1912,10 +1945,10 @@ var SupabaseSiteSetupService = class {
 			signal: this.controller.signal
 		});
 		try {
-			if (!req.ref) throw new Error("Aucun projet Supabase sélectionné — renseignez la référence du projet à l'étape 1.");
+			if (!req.ref) throw new Error("No Supabase project selected — please enter the project reference in Step 1.");
 			this.progress(win, 5);
 			const project = await client.getProject(req.ref);
-			this.log(win, `Projet ${project.name} (${project.ref}) — configuration finale…`);
+			this.log(win, `Project ${project.name} (${project.ref}) — final configuration…`);
 			const pending = [];
 			this.checkpoint();
 			await this.awaitMigratedTables(win, client, req);
@@ -1931,9 +1964,9 @@ var SupabaseSiteSetupService = class {
 			await this.enableRowLevelSecurity(win, client, req.ref);
 			this.checkpoint();
 			const panelServiceKey = await this.resolvePanelServiceKey(win, client, req.ref);
-			if (pending.length > 0) throw new Error(`Configuration appliquée, sauf : ${pending.join(" ; ")}. Voir « Configuration manuelle » pour terminer.`);
+			if (pending.length > 0) throw new Error(`Configuration applied, except: ${pending.join(" ; ")}. See "Manual Configuration" to complete.`);
 			this.progress(win, 100);
-			this.log(win, "Configuration du site Supabase terminée.", "done");
+			this.log(win, "Supabase site configuration completed.", "done");
 			win.webContents.send("provision:done", {
 				service: SERVICE$2,
 				patch: {
@@ -1943,7 +1976,7 @@ var SupabaseSiteSetupService = class {
 			});
 		} catch (err) {
 			if (this.wasCancelled()) {
-				this.log(win, "Configuration annulée.", "info");
+				this.log(win, "Configuration cancelled.", "info");
 				win.webContents.send("provision:cancelled", { service: SERVICE$2 });
 			} else {
 				const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
@@ -1978,57 +2011,57 @@ var SupabaseSiteSetupService = class {
 		};
 		if (await count() > 0) return;
 		if (!req.awaitMigrations) return;
-		this.log(win, "Schéma public encore vide — attente des tables créées par le déploiement (jusqu'à 2 minutes)…");
+		this.log(win, "Public schema still empty — waiting for tables created by deployment (up to 2 minutes)…");
 		const deadline = Date.now() + MIGRATION_TIMEOUT_MS;
 		while (Date.now() < deadline) {
 			await new Promise((resolve) => setTimeout(resolve, MIGRATION_POLL_INTERVAL_MS));
 			this.checkpoint();
 			const tables = await count();
 			if (tables > 0) {
-				this.log(win, `${tables} table(s) trouvée(s) — configuration du projet.`, "done");
+				this.log(win, `${tables} table(s) found — configuring project.`, "done");
 				return;
 			}
 		}
-		this.log(win, "Toujours aucune table dans le schéma public — poursuite de la configuration.");
+		this.log(win, "Still no tables in public schema — continuing configuration.");
 	}
 	async applyGrants(win, client, ref) {
-		this.log(win, "Application des privilèges sur le schéma public…");
+		this.log(win, "Applying privileges on public schema…");
 		await client.runQuery(ref, GRANTS_SQL);
-		this.log(win, "Privilèges appliqués (anon, authenticated, service_role).", "done");
+		this.log(win, "Privileges applied (anon, authenticated, service_role).", "done");
 		this.progress(win, 25);
 	}
 	async exposePublicSchema(win, client, ref) {
-		this.log(win, "Vérification des schémas exposés par la Data API…");
+		this.log(win, "Checking schemas exposed by Data API…");
 		const current = await client.getPostgrestConfig(ref);
 		const updated = withPublicSchema(current.db_schema);
-		if (!updated) this.log(win, `Schéma public déjà exposé (${current.db_schema}).`, "done");
+		if (!updated) this.log(win, `Public schema already exposed (${current.db_schema}).`, "done");
 		else {
 			await client.updatePostgrestConfig(ref, { db_schema: updated });
-			this.log(win, `Schémas exposés mis à jour : ${updated}.`, "done");
+			this.log(win, `Exposed schemas updated: ${updated}.`, "done");
 		}
 		this.progress(win, 45);
 	}
 	async enableRealtime(win, client, ref, pending) {
-		this.log(win, `Réplication Realtime de la table ${REALTIME_TABLE}…`);
+		this.log(win, `Enabling Realtime replication for table ${REALTIME_TABLE}…`);
 		const [check] = await client.runQuery(ref, REALTIME_CHECK_SQL);
 		if (!check?.matched_table) {
-			const reason = !check || check.public_tables === 0 ? `le schéma public est vide — le déploiement (étape 4) n'a pas encore créé les tables. Relancez cette configuration ensuite.` : `table ${REALTIME_TABLE} absente parmi les ${check.public_tables} tables du schéma public (${await this.listPublicTables(client, ref)}). Vérifiez que le projet sélectionné est bien celui du déploiement.`;
-			this.log(win, `Realtime : ${reason}`, "error");
-			pending.push(`Realtime sur ${REALTIME_TABLE} — ${reason}`);
+			const reason = !check || check.public_tables === 0 ? `public schema is empty — deployment (Step 4) has not created tables yet. Rerun this configuration afterwards.` : `table ${REALTIME_TABLE} missing among the ${check.public_tables} tables in public schema (${await this.listPublicTables(client, ref)}). Verify that the selected project is indeed the deployed one.`;
+			this.log(win, `Realtime: ${reason}`, "error");
+			pending.push(`Realtime on ${REALTIME_TABLE} — ${reason}`);
 			this.progress(win, 60);
 			return;
 		}
 		if (!check.publication_exists) {
-			const reason = `publication ${REALTIME_PUBLICATION} absente de ce projet — activez le Realtime depuis le dashboard.`;
-			this.log(win, `Realtime : ${reason}`, "error");
-			pending.push(`Realtime sur ${REALTIME_TABLE} — ${reason}`);
+			const reason = `publication ${REALTIME_PUBLICATION} missing from this project — enable Realtime in the dashboard.`;
+			this.log(win, `Realtime: ${reason}`, "error");
+			pending.push(`Realtime on ${REALTIME_TABLE} — ${reason}`);
 			this.progress(win, 60);
 			return;
 		}
-		if (check.already_published) this.log(win, `${check.matched_table} est déjà dans ${REALTIME_PUBLICATION}.`, "done");
+		if (check.already_published) this.log(win, `${check.matched_table} is already in ${REALTIME_PUBLICATION}.`, "done");
 		else {
 			await client.runQuery(ref, realtimeAddSql(check.matched_table));
-			this.log(win, `${check.matched_table} ajoutée à ${REALTIME_PUBLICATION}.`, "done");
+			this.log(win, `${check.matched_table} added to ${REALTIME_PUBLICATION}.`, "done");
 		}
 		this.progress(win, 60);
 	}
@@ -2037,26 +2070,26 @@ var SupabaseSiteSetupService = class {
 		return (await client.runQuery(ref, PUBLIC_TABLES_SQL)).map((r) => r.tablename).join(", ");
 	}
 	async disableEmailConfirmation(win, client, ref) {
-		this.log(win, "Désactivation de la confirmation d'email…");
-		if ((await client.getAuthConfig(ref)).mailer_autoconfirm) this.log(win, "Confirmation d'email déjà désactivée.", "done");
+		this.log(win, "Disabling email confirmation…");
+		if ((await client.getAuthConfig(ref)).mailer_autoconfirm) this.log(win, "Email confirmation already disabled.", "done");
 		else {
 			await client.updateAuthConfig(ref, { mailer_autoconfirm: true });
-			this.log(win, "Confirmation d'email désactivée — le compte organisateur pourra se connecter.", "done");
+			this.log(win, "Email confirmation disabled — organizer account will be able to log in.", "done");
 		}
 		this.progress(win, 80);
 	}
 	async enableRowLevelSecurity(win, client, ref) {
-		this.log(win, "Activation de la RLS sur les tables publiques…");
+		this.log(win, "Enabling RLS on public tables…");
 		const before = await client.runQuery(ref, RLS_PENDING_SQL);
 		if (before.length === 0) {
-			this.log(win, "RLS déjà active sur toutes les tables publiques.", "done");
+			this.log(win, "RLS already enabled on all public tables.", "done");
 			this.progress(win, 95);
 			return;
 		}
 		await client.runQuery(ref, RLS_ENABLE_SQL);
 		const after = await client.runQuery(ref, RLS_PENDING_SQL);
-		if (after.length > 0) throw new Error(`RLS toujours inactive sur : ${after.map((r) => r.tablename).join(", ")}`);
-		this.log(win, `RLS activée sur ${before.length} table(s) : ${before.map((r) => r.tablename).join(", ")}.`, "done");
+		if (after.length > 0) throw new Error(`RLS still inactive on: ${after.map((r) => r.tablename).join(", ")}`);
+		this.log(win, `RLS enabled on ${before.length} table(s): ${before.map((r) => r.tablename).join(", ")}.`, "done");
 		this.progress(win, 95);
 	}
 	/**
@@ -2076,28 +2109,28 @@ var SupabaseSiteSetupService = class {
 	*/
 	async resolvePanelServiceKey(win, client, ref) {
 		try {
-			this.log(win, "Récupération de la clé service_role legacy (pour le panneau de configuration)…");
+			this.log(win, "Retrieving legacy service_role key (for the configuration panel)…");
 			let key = findLegacyServiceKey(await client.listApiKeys(ref));
 			if (!key) {
 				const legacy = await client.getLegacyKeysEnabled(ref);
 				if (legacy && !legacy.enabled) {
-					this.log(win, "Clés JWT legacy désactivées — réactivation…");
+					this.log(win, "Legacy JWT keys disabled — re-enabling…");
 					await client.setLegacyKeysEnabled(ref, true);
 					key = findLegacyServiceKey(await client.listApiKeys(ref));
 				}
 			}
 			if (!key) {
-				this.log(win, "Aucune clé service_role legacy sur ce projet — le panneau de configuration indiquera comment la récupérer depuis le dashboard.", "error");
+				this.log(win, "No legacy service_role key on this project — the configuration panel will explain how to retrieve it from the dashboard.", "error");
 				return null;
 			}
 			this.redactor.add(key);
-			this.log(win, "Clé service_role legacy récupérée — elle sera proposée à la copie.", "done");
+			this.log(win, "Legacy service_role key retrieved — ready to copy.", "done");
 			this.progress(win, 98);
 			return key;
 		} catch (err) {
 			if (this.wasCancelled()) throw err;
 			const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err);
-			this.log(win, `Clé service_role legacy indisponible : ${this.redactor.redact(message)}`, "error");
+			this.log(win, `Legacy service_role key unavailable: ${this.redactor.redact(message)}`, "error");
 			return null;
 		}
 	}
@@ -2164,10 +2197,10 @@ var RETRYABLE_STATUS$1 = new Set([
 ]);
 function explainStatus$1(status) {
 	switch (status) {
-		case 401: return "Clé API Spaceship refusée. Vérifiez la clé et le secret copiés depuis l'API Manager de Spaceship (étape 1) — un secret n'est affiché qu'à sa création.";
-		case 403: return "Accès refusé par Spaceship — la clé API n'a pas les permissions nécessaires. Activez `dnsrecords:read` et `dnsrecords:write` sur la clé, et vérifiez que le domaine appartient bien à ce compte.";
-		case 404: return "Domaine introuvable chez Spaceship. Vérifiez le nom de domaine de l'étape 1 : il doit être enregistré sur ce compte.";
-		case 429: return "Trop de requêtes envoyées à Spaceship. Patientez quelques minutes avant de relancer.";
+		case 401: return "Spaceship API key rejected. Check the key and secret copied from the Spaceship API Manager (Step 1) — a secret is only displayed upon creation.";
+		case 403: return "Access denied by Spaceship — the API key lacks required permissions. Enable `dnsrecords:read` and `dnsrecords:write` on the key, and verify that the domain belongs to this account.";
+		case 404: return "Domain not found at Spaceship. Check the domain name from Step 1: it must be registered on this account.";
+		case 429: return "Too many requests sent to Spaceship. Please wait a few minutes before retrying.";
 		default: return null;
 	}
 }
@@ -2271,7 +2304,7 @@ var SpaceshipApiClient = class {
 			const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : BASE_BACKOFF_MS$1 * 2 ** (attempt - 1);
 			await this.sleepImpl(waitMs, this.signal);
 		}
-		throw lastError ?? new SpaceshipApiError(0, url, "Échec inconnu");
+		throw lastError ?? new SpaceshipApiError(0, url, "Unknown failure");
 	}
 	/** Cheap authenticated read — used to tell a bad key from a bad domain. */
 	async listDomains() {
@@ -2360,27 +2393,27 @@ var SpaceshipProvisionService = class {
 			signal: this.controller.signal
 		});
 		try {
-			if (!req.domain) throw new Error("Nom de domaine non renseigné.");
-			if (!req.ipv4) throw new Error("IPv4 de l'instance inconnue — lancez l'étape Scaleway avant de publier les enregistrements DNS.");
+			if (!req.domain) throw new Error("Domain name not specified.");
+			if (!req.ipv4) throw new Error("Instance IPv4 unknown — run the Scaleway step before publishing DNS records.");
 			const records = buildInfraDnsRecords(req.domain, req.ipv4, req.mailSubdomain);
 			this.progress(win, 10);
-			this.log(win, `Enregistrements à publier sur ${req.domain} :`);
+			this.log(win, `Records to publish on ${req.domain}:`);
 			for (const record of records) this.log(win, `  ${record.type}  ${record.host}  ➔  ${record.answer}`);
 			this.progress(win, 35);
-			this.log(win, "Écriture chez Spaceship (les enregistrements de même nom sont remplacés)…");
+			this.log(win, "Writing to Spaceship (records with the same name are replaced)…");
 			await client.saveRecords(req.domain, records);
 			this.progress(win, 75);
 			await this.verifyWritten(win, client, req.domain, records);
 			await this.restoreResendRecords(win, client, req.domain, req.resendRecords ?? []);
 			this.progress(win, 100);
-			this.log(win, "Enregistrements DNS publiés.", "done");
+			this.log(win, "DNS records published.", "done");
 			win.webContents.send("provision:done", {
 				service: SERVICE$1,
 				patch: {}
 			});
 		} catch (err) {
 			if (this.wasCancelled()) {
-				this.log(win, "Configuration annulée.", "info");
+				this.log(win, "Configuration cancelled.", "info");
 				win.webContents.send("provision:cancelled", { service: SERVICE$1 });
 			} else {
 				const message = err instanceof SpaceshipApiError || err instanceof Error ? err.message : String(err);
@@ -2410,15 +2443,15 @@ var SpaceshipProvisionService = class {
 	*/
 	async restoreResendRecords(win, client, domain, resendRecords) {
 		if (resendRecords.length === 0) return;
-		this.log(win, "Contrôle des enregistrements demandés par Resend…");
+		this.log(win, "Checking records requested by Resend…");
 		const existing = await client.listRecords(domain);
 		const present = new Set(existing.map((item) => `${item.name.toLowerCase().replace(/\.$/, "")}|${item.type.toUpperCase()}`));
 		const missing = resendRecords.filter((record) => !present.has(`${record.host.toLowerCase()}|${record.type}`));
 		if (missing.length === 0) {
-			this.log(win, `Enregistrements Resend en place (${resendRecords.length}).`, "done");
+			this.log(win, `Resend records in place (${resendRecords.length}).`, "done");
 			return;
 		}
-		this.log(win, `Enregistrements Resend absents de la zone (${missing.length}) — republication :`);
+		this.log(win, `Resend records missing from zone (${missing.length}) — republishing:`);
 		for (const record of missing) this.log(win, `  ${record.type}  ${record.host}`);
 		await client.saveRecords(domain, missing);
 		await this.verifyWritten(win, client, domain, missing);
@@ -2434,13 +2467,13 @@ var SpaceshipProvisionService = class {
 	* values are logged instead, so they can be read at a glance.
 	*/
 	async verifyWritten(win, client, domain, records) {
-		this.log(win, "Relecture de la zone…");
+		this.log(win, "Reading back DNS zone…");
 		const existing = await client.listRecords(domain);
 		const present = new Set(existing.map((item) => `${item.name.toLowerCase().replace(/\.$/, "")}|${item.type.toUpperCase()}`));
 		const missing = records.filter((record) => !present.has(`${record.host.toLowerCase()}|${record.type}`));
-		if (missing.length > 0) throw new Error(`Enregistrements absents de la zone après écriture : ${missing.map((r) => `${r.type} ${r.host}`).join(", ")}. Ajoutez-les à la main depuis « Configuration manuelle ».`);
+		if (missing.length > 0) throw new Error(`Records missing from zone after writing: ${missing.map((r) => `${r.type} ${r.host}`).join(", ")}. Add them manually via "Manual Configuration".`);
 		this.progress(win, 90);
-		this.log(win, `Zone relue — ${records.length} enregistrement(s) en place.`, "done");
+		this.log(win, `Zone read back — ${records.length} record(s) in place.`, "done");
 	}
 };
 //#endregion
@@ -2457,11 +2490,11 @@ var RETRYABLE_STATUS = new Set([
 ]);
 function explainStatus(status) {
 	switch (status) {
-		case 401: return "Clé API Resend refusée. Vérifiez la clé copiée depuis resend.com/api-keys (étape 1) — elle n'est affichée qu'à sa création.";
-		case 403: return "Accès refusé par Resend — la clé API est en lecture seule ou restreinte. Il en faut une avec les droits « Full access » pour créer et vérifier un domaine.";
-		case 404: return "Domaine introuvable chez Resend.";
-		case 422: return "Resend a refusé le domaine. Un sous-domaine déjà enregistré sur un autre compte Resend, ou un nom mal formé, sont les deux causes habituelles.";
-		case 429: return "Trop de requêtes envoyées à Resend. Patientez une minute avant de relancer.";
+		case 401: return "Resend API key rejected. Check the key copied from resend.com/api-keys (Step 1) — it is only displayed upon creation.";
+		case 403: return "Access denied by Resend — API key is read-only or restricted. A key with \"Full access\" permissions is required to create and verify a domain.";
+		case 404: return "Domain not found at Resend.";
+		case 422: return "Resend rejected the domain. A subdomain already registered on another Resend account or a malformed name are typical causes.";
+		case 429: return "Too many requests sent to Resend. Please wait a minute before retrying.";
 		default: return null;
 	}
 }
@@ -2535,7 +2568,7 @@ var ResendApiClient = class {
 			const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1e3 : BASE_BACKOFF_MS * 2 ** (attempt - 1);
 			await this.sleepImpl(waitMs, this.signal);
 		}
-		throw lastError ?? new ResendApiError(0, url, "Échec inconnu");
+		throw lastError ?? new ResendApiError(0, url, "Unknown failure");
 	}
 	async listDomains() {
 		return (await this.request("GET", "/domains"))?.data ?? [];
@@ -2546,12 +2579,12 @@ var ResendApiClient = class {
 			name,
 			...region ? { region } : {}
 		});
-		if (!created) throw new ResendApiError(0, "/domains", "Réponse vide");
+		if (!created) throw new ResendApiError(0, "/domains", "Empty response");
 		return created;
 	}
 	async getDomain(id) {
 		const domain = await this.request("GET", `/domains/${id}`);
-		if (!domain) throw new ResendApiError(0, `/domains/${id}`, "Réponse vide");
+		if (!domain) throw new ResendApiError(0, `/domains/${id}`, "Empty response");
 		return domain;
 	}
 	/** Asks Resend to look at the DNS now; the check itself runs asynchronously. */
@@ -2615,12 +2648,12 @@ var ResendProvisionService = class {
 			signal: this.controller.signal
 		});
 		try {
-			if (!req.mailSubdomain) throw new Error("Sous-domaine d'envoi non renseigné (étape 1).");
+			if (!req.mailSubdomain) throw new Error("Sending subdomain not specified (Step 1).");
 			const domain = await this.resolveDomain(win, client, req);
 			const records = this.normaliseRecords(domain.records ?? [], req.domain);
-			if (records.length === 0) throw new Error("Resend n'a renvoyé aucun enregistrement DNS pour ce domaine. Ouvrez resend.com/domains pour les relever à la main.");
+			if (records.length === 0) throw new Error("Resend returned no DNS records for this domain. Open resend.com/domains to check them manually.");
 			this.progress(win, 40);
-			this.log(win, `Enregistrements demandés par Resend (${records.length}) :`);
+			this.log(win, `Records requested by Resend (${records.length}):`);
 			for (const record of records) this.log(win, `  ${record.type}  ${record.host}  ➔  ${this.shorten(record.answer)}`);
 			const patch = {
 				RESEND_DOMAIN_ID: domain.id,
@@ -2628,7 +2661,7 @@ var ResendProvisionService = class {
 			};
 			if (!req.spaceshipApiKey || !req.spaceshipApiSecret) {
 				this.progress(win, 100);
-				this.log(win, "Domaine créé chez Resend. Publiez les enregistrements ci-dessus chez votre registrar, puis relancez pour lancer la vérification.", "done");
+				this.log(win, "Domain created in Resend. Publish the records above with your registrar, then rerun to start verification.", "done");
 				win.webContents.send("provision:done", {
 					service: SERVICE,
 					patch
@@ -2647,14 +2680,14 @@ var ResendProvisionService = class {
 			* next step and comes back to a card that confirms itself.
 			*/
 			if (domain.status === "verified") {
-				this.log(win, "Domaine déjà vérifié par Resend — les envois sont possibles.", "done");
+				this.log(win, "Domain already verified by Resend — sending is enabled.", "done");
 				patch.RESEND_DOMAIN_VERIFIED_AT = (/* @__PURE__ */ new Date()).toISOString();
 				patch.RESEND_VERIFICATION_PENDING_SINCE = "";
 			} else {
-				this.log(win, "Demande de vérification à Resend…");
+				this.log(win, "Requesting verification from Resend…");
 				await client.verifyDomain(domain.id);
 				patch.RESEND_VERIFICATION_PENDING_SINCE = (/* @__PURE__ */ new Date()).toISOString();
-				this.log(win, "Vérification demandée. La propagation DNS peut prendre jusqu'à 15 minutes : cette étape est terminée, Resend confirmera de son côté. Inutile d'attendre ici — « Relancer la vérification Resend » redemandera le contrôle.", "done");
+				this.log(win, "Verification requested. DNS propagation can take up to 15 minutes: this step is complete, Resend will verify automatically. No need to wait here — \"Rerun Resend verification\" can check again anytime.", "done");
 			}
 			this.progress(win, 100);
 			win.webContents.send("provision:done", {
@@ -2663,7 +2696,7 @@ var ResendProvisionService = class {
 			});
 		} catch (err) {
 			if (this.wasCancelled()) {
-				this.log(win, "Configuration annulée.", "info");
+				this.log(win, "Configuration cancelled.", "info");
 				win.webContents.send("provision:cancelled", { service: SERVICE });
 			} else {
 				const message = err instanceof ResendApiError || err instanceof SpaceshipApiError || err instanceof Error ? err.message : String(err);
@@ -2735,28 +2768,28 @@ var ResendProvisionService = class {
 			return (await client.getDomain(req.domainId)).id;
 		} catch {}
 		const known = (await client.listDomains()).find((d) => d.name === req.mailSubdomain);
-		if (!known) throw new Error(`${req.mailSubdomain} n'est pas (ou plus) enregistré sur ce compte Resend. Lancez l'étape pour le créer, ou ajoutez-le depuis resend.com/domains.`);
+		if (!known) throw new Error(`${req.mailSubdomain} is not (or no longer) registered on this Resend account. Run the step to create it, or add it from resend.com/domains.`);
 		return known.id;
 	}
 	async resolveDomain(win, client, req) {
 		this.progress(win, 10);
 		if (req.domainId) try {
 			const known = await client.getDomain(req.domainId);
-			this.log(win, `Domaine ${known.name} déjà créé — réutilisation.`);
+			this.log(win, `Domain ${known.name} already created — reusing.`);
 			return known;
 		} catch (err) {
 			if (this.wasCancelled()) throw err;
-			this.log(win, "Le domaine enregistré précédemment est introuvable — nouvelle recherche.");
+			this.log(win, "Previously saved domain not found — searching again.");
 		}
-		this.log(win, `Recherche de ${req.mailSubdomain} sur le compte Resend…`);
+		this.log(win, `Searching for ${req.mailSubdomain} on Resend account…`);
 		const existing = (await client.listDomains()).find((d) => d.name === req.mailSubdomain);
 		if (existing) {
-			this.log(win, `Domaine trouvé (${existing.status}) — récupération des enregistrements.`);
+			this.log(win, `Domain found (${existing.status}) — retrieving records.`);
 			return client.getDomain(existing.id);
 		}
-		this.log(win, `Création du domaine ${req.mailSubdomain}…`);
+		this.log(win, `Creating domain ${req.mailSubdomain}…`);
 		const created = await client.createDomain(req.mailSubdomain);
-		this.log(win, "Domaine créé.", "done");
+		this.log(win, "Domain created.", "done");
 		return created;
 	}
 	/**
@@ -2779,14 +2812,14 @@ var ResendProvisionService = class {
 		return value.length > 60 ? `${value.slice(0, 57)}…` : value;
 	}
 	async publishRecords(win, req, records) {
-		this.log(win, `Publication des enregistrements chez Spaceship sur ${req.domain}…`);
+		this.log(win, `Publishing records with Spaceship for ${req.domain}…`);
 		await new SpaceshipApiClient({
 			apiKey: req.spaceshipApiKey,
 			apiSecret: req.spaceshipApiSecret,
 			signal: this.controller?.signal
 		}).saveRecords(req.domain, records);
 		this.progress(win, 60);
-		this.log(win, "Enregistrements publiés.", "done");
+		this.log(win, "Records published.", "done");
 	}
 };
 //#endregion
@@ -3142,17 +3175,9 @@ function createWindow() {
 ipcMain.handle("open-external-url", async (_event, url) => {
 	await shell.openExternal(url);
 });
-ipcMain.handle("open-folder-dialog", async () => {
-	const result = await dialog.showOpenDialog(win, {
-		properties: ["openDirectory"],
-		title: "Sélectionner le dossier de déploiement"
-	});
-	if (!result.canceled && result.filePaths.length > 0) return result.filePaths[0];
-	return null;
-});
 ipcMain.handle("save-env-file", async (_event, content) => {
 	const result = await dialog.showSaveDialog(win, {
-		title: "Sauvegarder le fichier .env",
+		title: "Save .env file",
 		defaultPath: ".env",
 		filters: [{
 			name: "Env Files",

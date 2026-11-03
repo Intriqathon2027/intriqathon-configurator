@@ -109,12 +109,12 @@ export class SupabaseSiteSetupService {
 
     try {
       if (!req.ref) {
-        throw new Error("Aucun projet Supabase sélectionné — renseignez la référence du projet à l'étape 1.")
+        throw new Error('No Supabase project selected — please enter the project reference in Step 1.')
       }
 
       this.progress(win, 5)
       const project = await client.getProject(req.ref)
-      this.log(win, `Projet ${project.name} (${project.ref}) — configuration finale…`)
+      this.log(win, `Project ${project.name} (${project.ref}) — final configuration…`)
 
       // What the run could not apply. Collected rather than thrown on the spot:
       // the remaining steps are independent, and a reader is better served by
@@ -147,12 +147,12 @@ export class SupabaseSiteSetupService {
 
       if (pending.length > 0) {
         throw new Error(
-          `Configuration appliquée, sauf : ${pending.join(' ; ')}. Voir « Configuration manuelle » pour terminer.`,
+          `Configuration applied, except: ${pending.join(' ; ')}. See "Manual Configuration" to complete.`,
         )
       }
 
       this.progress(win, 100)
-      this.log(win, 'Configuration du site Supabase terminée.', 'done')
+      this.log(win, 'Supabase site configuration completed.', 'done')
       win.webContents.send('provision:done', {
         service: SERVICE,
         patch: {
@@ -162,7 +162,7 @@ export class SupabaseSiteSetupService {
       })
     } catch (err) {
       if (this.wasCancelled()) {
-        this.log(win, 'Configuration annulée.', 'info')
+        this.log(win, 'Configuration cancelled.', 'info')
         win.webContents.send('provision:cancelled', { service: SERVICE })
       } else {
         const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err)
@@ -203,7 +203,7 @@ export class SupabaseSiteSetupService {
 
     this.log(
       win,
-      'Schéma public encore vide — attente des tables créées par le déploiement (jusqu\'à 2 minutes)…',
+      'Public schema still empty — waiting for tables created by deployment (up to 2 minutes)…',
     )
 
     const deadline = Date.now() + MIGRATION_TIMEOUT_MS
@@ -213,37 +213,37 @@ export class SupabaseSiteSetupService {
 
       const tables = await count()
       if (tables > 0) {
-        this.log(win, `${tables} table(s) trouvée(s) — configuration du projet.`, 'done')
+        this.log(win, `${tables} table(s) found — configuring project.`, 'done')
         return
       }
     }
 
     // Not an error of its own: the steps below report what they could not do,
     // and one of them names this exact situation with what to do about it.
-    this.log(win, 'Toujours aucune table dans le schéma public — poursuite de la configuration.')
+    this.log(win, 'Still no tables in public schema — continuing configuration.')
   }
 
   // ── Step 1 — the default privileges ────────────────────────────────────
 
   private async applyGrants(win: BrowserWindow, client: SupabaseApiClient, ref: string): Promise<void> {
-    this.log(win, 'Application des privilèges sur le schéma public…')
+    this.log(win, 'Applying privileges on public schema…')
     await client.runQuery(ref, GRANTS_SQL)
-    this.log(win, 'Privilèges appliqués (anon, authenticated, service_role).', 'done')
+    this.log(win, 'Privileges applied (anon, authenticated, service_role).', 'done')
     this.progress(win, 25)
   }
 
   // ── Step 2 — the Data API's exposed schemas ────────────────────────────
 
   private async exposePublicSchema(win: BrowserWindow, client: SupabaseApiClient, ref: string): Promise<void> {
-    this.log(win, 'Vérification des schémas exposés par la Data API…')
+    this.log(win, 'Checking schemas exposed by Data API…')
     const current = await client.getPostgrestConfig(ref)
     const updated = withPublicSchema(current.db_schema)
 
     if (!updated) {
-      this.log(win, `Schéma public déjà exposé (${current.db_schema}).`, 'done')
+      this.log(win, `Public schema already exposed (${current.db_schema}).`, 'done')
     } else {
       await client.updatePostgrestConfig(ref, { db_schema: updated })
-      this.log(win, `Schémas exposés mis à jour : ${updated}.`, 'done')
+      this.log(win, `Exposed schemas updated: ${updated}.`, 'done')
     }
     this.progress(win, 45)
   }
@@ -256,7 +256,7 @@ export class SupabaseSiteSetupService {
     ref: string,
     pending: string[],
   ): Promise<void> {
-    this.log(win, `Réplication Realtime de la table ${REALTIME_TABLE}…`)
+    this.log(win, `Enabling Realtime replication for table ${REALTIME_TABLE}…`)
     const [check] = await client.runQuery<RealtimeCheckRow>(ref, REALTIME_CHECK_SQL)
 
     if (!check?.matched_table) {
@@ -264,29 +264,29 @@ export class SupabaseSiteSetupService {
       // for opposite moves: wait for the deployment, or point the wizard at the
       // project the deployment actually migrated.
       const reason = !check || check.public_tables === 0
-        ? `le schéma public est vide — le déploiement (étape 4) n'a pas encore créé les tables. Relancez cette configuration ensuite.`
-        : `table ${REALTIME_TABLE} absente parmi les ${check.public_tables} tables du schéma public (${await this.listPublicTables(client, ref)}). Vérifiez que le projet sélectionné est bien celui du déploiement.`
+        ? `public schema is empty — deployment (Step 4) has not created tables yet. Rerun this configuration afterwards.`
+        : `table ${REALTIME_TABLE} missing among the ${check.public_tables} tables in public schema (${await this.listPublicTables(client, ref)}). Verify that the selected project is indeed the deployed one.`
 
-      this.log(win, `Realtime : ${reason}`, 'error')
-      pending.push(`Realtime sur ${REALTIME_TABLE} — ${reason}`)
+      this.log(win, `Realtime: ${reason}`, 'error')
+      pending.push(`Realtime on ${REALTIME_TABLE} — ${reason}`)
       this.progress(win, 60)
       return
     }
 
     if (!check.publication_exists) {
-      const reason = `publication ${REALTIME_PUBLICATION} absente de ce projet — activez le Realtime depuis le dashboard.`
-      this.log(win, `Realtime : ${reason}`, 'error')
-      pending.push(`Realtime sur ${REALTIME_TABLE} — ${reason}`)
+      const reason = `publication ${REALTIME_PUBLICATION} missing from this project — enable Realtime in the dashboard.`
+      this.log(win, `Realtime: ${reason}`, 'error')
+      pending.push(`Realtime on ${REALTIME_TABLE} — ${reason}`)
       this.progress(win, 60)
       return
     }
 
     if (check.already_published) {
-      this.log(win, `${check.matched_table} est déjà dans ${REALTIME_PUBLICATION}.`, 'done')
+      this.log(win, `${check.matched_table} is already in ${REALTIME_PUBLICATION}.`, 'done')
     } else {
       // Published under the name Postgres reports, not the one expected here.
       await client.runQuery(ref, realtimeAddSql(check.matched_table))
-      this.log(win, `${check.matched_table} ajoutée à ${REALTIME_PUBLICATION}.`, 'done')
+      this.log(win, `${check.matched_table} added to ${REALTIME_PUBLICATION}.`, 'done')
     }
     this.progress(win, 60)
   }
@@ -300,14 +300,14 @@ export class SupabaseSiteSetupService {
   // ── Step 4 — email confirmation ────────────────────────────────────────
 
   private async disableEmailConfirmation(win: BrowserWindow, client: SupabaseApiClient, ref: string): Promise<void> {
-    this.log(win, "Désactivation de la confirmation d'email…")
+    this.log(win, 'Disabling email confirmation…')
     const auth = await client.getAuthConfig(ref)
 
     if (auth.mailer_autoconfirm) {
-      this.log(win, 'Confirmation d\'email déjà désactivée.', 'done')
+      this.log(win, 'Email confirmation already disabled.', 'done')
     } else {
       await client.updateAuthConfig(ref, { mailer_autoconfirm: true })
-      this.log(win, 'Confirmation d\'email désactivée — le compte organisateur pourra se connecter.', 'done')
+      this.log(win, 'Email confirmation disabled — organizer account will be able to log in.', 'done')
     }
     this.progress(win, 80)
   }
@@ -315,11 +315,11 @@ export class SupabaseSiteSetupService {
   // ── Step 5 — row level security ────────────────────────────────────────
 
   private async enableRowLevelSecurity(win: BrowserWindow, client: SupabaseApiClient, ref: string): Promise<void> {
-    this.log(win, 'Activation de la RLS sur les tables publiques…')
+    this.log(win, 'Enabling RLS on public tables…')
     const before = await client.runQuery<PendingRlsRow>(ref, RLS_PENDING_SQL)
 
     if (before.length === 0) {
-      this.log(win, 'RLS déjà active sur toutes les tables publiques.', 'done')
+      this.log(win, 'RLS already enabled on all public tables.', 'done')
       this.progress(win, 95)
       return
     }
@@ -330,10 +330,10 @@ export class SupabaseSiteSetupService {
     // unprotected is exactly the failure this step exists to prevent.
     const after = await client.runQuery<PendingRlsRow>(ref, RLS_PENDING_SQL)
     if (after.length > 0) {
-      throw new Error(`RLS toujours inactive sur : ${after.map(r => r.tablename).join(', ')}`)
+      throw new Error(`RLS still inactive on: ${after.map(r => r.tablename).join(', ')}`)
     }
 
-    this.log(win, `RLS activée sur ${before.length} table(s) : ${before.map(r => r.tablename).join(', ')}.`, 'done')
+    this.log(win, `RLS enabled on ${before.length} table(s): ${before.map(r => r.tablename).join(', ')}.`, 'done')
     this.progress(win, 95)
   }
 
@@ -360,13 +360,13 @@ export class SupabaseSiteSetupService {
     ref: string,
   ): Promise<string | null> {
     try {
-      this.log(win, 'Récupération de la clé service_role legacy (pour le panneau de configuration)…')
+      this.log(win, 'Retrieving legacy service_role key (for the configuration panel)…')
       let key = findLegacyServiceKey(await client.listApiKeys(ref))
 
       if (!key) {
         const legacy = await client.getLegacyKeysEnabled(ref)
         if (legacy && !legacy.enabled) {
-          this.log(win, 'Clés JWT legacy désactivées — réactivation…')
+          this.log(win, 'Legacy JWT keys disabled — re-enabling…')
           await client.setLegacyKeysEnabled(ref, true)
           key = findLegacyServiceKey(await client.listApiKeys(ref))
         }
@@ -375,7 +375,7 @@ export class SupabaseSiteSetupService {
       if (!key) {
         this.log(
           win,
-          'Aucune clé service_role legacy sur ce projet — le panneau de configuration indiquera comment la récupérer depuis le dashboard.',
+          'No legacy service_role key on this project — the configuration panel will explain how to retrieve it from the dashboard.',
           'error',
         )
         return null
@@ -383,13 +383,13 @@ export class SupabaseSiteSetupService {
 
       // Registered before it can reach a log line or an error message.
       this.redactor.add(key)
-      this.log(win, 'Clé service_role legacy récupérée — elle sera proposée à la copie.', 'done')
+      this.log(win, 'Legacy service_role key retrieved — ready to copy.', 'done')
       this.progress(win, 98)
       return key
     } catch (err) {
       if (this.wasCancelled()) throw err
       const message = err instanceof SupabaseApiError || err instanceof Error ? err.message : String(err)
-      this.log(win, `Clé service_role legacy indisponible : ${this.redactor.redact(message)}`, 'error')
+      this.log(win, `Legacy service_role key unavailable: ${this.redactor.redact(message)}`, 'error')
       return null
     }
   }

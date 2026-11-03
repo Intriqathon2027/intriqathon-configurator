@@ -29,7 +29,8 @@ export function useDockerRestart() {
 
   const estimateProgress = useCallback((line: string) => {
     if (line.includes('[1/1]')) setProgress(50)
-    if (line.includes('succès') || line.includes('succes') || line.includes('terminé')) setProgress(100)
+    const lower = line.toLowerCase()
+    if (line.includes('succès') || line.includes('succes') || line.includes('terminé') || lower.includes('success') || lower.includes('completed')) setProgress(100)
   }, [])
 
   const launchRestart = useCallback((bridge: DeployBridge, config: DockerRestartConfig) => {
@@ -50,11 +51,11 @@ export function useDockerRestart() {
       cleanupRef.current.forEach(fn => fn())
       cleanupRef.current = []
       if (code === 0) {
-        addLog('Redémarrage terminé avec succès !', 'done')
+        addLog('Restart completed successfully!', 'done')
         setProgress(100)
         setStatus('completed')
       } else if (code !== null) {
-        addLog(`Le script a échoué avec le code ${code}`, 'error')
+        addLog(`Script failed with code ${code}`, 'error')
         setStatus('error')
       }
     }))
@@ -62,17 +63,17 @@ export function useDockerRestart() {
     cleanups.push(bridge.onError((error) => {
       cleanupRef.current.forEach(fn => fn())
       cleanupRef.current = []
-      addLog(`Erreur de lancement : ${error}`, 'error')
+      addLog(`Launch error: ${error}`, 'error')
       setStatus('error')
     }))
 
     cleanupRef.current = cleanups
 
-    addLog('Lancement du redémarrage Docker...', 'info')
+    addLog('Starting Docker restart...', 'info')
     
     bridge.restartDocker(config.ipv4, config.sshPassword, config.sshKeyPath)
       .catch(err => {
-        addLog(`Échec du lancement (IPC) : ${err}`, 'error')
+        addLog(`Launch failed (IPC): ${err}`, 'error')
         setStatus('error')
       })
   }, [addLog, estimateProgress])
@@ -96,7 +97,7 @@ export function useDockerRestart() {
     cleanupRef.current.forEach(fn => fn())
     cleanupRef.current = []
     setStatus('cancelled')
-    addLog('Redémarrage annulé', 'info')
+    addLog('Restart cancelled', 'info')
   }, [addLog])
 
   useEffect(() => {

@@ -129,7 +129,7 @@ describe('SupabaseApiClient', () => {
     // this single word, which tells the reader nothing on its own.
     const fetchImpl = vi.fn(async () => jsonResponse({ message: 'Unauthorized' }, 401)) as unknown as typeof fetch
 
-    await expect(makeClient(fetchImpl).listOrganizations()).rejects.toThrowError(/révoqué ou régénéré/)
+    await expect(makeClient(fetchImpl).listOrganizations()).rejects.toThrowError(/revoked or regenerated/)
     await expect(makeClient(fetchImpl).listOrganizations()).rejects.not.toThrowError(/^HTTP 401/)
   })
 
@@ -140,7 +140,7 @@ describe('SupabaseApiClient', () => {
 
     const error = await makeClient(fetchImpl).listProjects().catch(e => e as Error)
     expect(error.message).toContain('reached its project limit')
-    expect(error.message).toContain('limite de plan')
+    expect(error.message).toContain('plan limit')
   })
 
   it('stops on abort instead of burning through retries', async () => {

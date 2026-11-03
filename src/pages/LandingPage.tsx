@@ -168,7 +168,7 @@ export function LandingPage() {
         await handleImportSuccess(result.data, result.path)
       }
     } else {
-      alert('Non supporté sur le web')
+      alert('Not supported on the web')
     }
   }
 
@@ -322,7 +322,7 @@ export function LandingPage() {
             <div className="modal-header" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
               <div className="modal-title">
                 <Zap size={18} color="var(--color-danger)" />
-                Erreur
+                Error
               </div>
               <button 
                 className="modal-close" 

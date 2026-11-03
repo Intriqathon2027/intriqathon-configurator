@@ -55,22 +55,10 @@ ipcMain.handle('open-external-url', async (_event, url: string) => {
   await shell.openExternal(url)
 })
 
-// IPC: Open folder dialog
-ipcMain.handle('open-folder-dialog', async () => {
-  const result = await dialog.showOpenDialog(win!, {
-    properties: ['openDirectory'],
-    title: 'Sélectionner le dossier de déploiement',
-  })
-  if (!result.canceled && result.filePaths.length > 0) {
-    return result.filePaths[0]
-  }
-  return null
-})
-
 // IPC: Save .env file
 ipcMain.handle('save-env-file', async (_event, content: string) => {
   const result = await dialog.showSaveDialog(win!, {
-    title: 'Sauvegarder le fichier .env',
+    title: 'Save .env file',
     defaultPath: '.env',
     filters: [{ name: 'Env Files', extensions: ['env'] }],
   })

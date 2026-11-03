@@ -8,7 +8,7 @@ import { generateEnvContent } from '../../utils/deploy'
 
 export function DeployManualTab() {
   const { t, config, state } = useApp()
-  const deployPath = config.DEPLOY_PATH || '/path/to/hackathon-deploy'
+  const deployPath = config.DEPLOY_PATH || 'hackathon-deploy'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const isEn = state.language === 'en'
 
@@ -73,7 +73,7 @@ export function DeployManualTab() {
         style={{ marginTop: 'var(--space-5)' }}
       >
         <div className="command-stack">
-          <CommandBlock label={t('step6.cmd.cd')} command={`cd ${deployPath}`} />
+          <CommandBlock label={t('step6.cmd.cd')} command={`cd "${deployPath}"`} />
 
           <CommandBlock
             label={<span className="os-chip">{t('step6.label.mac')}</span>}

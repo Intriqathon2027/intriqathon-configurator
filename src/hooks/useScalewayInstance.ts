@@ -21,7 +21,7 @@ export function useScalewayInstance() {
       await window.electronAPI.cancelScalewayInstance()
     }
     setStatus('idle')
-    setLogs(prev => [...prev, 'Opération annulée par l\'utilisateur.'])
+    setLogs(prev => [...prev, 'Operation cancelled by user.'])
   }, [])
 
   const start = useCallback(async (options: {
@@ -31,10 +31,10 @@ export function useScalewayInstance() {
     sshKeyName?: string
   }): Promise<{ success: boolean; ipv4?: string; error?: string }> => {
     if (!window.electronAPI?.createScalewayInstance) {
-      return { success: false, error: 'Fonctionnalité disponible uniquement sur l\'application desktop Electron.' }
+      return { success: false, error: 'Feature only available on Electron desktop application.' }
     }
 
-    console.log('[useScalewayInstance] Démarrage de l\'automatisation Scaleway...')
+    console.log('[useScalewayInstance] Starting Scaleway automation...')
     setStatus('running')
     setLogs([])
     setProgress(5)
@@ -62,15 +62,15 @@ export function useScalewayInstance() {
       if (res.success && res.ipv4) {
         setStatus('done')
         setProgress(100)
-        console.log('[useScalewayInstance] Succès, IPv4:', res.ipv4)
+        console.log('[useScalewayInstance] Success, IPv4:', res.ipv4)
         return { success: true, ipv4: res.ipv4 }
       } else {
         setStatus('error')
-        const errMsg = res.error || 'Erreur inconnue lors de la création de l\'instance Scaleway'
-        console.error('[useScalewayInstance ERREUR]', errMsg)
+        const errMsg = res.error || 'Unknown error while creating Scaleway instance'
+        console.error('[useScalewayInstance ERROR]', errMsg)
         setLogs(prev => {
           if (prev.some(l => l.includes(errMsg))) return prev
-          return [...prev, errMsg.startsWith('[ERREUR') ? errMsg : `[ERREUR] ${errMsg}`]
+          return [...prev, errMsg.startsWith('[ERROR') || errMsg.startsWith('[ERREUR') ? errMsg : `[ERROR] ${errMsg}`]
         })
         return { success: false, error: errMsg }
       }
@@ -80,7 +80,7 @@ export function useScalewayInstance() {
       console.error('[useScalewayInstance EXCEPTION]', errMsg)
       setLogs(prev => {
         if (prev.some(l => l.includes(errMsg))) return prev
-        return [...prev, errMsg.startsWith('[ERREUR') ? errMsg : `[ERREUR] ${errMsg}`]
+        return [...prev, errMsg.startsWith('[ERROR') || errMsg.startsWith('[ERREUR') ? errMsg : `[ERROR] ${errMsg}`]
       })
       return { success: false, error: errMsg }
     }

@@ -143,7 +143,7 @@ describe('SpaceshipApiClient errors', () => {
     const error = await client(impl).listRecords('domain.fr').catch((e: unknown) => e)
 
     expect(error).toBeInstanceOf(SpaceshipApiError)
-    expect((error as SpaceshipApiError).message).toMatch(/Clé API Spaceship refusée/)
+    expect((error as SpaceshipApiError).message).toMatch(/Spaceship API key rejected/)
   })
 
   it('explains a 403 as the missing DNS permission it usually is', async () => {

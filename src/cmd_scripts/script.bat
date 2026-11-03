@@ -12,10 +12,10 @@ REM ============================================================
 
 setlocal
 
-echo [SCRIPT] Demarrage du script de deploiement
+echo [SCRIPT] Starting deployment script
 
 if "%~1"=="" (
-    echo Usage : %~nx0 ^<IPV4^> [source_dir]
+    echo Usage: %~nx0 ^<IPV4^> [source_dir]
     exit /b 1
 )
 
@@ -32,40 +32,40 @@ echo [SCRIPT] SOURCE_DIR = %SOURCE_DIR%
 
 set "SSH_OPTS=-o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o BatchMode=yes"
 if defined SSH_KEY_PATH (
-    echo [SCRIPT] Utilisation de la cle SSH : %SSH_KEY_PATH%
+    echo [SCRIPT] Using SSH key: %SSH_KEY_PATH%
     set "SSH_OPTS=%SSH_OPTS% -i "%SSH_KEY_PATH%""
 )
 
-echo === Deploiement vers %IPV4% ===
-echo     Dossier source : %SOURCE_DIR%
+echo === Deployment to %IPV4% ===
+echo     Source directory: %SOURCE_DIR%
 
 REM -- Etape 1 : copie des fichiers ----------------------------
 echo.
-echo [1/2] Copie des fichiers vers le serveur distant...
-echo [SCRIPT] Lancement scp vers root@%IPV4%...
+echo [1/2] Copying files to remote server...
+echo [SCRIPT] Launching scp to root@%IPV4%...
 
 scp -r %SSH_OPTS% "%SOURCE_DIR%/" "root@%IPV4%:~/hackathon-deploy"
 set ERR=%ERRORLEVEL%
-echo [SCRIPT] scp termine avec le code %ERR%
+echo [SCRIPT] scp finished with code %ERR%
 if %ERR% NEQ 0 (
-    echo ERREUR : la copie des fichiers a echoue avec le code d'erreur %ERR%.
+    echo ERROR: File copy failed with error code %ERR%.
     exit /b %ERR%
 )
 
 REM -- Etape 2 : execution distante du script d'installation ---
 echo.
-echo [2/2] Execution de install_hackathon.sh sur le serveur distant...
-echo [SCRIPT] Connexion SSH a root@%IPV4%...
+echo [2/2] Running install_hackathon.sh on remote server...
+echo [SCRIPT] SSH connection to root@%IPV4%...
 
 ssh %SSH_OPTS% "root@%IPV4%" "cd hackathon-deploy && sed -i 's/\r$//' install_hackathon.sh && chmod +x install_hackathon.sh && ./install_hackathon.sh"
 set ERR=%ERRORLEVEL%
-echo [SCRIPT] ssh termine avec le code %ERR%
+echo [SCRIPT] ssh finished with code %ERR%
 if %ERR% NEQ 0 (
-    echo ERREUR : l'execution distante a echoue avec le code d'erreur %ERR%.
+    echo ERROR: Remote execution failed with error code %ERR%.
     exit /b %ERR%
 )
 
 echo.
-echo === Deploiement termine avec succes ! ===
+echo === Deployment completed successfully! ===
 
 endlocal

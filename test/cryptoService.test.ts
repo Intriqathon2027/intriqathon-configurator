@@ -126,7 +126,7 @@ describe('CryptoService', () => {
 
       expect(() => {
         CryptoService.decrypt(invalidPayload, testPassword)
-      }).toThrow(/non supporté/)
+      }).toThrow(/Unsupported algorithm/)
     })
   })
 
@@ -201,7 +201,7 @@ describe('CryptoService', () => {
 
       expect(() => {
         CryptoService.saveVault({ DOMAIN: 'test.com' })
-      }).toThrow(/verrouillé/)
+      }).toThrow(/Vault locked/)
     })
 
     it('should change password properly and invalidate old password', () => {
@@ -229,7 +229,7 @@ describe('CryptoService', () => {
       CryptoService.createVault(password, initialConfig)
       expect(() => {
         CryptoService.changePassword('WrongOldPassword!', 'NewSecretPassword987!')
-      }).toThrow(/incorrect/)
+      }).toThrow(/Incorrect current password/)
     })
 
     it('should reset vault completely and remove vault.enc', () => {

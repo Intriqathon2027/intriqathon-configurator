@@ -60,7 +60,6 @@ export interface ScalewayLogEvent {
 
 export interface ElectronAPI {
   openExternalUrl: (url: string) => Promise<void>
-  openFolderDialog: () => Promise<string | null>
   saveEnvFile: (content: string) => Promise<{ success: boolean; path?: string }>
   saveLocalConfig: (config: Record<string, string>) => Promise<{ success: boolean }>
   loadLocalConfig: () => Promise<Record<string, string>>
@@ -99,6 +98,8 @@ export interface ElectronAPI {
 
   // Deploy
   getPlatform: () => Promise<string>
+  getDeployPath: () => Promise<string>
+  prepareDeployDir: (envContent?: string) => Promise<string>
   writeEnvToDir: (dir: string, content: string) => Promise<{ success: boolean; error?: string }>
   startDeploy: (ipv4: string, sourceDir: string, sshPassword?: string, sshKeyPath?: string) => Promise<void>
   restartDocker: (ipv4: string, sshPassword?: string, sshKeyPath?: string) => Promise<void>

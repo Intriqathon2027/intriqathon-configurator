@@ -28,13 +28,13 @@ const GENERIC_DETAILS = new Set(['unauthorized', 'forbidden', 'not found', 'bad 
 function explainStatus(status: number): string | null {
   switch (status) {
     case 401:
-      return "Jeton d'accès Supabase refusé. Il est bien formé mais Supabase ne le reconnaît pas : vérifiez qu'il n'a pas été révoqué ou régénéré, et qu'il a été copié en entier depuis Account ➔ Access Tokens."
+      return "Supabase access token rejected. The token is well-formed but Supabase does not recognize it: check that it has not been revoked or regenerated, and was copied completely from Account ➔ Access Tokens."
     case 403:
-      return "Accès refusé par Supabase — le jeton n'a pas les droits nécessaires sur cette organisation, ou une limite de plan est atteinte."
+      return "Access denied by Supabase — the token does not have required permissions on this organization, or a plan limit has been reached."
     case 404:
-      return 'Ressource introuvable chez Supabase.'
+      return 'Resource not found at Supabase.'
     case 429:
-      return "Trop de requêtes envoyées à Supabase. Patientez une minute avant de relancer."
+      return 'Too many requests sent to Supabase. Please wait a minute before retrying.'
     default:
       return null
   }
@@ -179,12 +179,12 @@ export class SupabaseApiClient {
       await this.sleepImpl(waitMs, this.signal)
     }
 
-    throw lastError ?? new SupabaseApiError(0, url, 'Échec inconnu')
+    throw lastError ?? new SupabaseApiError(0, url, 'Unknown failure')
   }
 
   private async requireJson<T>(method: string, path: string, opts: RequestOptions = {}): Promise<T> {
     const result = await this.request<T>(method, path, opts)
-    if (result === null) throw new SupabaseApiError(0, path, 'Réponse vide')
+    if (result === null) throw new SupabaseApiError(0, path, 'Empty response')
     return result
   }
 

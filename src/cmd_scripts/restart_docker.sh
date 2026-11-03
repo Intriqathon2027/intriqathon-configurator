@@ -7,11 +7,11 @@
 
 set -uo pipefail
 
-echo "[SCRIPT] Démarrage du script de redémarrage de docker"
-echo "[SCRIPT] Arguments reçus : $#"
+echo "[SCRIPT] Starting docker restart script"
+echo "[SCRIPT] Arguments received: $#"
 
 if [ $# -lt 1 ]; then
-    echo "Usage : $0 <IPV4>"
+    echo "Usage: $0 <IPV4>"
     exit 1
 fi
 
@@ -21,29 +21,29 @@ echo "[SCRIPT] IPV4 = ${IPV4}"
 
 SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=no"
 if [ -n "${SSH_KEY_PATH:-}" ]; then
-    echo "[SCRIPT] Utilisation de la clé SSH : ${SSH_KEY_PATH}"
+    echo "[SCRIPT] Using SSH key: ${SSH_KEY_PATH}"
     SSH_OPTS="${SSH_OPTS} -i ${SSH_KEY_PATH}"
 fi
 
-echo "=== Redémarrage sur ${IPV4} ==="
+echo "=== Restarting on ${IPV4} ==="
 
 SSH_CMD="ssh ${SSH_OPTS}"
 if [ -n "${SSHPASS:-}" ]; then
-    echo "[SCRIPT] Utilisation de sshpass"
+    echo "[SCRIPT] Using sshpass"
     SSH_CMD="sshpass -e ${SSH_CMD}"
 fi
 
 echo ""
-echo "[1/1] Exécution de docker restart sur le serveur distant..."
-echo "[SCRIPT] Connexion SSH à root@${IPV4}..."
+echo "[1/1] Running docker restart on remote server..."
+echo "[SCRIPT] SSH connection to root@${IPV4}..."
 
 ${SSH_CMD} "root@${IPV4}" "docker restart discord_bot"
 SSH_CODE=$?
-echo "[SCRIPT] ssh terminé avec le code ${SSH_CODE}"
+echo "[SCRIPT] ssh finished with code ${SSH_CODE}"
 if [ $SSH_CODE -ne 0 ]; then
-    echo "ERREUR : L'exécution distante a échoué avec le code d'erreur ${SSH_CODE}."
+    echo "ERROR: Remote execution failed with error code ${SSH_CODE}."
     exit $SSH_CODE
 fi
 
 echo ""
-echo "=== Redémarrage de Docker terminé avec succès ! ==="
+echo "=== Docker restart completed successfully! ==="

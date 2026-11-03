@@ -114,7 +114,8 @@ export function useDeployment() {
     if (line.includes('[2/2]') || line.includes('[2/4]')) setProgress(50)
     if (line.includes('[3/4]')) setProgress(70)
     if (line.includes('[4/4]')) setProgress(85)
-    if (line.includes('succès') || line.includes('succes') || line.includes('terminé')) setProgress(100)
+    const lower = line.toLowerCase()
+    if (line.includes('succès') || line.includes('succes') || line.includes('terminé') || lower.includes('success') || lower.includes('completed')) setProgress(100)
   }, [])
 
   // ── Launch: register listeners then start the script ─────────────────────
@@ -143,11 +144,11 @@ export function useDeployment() {
       cleanupRef.current.forEach(fn => fn())
       cleanupRef.current = []
       if (code === 0) {
-        addLog('Déploiement terminé avec succès !', 'done')
+        addLog('Deployment completed successfully!', 'done')
         setProgress(100)
         setStatus('completed')
       } else if (code !== null) {
-        addLog(`Le script a échoué avec le code ${code}`, 'error')
+        addLog(`Script failed with code ${code}`, 'error')
         setStatus('error')
       }
     }))
@@ -156,21 +157,21 @@ export function useDeployment() {
       console.log('[useDeployment] ERROR:', error)
       cleanupRef.current.forEach(fn => fn())
       cleanupRef.current = []
-      addLog(`Erreur de lancement : ${error}`, 'error')
+      addLog(`Launch error: ${error}`, 'error')
       setStatus('error')
     }))
 
     cleanupRef.current = cleanups
 
     console.log('[useDeployment] Calling bridge.startDeploy...')
-    addLog('Lancement du script de déploiement...', 'info')
+    addLog('Launching deployment script...', 'info')
     
     // Pass sshPassword and sshKeyPath to the bridge/service
     bridge.startDeploy(config.ipv4, config.deployPath, config.sshPassword, config.sshKeyPath)
       .then(() => console.log('[useDeployment] bridge.startDeploy resolved'))
       .catch(err => {
         console.error('[useDeployment] bridge.startDeploy failed:', err)
-        addLog(`Échec du lancement (IPC) : ${err}`, 'error')
+        addLog(`Launch failed (IPC): ${err}`, 'error')
         setStatus('error')
       })
   }, [addLog, estimateProgress])
@@ -181,19 +182,19 @@ export function useDeployment() {
     bridgeRef.current = bridge
 
     setStatus('running')
-    addLog('Écriture du fichier .env...', 'running')
+    addLog('Writing .env file...', 'running')
 
     bridge.writeEnvToDir(config.deployPath, config.envContent).then(result => {
       if (!result.success) {
-        addLog(`Erreur écriture .env : ${result.error ?? 'inconnue'}`, 'error')
+        addLog(`Error writing .env: ${result.error ?? 'unknown'}`, 'error')
         setStatus('error')
         return
       }
-      updateOrAddLog('Écriture du fichier .env : Done', 'done')
+      updateOrAddLog('Writing .env file: Done', 'done')
       setProgress(10)
       launchDeploy(bridge, config)
     }).catch(err => {
-      addLog(`Erreur écriture .env : ${String(err)}`, 'error')
+      addLog(`Error writing .env: ${String(err)}`, 'error')
       setStatus('error')
     })
   }, [addLog, updateOrAddLog, launchDeploy])
@@ -219,7 +220,7 @@ export function useDeployment() {
     pendingConfigRef.current = null
     setPendingDialog(null)
     setStatus('cancelled')
-    addLog('Déploiement annulé', 'info')
+    addLog('Deployment cancelled', 'info')
   }, [addLog])
 
   // ── Public: respondToDialog ───────────────────────────────────────────────
@@ -228,18 +229,18 @@ export function useDeployment() {
 
     if (response.type === 'auth') {
       // In case we ever add back auth dialogs, we can just log for now
-      addLog('Authentification non gérée', 'error')
+      addLog('Authentication not handled', 'error')
       setStatus('error')
     } else if (response.type === 'confirm') {
       setStatus('running')
       if (response.confirmed) {
         bridgeRef.current?.sendInput('yes\n')
-        addLog('Connexion confirmée', 'done')
+        addLog('Connection confirmed', 'done')
       } else {
         bridgeRef.current?.sendInput('no\n')
         bridgeRef.current?.cancelDeploy()
         setStatus('cancelled')
-        addLog("Connexion refusée par l'utilisateur", 'info')
+        addLog('Connection rejected by user', 'info')
       }
     }
   }, [addLog, runWithConfig])

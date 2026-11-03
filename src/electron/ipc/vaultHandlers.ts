@@ -17,7 +17,7 @@ export function registerVaultHandlers(getWin: () => BrowserWindow | null): void 
       const ok = CryptoService.createVault(password, initialData || {})
       return { success: ok }
     } catch (err: any) {
-      return { success: false, error: err.message || 'Erreur lors de la création du coffre' }
+      return { success: false, error: err.message || 'Error while creating vault' }
     }
   })
 
@@ -30,7 +30,7 @@ export function registerVaultHandlers(getWin: () => BrowserWindow | null): void 
       const ok = CryptoService.saveVault(config)
       return { success: ok }
     } catch (err: any) {
-      return { success: false, error: err.message || 'Impossible de sauvegarder dans le coffre' }
+      return { success: false, error: err.message || 'Unable to save to vault' }
     }
   })
 
@@ -49,7 +49,7 @@ export function registerVaultHandlers(getWin: () => BrowserWindow | null): void 
       const ok = CryptoService.changePassword(oldPassword, newPassword)
       return { success: ok }
     } catch (err: any) {
-      return { success: false, error: err.message || 'Erreur lors du changement de mot de passe' }
+      return { success: false, error: err.message || 'Error while changing password' }
     }
   })
 
@@ -58,7 +58,7 @@ export function registerVaultHandlers(getWin: () => BrowserWindow | null): void 
       const data = CryptoService.decrypt<Record<string, string>>(payload, password)
       return { success: true, data }
     } catch (err: any) {
-      return { success: false, error: 'Mot de passe incorrect pour déchiffrer ce fichier' }
+      return { success: false, error: 'Incorrect password to decrypt this file' }
     }
   })
 
@@ -66,15 +66,15 @@ export function registerVaultHandlers(getWin: () => BrowserWindow | null): void 
   ipcMain.handle('export-config', async (_event, config: Record<string, string>) => {
     const win = getWin()
     const result = await dialog.showSaveDialog(win!, {
-      title: 'Exporter la configuration chiffrée',
+      title: 'Export Encrypted Configuration',
       defaultPath: 'intriqathon-config.enc.json',
-      filters: [{ name: 'Fichiers JSON chiffrés', extensions: ['json'] }],
+      filters: [{ name: 'Encrypted JSON Files', extensions: ['json'] }],
     })
 
     if (!result.canceled && result.filePath) {
       const pwd = CryptoService.getSessionPassword()
       if (!pwd) {
-        return { success: false, error: 'Coffre non déverrouillé pour chiffrer l\'export' }
+        return { success: false, error: 'Vault not unlocked to encrypt export' }
       }
       const encrypted = CryptoService.encrypt(config, pwd)
       fs.writeFileSync(result.filePath, JSON.stringify(encrypted, null, 2), 'utf-8')
@@ -87,9 +87,9 @@ export function registerVaultHandlers(getWin: () => BrowserWindow | null): void 
   ipcMain.handle('import-config', async () => {
     const win = getWin()
     const result = await dialog.showOpenDialog(win!, {
-      title: 'Importer la configuration',
+      title: 'Import Configuration',
       properties: ['openFile'],
-      filters: [{ name: 'Fichiers JSON', extensions: ['json'] }],
+      filters: [{ name: 'JSON Files', extensions: ['json'] }],
     })
 
     if (!result.canceled && result.filePaths.length > 0) {
@@ -153,7 +153,7 @@ export function registerVaultHandlers(getWin: () => BrowserWindow | null): void 
       CryptoService.saveVault(config)
       return { success: true }
     }
-    return { success: false, error: 'Vault non déverrouillé' }
+    return { success: false, error: 'Vault not unlocked' }
   })
 
   // Load local config fallback: returns vault data if unlocked

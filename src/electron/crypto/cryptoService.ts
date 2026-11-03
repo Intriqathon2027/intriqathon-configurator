@@ -67,7 +67,7 @@ export class CryptoService {
    */
   public static decrypt<T = unknown>(payload: EncryptedPayload, password: string): T {
     if (payload.algorithm !== 'aes-256-gcm') {
-      throw new Error(`Algorithme non supporté: ${payload.algorithm}`)
+      throw new Error(`Unsupported algorithm: ${payload.algorithm}`)
     }
 
     const salt = Buffer.from(payload.salt, 'hex')
@@ -147,7 +147,7 @@ export class CryptoService {
   public static unlockVault(password: string): { success: boolean; data?: Record<string, string>; error?: string } {
     const vaultPath = this.getVaultPath()
     if (!fs.existsSync(vaultPath)) {
-      return { success: false, error: 'Vault introuvable' }
+      return { success: false, error: 'Vault not found' }
     }
 
     try {
@@ -157,7 +157,7 @@ export class CryptoService {
       this.sessionPassword = password
       return { success: true, data }
     } catch (err) {
-      return { success: false, error: 'Mot de passe incorrect ou données corrompues' }
+      return { success: false, error: 'Incorrect password or corrupted data' }
     }
   }
 
@@ -167,7 +167,7 @@ export class CryptoService {
   public static saveVault(config: Record<string, string>, password?: string): boolean {
     const pwd = password || this.sessionPassword
     if (!pwd) {
-      throw new Error('Vault verrouillé : impossible de sauvegarder sans mot de passe')
+      throw new Error('Vault locked: cannot save without password')
     }
 
     const encrypted = this.encrypt(config, pwd)
@@ -207,7 +207,7 @@ export class CryptoService {
   public static changePassword(oldPassword: string, newPassword: string): boolean {
     const unlockResult = this.unlockVault(oldPassword)
     if (!unlockResult.success || !unlockResult.data) {
-      throw new Error('Ancien mot de passe incorrect')
+      throw new Error('Incorrect current password')
     }
 
     this.sessionPassword = newPassword

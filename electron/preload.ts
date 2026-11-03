@@ -4,7 +4,6 @@ import { contextBridge, ipcRenderer } from 'electron'
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
-  openFolderDialog: () => ipcRenderer.invoke('open-folder-dialog'),
   saveEnvFile: (content: string) => ipcRenderer.invoke('save-env-file', content),
   saveLocalConfig: (config: Record<string, string>) => ipcRenderer.invoke('save-local-config', config),
   loadLocalConfig: () => ipcRenderer.invoke('load-local-config'),
@@ -47,6 +46,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Deploy
   getPlatform: () => ipcRenderer.invoke('deploy:get-platform'),
+  getDeployPath: () => ipcRenderer.invoke('deploy:get-deploy-path'),
+  prepareDeployDir: (envContent?: string) => ipcRenderer.invoke('deploy:prepare-deploy-dir', envContent),
   writeEnvToDir: (dir: string, content: string) => ipcRenderer.invoke('deploy:write-env', dir, content),
   startDeploy: (ipv4: string, sourceDir: string, sshPassword?: string, sshKeyPath?: string) => ipcRenderer.invoke('deploy:start', ipv4, sourceDir, sshPassword, sshKeyPath),
   restartDocker: (ipv4: string, sshPassword?: string, sshKeyPath?: string) => ipcRenderer.invoke('deploy:restart', ipv4, sshPassword, sshKeyPath),
