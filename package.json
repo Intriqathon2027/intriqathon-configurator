@@ -1,6 +1,9 @@
 {
   "name": "intriqathon-configurator",
-  "author": "Axel Ferrazzini <axel.ferrazzini@epita.fr>",
+  "author": {
+    "name": "Axel Ferrazzini",
+    "email": "axel.ferrazzini@epita.fr"
+  },
   "contributors": [
     "Jules Valance <jules.valance0@gmail.com>",
     "Raphael Vazzano <raphaelvazzano@gmail.com>",
