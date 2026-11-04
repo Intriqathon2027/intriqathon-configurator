@@ -1,5 +1,13 @@
 {
   "name": "intriqathon-configurator",
+  "author": "Axel Ferrazzini <axel.ferrazzini@epita.fr>",
+  "contributors": [
+    "Jules Valance <jules.valance0@gmail.com>",
+    "Raphael Vazzano <raphaelvazzano@gmail.com>",
+    "Corentin Schiebel <corentinschiebel@gmail.com>",
+    "Mohamed Yazid Kers <yazidkerr@gmail.com>"
+  ],
+  "description": "Hackathon Configurator Application",
   "private": true,
   "version": "1.0.0",
   "type": "module",
