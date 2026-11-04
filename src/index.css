@@ -1343,18 +1343,24 @@ body {
   border-radius: var(--space-4);
   /* Lifts the bar off the page scrolling under it. Kept tight: the offset
      is all the room it has before the window edge clips it. */
-  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: 0px 4px 12px 2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-/* Slid out below the window on a scroll up, back in on a scroll down. The
-   extra 8px carries the shadow out of sight with it. */
-.bottom-nav {
-  transition: transform 0.25s ease, opacity 0.25s ease;
-}
-
-.bottom-nav--hidden {
-  transform: translateY(calc(100% + var(--bottom-nav-offset) + 8px));
-  opacity: 0;
+/* Fades the page out behind the bar, edge to edge, so the content scrolling
+   under it no longer competes with the buttons. */
+.bottom-nav-fade {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 49;
+  height: calc(var(--bottom-nav-height) + var(--bottom-nav-offset) + var(--space-10));
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--color-bg) 0%, transparent) 55%,
+    var(--color-bg)
+  );
   pointer-events: none;
 }
 
