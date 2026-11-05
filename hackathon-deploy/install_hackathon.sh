@@ -48,28 +48,18 @@ if [ -z "$DOMAIN_NAME" ]; then
   DOMAIN_NAME=":80"
 fi
 
-# Configuration ACME globale pour Caddy
-ACME_GLOBAL_CONFIG=""
-if [ "$DOMAIN_NAME" != ":80" ]; then
-  if [ "$SSL_MODE" = "staging" ]; then
+# 3. Génération dynamique du Caddyfile
+echo "📝 Configuration du Proxy Caddy pour : $DOMAIN_NAME (Mode: $SSL_MODE)"
+
+if [ "$DOMAIN_NAME" != ":80" ] && [ "$SSL_MODE" = "staging" ]; then
     echo "🧪 Mode SSL : TEST / STAGING (Let's Encrypt Staging — quota 30 000 certs/semaine)"
-    ACME_GLOBAL_CONFIG=$(cat << 'ACME_EOF'
+    cat <<EOF > Caddyfile
 {
     # Let's Encrypt Staging (environnement de test pour éviter le rate limit)
     acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
 }
 
-ACME_EOF
-)
-  else
-    echo "🔒 Mode SSL : PRODUCTION (Certificats officiels Let's Encrypt)"
-  fi
-fi
-
-# 3. Génération dynamique du Caddyfile
-echo "📝 Configuration du Proxy Caddy pour : $DOMAIN_NAME (Mode: $SSL_MODE)"
-cat <<EOF > Caddyfile
-${ACME_GLOBAL_CONFIG}$DOMAIN_NAME {
+$DOMAIN_NAME {
     # On gère l'API
     handle /api/* {
         reverse_proxy hackathon-backend:3000
@@ -85,6 +75,28 @@ config.$DOMAIN_NAME {
     reverse_proxy config-app:80
 }
 EOF
+else
+    if [ "$DOMAIN_NAME" != ":80" ]; then
+        echo "🔒 Mode SSL : PRODUCTION (Certificats officiels Let's Encrypt)"
+    fi
+    cat <<EOF > Caddyfile
+$DOMAIN_NAME {
+    # On gère l'API
+    handle /api/* {
+        reverse_proxy hackathon-backend:3000
+    }
+
+    # On gère tout le reste (Frontend)
+    handle {
+        reverse_proxy hackathon-frontend:80
+    }
+}
+
+config.$DOMAIN_NAME {
+    reverse_proxy config-app:80
+}
+EOF
+fi
 
 # 4. Nettoyage et Lancement
 echo "🧹 Nettoyage des anciens conteneurs..."
