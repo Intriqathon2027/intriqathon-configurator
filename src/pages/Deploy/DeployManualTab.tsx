@@ -7,7 +7,7 @@ import { useApp } from '../../context/AppContext'
 import { generateEnvContent } from '../../utils/deploy'
 
 export function DeployManualTab() {
-  const { t, config, state } = useApp()
+  const { t, config, setField, state } = useApp()
   const deployPath = config.DEPLOY_PATH || 'hackathon-deploy'
   const ipv4 = config.IPV4_INSTANCE || '<IPV4>'
   const isEn = state.language === 'en'
@@ -49,6 +49,36 @@ export function DeployManualTab() {
     <>
       {/* .env preview + download */}
       <Card icon={<FileDown size={16} color="var(--color-primary-text)" />} title={t('step6.preview')}>
+        {/* SSL Mode selector (Let's Encrypt Staging vs Production) */}
+        <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
+          <label className="form-label">{t('step6.sslMode.label')}</label>
+          <div className="radio-row">
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="ssl-mode-manual"
+                value="production"
+                checked={config.SSL_MODE !== 'staging'}
+                onChange={() => setField('SSL_MODE', 'production')}
+              />
+              <span>{t('step6.sslMode.production')}</span>
+            </label>
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="ssl-mode-manual"
+                value="staging"
+                checked={config.SSL_MODE === 'staging'}
+                onChange={() => setField('SSL_MODE', 'staging')}
+              />
+              <span>{t('step6.sslMode.staging')}</span>
+            </label>
+          </div>
+          <p className="t-caption" style={{ marginTop: 'var(--space-1)', color: 'var(--color-text-secondary)' }}>
+            {config.SSL_MODE === 'staging' ? t('step6.sslMode.hintStaging') : t('step6.sslMode.hintProduction')}
+          </p>
+        </div>
+
         <div className="env-preview">{colorizedEnv}</div>
         <div className="download-section">
           <div className="download-icon">

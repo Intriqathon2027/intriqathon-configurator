@@ -13,19 +13,24 @@ else
     echo "✅ Docker est déjà installé."
 fi
 
-# 2. Configuration du Domaine (Lecture automatique du .env)
+# 2. Configuration du Domaine et SSL (Lecture automatique du .env)
 echo ""
 echo "---------------------------------------------------"
-echo "🌍 CONFIGURATION DU DOMAINE"
+echo "🌍 CONFIGURATION DU DOMAINE ET DU SSL"
 echo "---------------------------------------------------"
 
-# On initialise la variable
+# On initialise les variables
 DOMAIN_NAME=""
+SSL_MODE="production"
 
 # Vérifie si le fichier .env existe
 if [ -f .env ]; then
     # On cherche la ligne commençant par DOMAIN=, on prend ce qu'il y a après le =, et on enlève les guillemets éventuels
     DOMAIN_NAME=$(grep "^DOMAIN=" .env | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+    PARSED_SSL_MODE=$(grep "^SSL_MODE=" .env | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+    if [ -n "$PARSED_SSL_MODE" ]; then
+        SSL_MODE="$PARSED_SSL_MODE"
+    fi
 fi
 
 # Si DOMAIN_NAME est vide (pas trouvé dans le .env), on demande à l'utilisateur
@@ -43,11 +48,28 @@ if [ -z "$DOMAIN_NAME" ]; then
   DOMAIN_NAME=":80"
 fi
 
+# Configuration ACME globale pour Caddy
+ACME_GLOBAL_CONFIG=""
+if [ "$DOMAIN_NAME" != ":80" ]; then
+  if [ "$SSL_MODE" = "staging" ]; then
+    echo "🧪 Mode SSL : TEST / STAGING (Let's Encrypt Staging — quota 30 000 certs/semaine)"
+    ACME_GLOBAL_CONFIG=$(cat << 'ACME_EOF'
+{
+    # Let's Encrypt Staging (environnement de test pour éviter le rate limit)
+    acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+ACME_EOF
+)
+  else
+    echo "🔒 Mode SSL : PRODUCTION (Certificats officiels Let's Encrypt)"
+  fi
+fi
 
 # 3. Génération dynamique du Caddyfile
-echo "📝 Configuration du Proxy Caddy pour : $DOMAIN_NAME"
+echo "📝 Configuration du Proxy Caddy pour : $DOMAIN_NAME (Mode: $SSL_MODE)"
 cat <<EOF > Caddyfile
-$DOMAIN_NAME {
+${ACME_GLOBAL_CONFIG}$DOMAIN_NAME {
     # On gère l'API
     handle /api/* {
         reverse_proxy hackathon-backend:3000
