@@ -25,9 +25,15 @@ describe('Deploy Utils', () => {
   it('should generate proper .env content with all secret keys', () => {
     const env = generateEnvContent(dummyConfig)
     expect(env).toContain('DOMAIN=test.example.com')
+    expect(env).toContain('SSL_MODE=production')
     expect(env).toContain('SUPABASE_ANON_KEY=anon_123')
     expect(env).toContain('BOT_TOKEN=bot_token_secret')
     expect(env).toContain('RESEND_API_KEY=re_123')
+  })
+
+  it('should generate .env content with SSL_MODE staging when specified', () => {
+    const env = generateEnvContent({ ...dummyConfig, SSL_MODE: 'staging' })
+    expect(env).toContain('SSL_MODE=staging')
   })
 
   it('should generate bash script containing deploy commands and environment', () => {
