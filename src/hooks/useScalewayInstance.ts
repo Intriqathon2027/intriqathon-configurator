@@ -29,7 +29,7 @@ export function useScalewayInstance() {
     projectId: string
     sshPublicKey: string
     sshKeyName?: string
-  }): Promise<{ success: boolean; ipv4?: string; error?: string }> => {
+  }): Promise<{ success: boolean; ipv4?: string; serverId?: string; zone?: string; error?: string }> => {
     if (!window.electronAPI?.createScalewayInstance) {
       return { success: false, error: 'Feature only available on Electron desktop application.' }
     }
@@ -63,7 +63,7 @@ export function useScalewayInstance() {
         setStatus('done')
         setProgress(100)
         console.log('[useScalewayInstance] Success, IPv4:', res.ipv4)
-        return { success: true, ipv4: res.ipv4 }
+        return { success: true, ipv4: res.ipv4, serverId: res.serverId, zone: res.zone }
       } else {
         setStatus('error')
         const errMsg = res.error || 'Unknown error while creating Scaleway instance'

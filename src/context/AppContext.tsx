@@ -80,6 +80,13 @@ export interface Config {
   // Account Creation — Scaleway
   SCW_SECRET_KEY: string
   SCW_DEFAULT_PROJECT_ID: string
+  /**
+   * The instance the configurator created, and the zone it lives in. Not part
+   * of the .env — it is what "Arrêt du site" deletes the server by. Cleared
+   * when the IPv4 is typed by hand, which names some other server.
+   */
+  SCW_SERVER_ID: string
+  SCW_ZONE: string
   DEPLOY_PATH: string
 
   // API Configuration — Supabase (auto-retrievable, kept for manual fallback)
@@ -146,6 +153,8 @@ const defaultConfig: Config = {
   RESEND_VERIFICATION_PENDING_SINCE: '',
   SCW_SECRET_KEY: '',
   SCW_DEFAULT_PROJECT_ID: '',
+  SCW_SERVER_ID: '',
+  SCW_ZONE: '',
   DEPLOY_PATH: '',
   SUPABASE_URL: '',
   SUPABASE_ANON_KEY: '',
@@ -201,7 +210,7 @@ function resolveTheme(pref: ThemePreference, prefersDark: boolean): ResolvedThem
 // ============================================================
 // TOTAL STEPS
 // ============================================================
-const TOTAL_STEPS = 5
+const TOTAL_STEPS = 6
 
 // ============================================================
 // ACTIONS

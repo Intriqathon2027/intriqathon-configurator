@@ -95,6 +95,11 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   })
 }
 
+/** How a record is identified when matching ours against the zone's. */
+function recordKey(name: string, type: string): string {
+  return `${name.toLowerCase().replace(/\.$/, '')}|${type.toUpperCase()}`
+}
+
 /** Our shape onto the one the API takes, with the value under the right key. */
 export function toSpaceshipItem(record: DnsRecord): SpaceshipDnsItem {
   const item: SpaceshipDnsItem = { type: record.type, name: record.host, ttl: record.ttl }
@@ -205,6 +210,31 @@ export class SpaceshipApiClient {
     }
 
     return all
+  }
+
+  /**
+   * What the zone holds under the names and types of `records` — the very
+   * records the deployment published, matched the way `saveRecords` replaces
+   * them: on name and type, not value. A zone normalises what it stores
+   * (quoting, trailing dots), and the value on file can be older than the one
+   * in the zone after an IPv4 change.
+   */
+  async findRecords(domain: string, records: DnsRecord[]): Promise<SpaceshipDnsItem[]> {
+    const wanted = new Set(records.map(record => recordKey(record.host, record.type)))
+    const existing = await this.listRecords(domain)
+    return existing.filter(item => wanted.has(recordKey(item.name, item.type)))
+  }
+
+  /**
+   * Removes those records from the zone, sending each one back exactly as the
+   * listing returned it — which is what the DELETE matches on. Anything else
+   * on the domain is left alone. Resolves the number of records removed.
+   */
+  async deleteRecords(domain: string, records: DnsRecord[]): Promise<number> {
+    const present = await this.findRecords(domain, records)
+    if (present.length === 0) return 0
+    await this.request('DELETE', `/v1/dns/records/${encodeURIComponent(domain)}`, present)
+    return present.length
   }
 
   /**

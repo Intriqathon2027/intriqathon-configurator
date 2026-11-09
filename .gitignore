@@ -31,3 +31,8 @@ dist-ssr
 
 .claude
 /design
+
+
+dist-electron/*
+dist-electron
+

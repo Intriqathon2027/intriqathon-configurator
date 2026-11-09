@@ -21,6 +21,7 @@ import type {
   SupabaseSiteSetupRequest,
 } from './provision'
 import type { CredentialCheckRequest, CredentialCheckResult } from './credentials'
+import type { TeardownProbe, TeardownRequest, TeardownRunResult, TeardownService } from './teardown'
 
 export interface RecentConfig {
   name: string
@@ -49,6 +50,7 @@ export interface ScalewayCreateResult {
   success: boolean
   ipv4?: string
   serverId?: string
+  zone?: string
   error?: string
 }
 
@@ -109,6 +111,10 @@ export interface ElectronAPI {
   onDeployStderr: (cb: (line: string) => void) => () => void
   onDeployExit: (cb: (code: number | null) => void) => () => void
   onDeployError: (cb: (error: string) => void) => () => void
+
+  // Shutdown (Arrêt du site)
+  probeTeardown: (req: TeardownRequest) => Promise<ProvisionQueryResult<TeardownProbe>>
+  runTeardown: (service: TeardownService, req: TeardownRequest) => Promise<ProvisionQueryResult<TeardownRunResult>>
 
   // Provisioning (Configuration par API)
   startSupabaseProvision: (req: SupabaseProvisionRequest) => Promise<void>

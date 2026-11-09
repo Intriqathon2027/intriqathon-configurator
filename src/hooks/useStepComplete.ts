@@ -63,6 +63,14 @@ export function useStepComplete(): (step: number) => boolean {
         return settings && restarted
       }
 
+      // Arrêt du site — every provider has confirmed its resource is gone
+      // (or there was none), or the DNS was removed by hand at another registrar
+      case 5:
+        return isRunDone('shutdown-supabase')
+          && isRunDone('shutdown-scaleway')
+          && isRunDone('shutdown-resend')
+          && isRunDone('shutdown-spaceship')
+
       default:
         return fieldsFilled
     }

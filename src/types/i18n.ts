@@ -404,6 +404,47 @@ export type TranslationKeys = {
   'step8.adminLogin.btn': string
   'step8.tip': string
   'step8.tip2': string
+
+  // Step 6 — Site shutdown
+  'shutdown.label': string
+  'shutdown.title': string
+  'shutdown.desc': string
+  'shutdown.order': string
+  'shutdown.recheck': string
+  'shutdown.btn.delete': string
+  'shutdown.btn.deleting': string
+  'shutdown.status.checking': string
+  'shutdown.status.deleting': string
+  'shutdown.status.present': string
+  'shutdown.status.absent': string
+  'shutdown.status.nothing': string
+  'shutdown.status.unknown': string
+  'shutdown.status.error': string
+  'shutdown.warnings': string
+  'shutdown.toast.deleted': string
+  'shutdown.dialog.title': string
+  'shutdown.dialog.intro': string
+  'shutdown.dialog.note': string
+  'shutdown.dialog.cancel': string
+  'shutdown.dialog.proceed': string
+  'shutdown.supabase.title': string
+  'shutdown.supabase.target': string
+  'shutdown.supabase.what': string
+  'shutdown.supabase.adoptedWarning': string
+  'shutdown.scaleway.title': string
+  'shutdown.scaleway.target': string
+  'shutdown.scaleway.what': string
+  'shutdown.scaleway.byIp': string
+  'shutdown.resend.title': string
+  'shutdown.resend.target': string
+  'shutdown.resend.what': string
+  'shutdown.spaceship.title': string
+  'shutdown.spaceship.domain': string
+  'shutdown.spaceship.target': string
+  'shutdown.spaceship.what': string
+  'shutdown.dns.otherTitle': string
+  'shutdown.dns.otherWhat': string
+  'shutdown.dns.otherCheck': string
 }
 
 export type Translations = {

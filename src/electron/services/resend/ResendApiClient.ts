@@ -168,6 +168,19 @@ export class ResendApiClient {
     return domain
   }
 
+  /**
+   * Removes the sending domain from the account. A 404 is swallowed: a domain
+   * already gone is the outcome asked for, not a failure.
+   */
+  async deleteDomain(id: string): Promise<void> {
+    try {
+      await this.request('DELETE', `/domains/${id}`)
+    } catch (err) {
+      if (err instanceof ResendApiError && err.status === 404) return
+      throw err
+    }
+  }
+
   /** Asks Resend to look at the DNS now; the check itself runs asynchronously. */
   async verifyDomain(id: string): Promise<void> {
     await this.request('POST', `/domains/${id}/verify`)

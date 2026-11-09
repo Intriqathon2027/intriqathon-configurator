@@ -466,7 +466,14 @@ export function ApiConfiguration() {
     });
 
     if (res.success && res.ipv4) {
-      setField("IPV4_INSTANCE", res.ipv4);
+      // The id and zone are what "Arrêt du site" deletes the instance by —
+      // the address alone can be reassigned once the server is gone.
+      const created: Partial<Config> = {
+        IPV4_INSTANCE: res.ipv4,
+        SCW_SERVER_ID: res.serverId ?? "",
+        SCW_ZONE: res.zone ?? "",
+      };
+      setFields(created);
       toast.success(
         isEn
           ? `Scaleway instance ready! IP: ${res.ipv4}`
@@ -475,8 +482,8 @@ export function ApiConfiguration() {
       if (window.electronAPI?.vaultSave) {
         await window.electronAPI.vaultSave({
           ...config,
-          IPV4_INSTANCE: res.ipv4,
-        });
+          ...created,
+        } as unknown as Record<string, string>);
       }
     } else if (res.error) {
       toast.error(res.error, { duration: 6000 });
@@ -820,7 +827,11 @@ export function ApiConfiguration() {
                 id="ipv4"
                 label={t("apiConfig.spaceship.ipv4")}
                 value={config.IPV4_INSTANCE}
-                onChange={(v) => setField("IPV4_INSTANCE", v)}
+                // An address typed by hand names some other server: the saved
+                // id would point "Arrêt du site" at the wrong one.
+                onChange={(v) =>
+                  setFields({ IPV4_INSTANCE: v, SCW_SERVER_ID: "", SCW_ZONE: "" })
+                }
                 placeholder="198.51.100.1"
               />
 

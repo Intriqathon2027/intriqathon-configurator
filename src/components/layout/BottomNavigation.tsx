@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Check, Save } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import toast from "react-hot-toast";
 import { useAutomationLocked } from "../../context/AutomationLockContext";
@@ -63,21 +63,6 @@ export function BottomNavigation({
               {t("nav.saveAndNext")}
               <ChevronRight size={16} />
             </button>
-          )}
-          {isLast && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                color: "var(--color-primary-text)",
-                fontSize: "var(--font-size-md)",
-                fontWeight: 600,
-              }}
-            >
-              <Check size={18} />
-              Configuration complète !
-            </div>
           )}
         </div>
       </footer>
