@@ -18,6 +18,12 @@ interface ServiceAccountCardProps {
    * above the dimmed screen.
    */
   automationRunning?: boolean
+  /**
+   * The card's own action, on the footer row to the left of "Learn more" —
+   * the delete button of "Arrêt du site", say. Omitted, the footer holds the
+   * help button alone, as on every other page.
+   */
+  footerAction?: ReactNode
   children: ReactNode
 }
 
@@ -27,6 +33,7 @@ export function ServiceAccountCard({
   helpAnchor,
   isComplete,
   automationRunning = false,
+  footerAction,
   children,
 }: ServiceAccountCardProps) {
   const { isOwner: automationFocused } = useAutomationLock(automationRunning)
@@ -43,6 +50,7 @@ export function ServiceAccountCard({
       <div className="service-account-card__body">{children}</div>
 
       <div className="service-account-card__footer">
+        {footerAction && <div className="service-account-card__footer-action">{footerAction}</div>}
         <HelpAnchorBtn anchor={helpAnchor} />
       </div>
     </div>

@@ -7,6 +7,9 @@ import {
   type ScalewayServer,
 } from './scaleway/ScalewayInstanceClient'
 import type {
+  BlockVolumeDeleteRequest,
+  BlockVolumeDeleteResult,
+  ScalewayBlockVolume,
   TeardownProbe,
   TeardownRequest,
   TeardownRunResult,
@@ -16,6 +19,13 @@ import type {
 
 /** Statuses Supabase reports for a project that is gone, or on its way out. */
 const SUPABASE_GONE = new Set(['REMOVED', 'GOING_DOWN'])
+
+/**
+ * How long a Supabase deletion is followed before the card hands over to
+ * "under way": 36 reads, 5 s apart — three minutes.
+ */
+const SUPABASE_DELETE_POLLS = 36
+const SUPABASE_DELETE_POLL_MS = 5_000
 
 /** Volumes `terminate` deletes along with the server; anything else is only detached. */
 const LOCAL_VOLUME_TYPES = new Set(['l_ssd', 'scratch'])
@@ -80,7 +90,10 @@ export class TeardownService {
   private supabase(req: TeardownRequest): { client: SupabaseApiClient; ref: string } {
     const s = req.supabase
     if (!s?.accessToken || !s.ref) throw new Error('Supabase access token or project reference missing (Step 1).')
-    return { client: new SupabaseApiClient({ accessToken: s.accessToken, fetchImpl: this.fetchImpl }), ref: s.ref }
+    return {
+      client: new SupabaseApiClient({ accessToken: s.accessToken, fetchImpl: this.fetchImpl, sleepImpl: this.sleepImpl }),
+      ref: s.ref,
+    }
   }
 
   private async readSupabase(req: TeardownRequest): Promise<TeardownServiceState> {
@@ -90,10 +103,30 @@ export class TeardownService {
     return { presence: 'present', detail: `${project.name} (${project.ref})` }
   }
 
+  /**
+   * Deleting a project takes Supabase a while, and in the meantime reading it
+   * back does not answer "still here" or "gone" but fails outright. Taken at
+   * face value, that failure put a "cannot check" on a card whose deletion was
+   * going perfectly well. So once the call is accepted, every answer short of
+   * "gone" — the project still listed, or an error — means "not finished yet",
+   * and the read is repeated until it is gone or the wait runs out, in which
+   * case the card says the deletion is under way rather than that it failed.
+   */
   private async deleteSupabase(req: TeardownRequest): Promise<TeardownRunResult> {
     const { client, ref } = this.supabase(req)
     await client.deleteProject(ref)
-    return { state: await this.settle(() => this.readSupabase(req)), warnings: [] }
+
+    const sleep = this.sleepImpl ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)))
+    let state = await this.settle(() => this.readSupabase(req))
+    for (let attempt = 1; state.presence !== 'absent' && attempt < SUPABASE_DELETE_POLLS; attempt++) {
+      await sleep(SUPABASE_DELETE_POLL_MS)
+      state = await this.settle(() => this.readSupabase(req))
+    }
+
+    return {
+      state: state.presence === 'absent' ? state : { presence: 'pending', detail: state.detail },
+      warnings: [],
+    }
   }
 
   // ── Scaleway ──────────────────────────────────────────────────────────────
@@ -172,14 +205,48 @@ export class TeardownService {
 
     server = await client.waitFor(zone, id, s => s === null)
 
-    for (const volume of kept) {
-      warnings.push(`Block Storage volume ${volume.name ?? volume.id} was only detached and is still billed — delete it from the Scaleway console if you no longer need it.`)
+    // Block Storage volumes are handed back to the page, which asks before
+    // deleting them; any other kind can only be named.
+    const detachedVolumes: ScalewayBlockVolume[] = kept
+      .filter(v => v.volume_type === 'sbs_volume')
+      .map(v => ({ id: v.id, name: v.name, zone, size: v.size }))
+    for (const volume of kept.filter(v => v.volume_type !== 'sbs_volume')) {
+      warnings.push(`Volume ${volume.name ?? volume.id} was only detached and is still billed — delete it from the Scaleway console if you no longer need it.`)
     }
     for (const ip of new Set(flexibleIps.map(ip => ip!.address!))) {
       warnings.push(`Flexible IP ${ip} is kept on your account and still billed — release it from the Scaleway console if you no longer need it.`)
     }
 
-    return { state: server ? (await this.readScaleway(req)).state : { presence: 'absent' }, warnings }
+    return {
+      state: server ? (await this.readScaleway(req)).state : { presence: 'absent' },
+      warnings,
+      detachedVolumes,
+    }
+  }
+
+  /**
+   * Deletes the Block Storage volumes a deleted instance left behind — a
+   * separate step, only on the reader's say-so: they may hold data worth
+   * keeping. One failure does not stop the others.
+   */
+  async deleteBlockVolumes(req: BlockVolumeDeleteRequest): Promise<BlockVolumeDeleteResult> {
+    if (!req.secretKey) throw new Error('Scaleway secret key missing (Step 1).')
+    const client = new ScalewayInstanceClient({
+      secretKey: req.secretKey,
+      fetchImpl: this.fetchImpl,
+      sleepImpl: this.sleepImpl,
+    })
+
+    const result: BlockVolumeDeleteResult = { deleted: [], failed: [] }
+    for (const volume of req.volumes) {
+      try {
+        await client.deleteBlockVolume(volume.zone, volume.id)
+        result.deleted.push(volume.id)
+      } catch (err) {
+        result.failed.push({ ...volume, error: err instanceof Error ? err.message : String(err) })
+      }
+    }
+    return result
   }
 
   // ── Resend ────────────────────────────────────────────────────────────────

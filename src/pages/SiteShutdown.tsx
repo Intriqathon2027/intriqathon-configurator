@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
   CheckCircle,
   Database,
   Globe,
@@ -13,15 +12,27 @@ import {
 import toast from "react-hot-toast";
 import { WizardLayout } from "../components/layout/WizardLayout";
 import { ServiceAccountCard } from "../components/ui/ServiceAccountCard";
-import { WarningDialog, type WarningDialogItem } from "../components/ui/WarningDialog";
-import { DnsTable } from "../components/ui/DnsTable";
+import {
+  WarningDialog,
+  type WarningDialogItem,
+} from "../components/ui/WarningDialog";
+import { ShutdownCard } from "../components/shutdown/ShutdownCard";
+import { StatusBox } from "../components/shutdown/StatusBox";
+import { DnsRecordList } from "../components/shutdown/DnsRecordList";
 import { useApp } from "../context/AppContext";
 import { useSession, type RunKey } from "../context/SessionContext";
 import { useAutomationLocked } from "../context/AutomationLockContext";
-import { useTeardown, type TeardownCardState } from "../hooks/useTeardown";
+import { useTeardown } from "../hooks/useTeardown";
 import { buildInfraDnsRecords, type DnsRecord } from "../shared/dnsRecords";
-import type { TeardownRequest, TeardownService } from "../types/teardown";
+import type {
+  ScalewayBlockVolume,
+  TeardownRequest,
+  TeardownService,
+} from "../types/teardown";
 import { SiteShutdownHelpContent } from "../PagesHelpContent/SiteShutdownHelpContent";
+
+/** How often a deletion still under way at the provider is checked again. */
+const PENDING_RECHECK_MS = 15_000;
 
 const RUN_KEYS: Record<TeardownService, RunKey> = {
   supabase: "shutdown-supabase",
@@ -29,6 +40,13 @@ const RUN_KEYS: Record<TeardownService, RunKey> = {
   resend: "shutdown-resend",
   spaceship: "shutdown-spaceship",
 };
+
+/** A volume as the dialog and the card name it: its name, then its size. */
+function volumeLabel(volume: ScalewayBlockVolume): string {
+  const name = volume.name || volume.id;
+  // Scaleway bills in decimal gigabytes.
+  return volume.size ? `${name} — ${Math.round(volume.size / 1e9)} GB` : name;
+}
 
 /** What Resend asked to be published, as its run saved it. */
 function parseRecords(raw: string): DnsRecord[] {
@@ -41,9 +59,9 @@ function parseRecords(raw: string): DnsRecord[] {
 }
 
 export function SiteShutdown() {
-  const { t, config, state } = useApp();
-  const isEn = state.language === "en";
-  const { markRunDone, clearRun, isManualChecked, setManualCheck } = useSession();
+  const { t, config } = useApp();
+  const { markRunDone, clearRun, isManualChecked, setManualCheck } =
+    useSession();
   const automationLocked = useAutomationLocked();
   const [confirming, setConfirming] = useState<TeardownService | null>(null);
 
@@ -59,10 +77,19 @@ export function SiteShutdown() {
     if (!config.DOMAIN) return [];
     const mailSubdomain = config.MAIL_SUBDOMAIN || `mail.${config.DOMAIN}`;
     return [
-      ...buildInfraDnsRecords(config.DOMAIN, config.IPV4_INSTANCE || "<IPV4_INSTANCE>", mailSubdomain),
+      ...buildInfraDnsRecords(
+        config.DOMAIN,
+        config.IPV4_INSTANCE || "<IPV4_INSTANCE>",
+        mailSubdomain,
+      ),
       ...parseRecords(config.RESEND_DNS_RECORDS),
     ];
-  }, [config.DOMAIN, config.MAIL_SUBDOMAIN, config.IPV4_INSTANCE, config.RESEND_DNS_RECORDS]);
+  }, [
+    config.DOMAIN,
+    config.MAIL_SUBDOMAIN,
+    config.IPV4_INSTANCE,
+    config.RESEND_DNS_RECORDS,
+  ]);
 
   /**
    * One entry per service that has something to point at. A service with no
@@ -74,7 +101,10 @@ export function SiteShutdown() {
   const request = useMemo<TeardownRequest>(() => {
     const req: TeardownRequest = {};
     if (config.SUPABASE_PROJECT_REF) {
-      req.supabase = { accessToken: config.SUPABASE_ACCESS_TOKEN, ref: config.SUPABASE_PROJECT_REF };
+      req.supabase = {
+        accessToken: config.SUPABASE_ACCESS_TOKEN,
+        ref: config.SUPABASE_PROJECT_REF,
+      };
     }
     if (config.SCW_SERVER_ID || config.IPV4_INSTANCE) {
       req.scaleway = {
@@ -84,7 +114,10 @@ export function SiteShutdown() {
         ipv4: config.IPV4_INSTANCE || undefined,
       };
     }
-    if (config.MAIL_SUBDOMAIN && (config.RESEND_DOMAIN_ID || config.RESEND_API_KEY)) {
+    if (
+      config.MAIL_SUBDOMAIN &&
+      (config.RESEND_DOMAIN_ID || config.RESEND_API_KEY)
+    ) {
       req.resend = {
         apiKey: config.RESEND_API_KEY,
         mailSubdomain: config.MAIL_SUBDOMAIN,
@@ -117,13 +150,38 @@ export function SiteShutdown() {
     dnsRecords,
   ]);
 
-  const { states, probe, remove } = useTeardown(request);
+  const { states, probe, remove, removeVolumes } = useTeardown(request);
+
+  /**
+   * Block Storage volumes are only detached by the instance deletion: they
+   * keep their data and their billing. Deleting them is offered as a second,
+   * separate question once the instance is gone — raised on its own right
+   * after, and reachable again from the card if it was turned down.
+   */
+  const detachedVolumes = states.scaleway?.detachedVolumes ?? [];
+  const [volumesDialogOpen, setVolumesDialogOpen] = useState(false);
+  const [volumesDeleting, setVolumesDeleting] = useState(false);
+
+  const deleteVolumes = async () => {
+    setVolumesDialogOpen(false);
+    setVolumesDeleting(true);
+    const result = await removeVolumes(detachedVolumes);
+    setVolumesDeleting(false);
+    if (!result) return;
+    if (result.failed.length === 0) toast.success(t("shutdown.volumes.deleted"));
+    else
+      toast.error(
+        `${t("shutdown.volumes.failed")} — ${result.failed.map((v) => `${v.name ?? v.id} (${v.error})`).join(", ")}`,
+        { duration: 8000 },
+      );
+  };
 
   const manualDnsDone = isManualChecked("shutdown-dns-manual");
 
   /** Green: the provider says it is gone, or there was never anything there. */
   const isGone = (service: TeardownService): boolean => {
-    if (service === "spaceship" && usesOtherDomainProvider) return manualDnsDone || !config.DOMAIN;
+    if (service === "spaceship" && usesOtherDomainProvider)
+      return manualDnsDone || !config.DOMAIN;
     if (!request[service]) return true;
     return states[service]?.status === "absent";
   };
@@ -143,7 +201,10 @@ export function SiteShutdown() {
   useEffect(() => {
     for (const service of Object.keys(RUN_KEYS) as TeardownService[]) {
       if (gone[service]) markRunDone(RUN_KEYS[service]);
-      else if (states[service]?.status === "present" || (service === "spaceship" && usesOtherDomainProvider)) {
+      else if (
+        states[service]?.status === "present" ||
+        (service === "spaceship" && usesOtherDomainProvider)
+      ) {
         clearRun(RUN_KEYS[service]);
       }
     }
@@ -151,23 +212,37 @@ export function SiteShutdown() {
 
   const confirmItems: Record<TeardownService, WarningDialogItem[]> = {
     supabase: [
-      { key: "ref", chip: t("shutdown.supabase.target"), label: states.supabase?.detail ?? config.SUPABASE_PROJECT_REF },
+      {
+        key: "ref",
+        chip: t("shutdown.supabase.target"),
+        label: states.supabase?.detail ?? config.SUPABASE_PROJECT_REF,
+      },
       { key: "what", label: t("shutdown.supabase.what") },
     ],
     scaleway: [
       {
         key: "server",
         chip: t("shutdown.scaleway.target"),
-        label: states.scaleway?.detail ?? (config.SCW_SERVER_ID || config.IPV4_INSTANCE),
+        label:
+          states.scaleway?.detail ??
+          (config.SCW_SERVER_ID || config.IPV4_INSTANCE),
       },
       { key: "what", label: t("shutdown.scaleway.what") },
     ],
     resend: [
-      { key: "domain", chip: t("shutdown.resend.target"), label: states.resend?.detail ?? config.MAIL_SUBDOMAIN },
+      {
+        key: "domain",
+        chip: t("shutdown.resend.target"),
+        label: states.resend?.detail ?? config.MAIL_SUBDOMAIN,
+      },
       { key: "what", label: t("shutdown.resend.what") },
     ],
     spaceship: [
-      { key: "records", chip: t("shutdown.spaceship.target"), label: states.spaceship?.detail ?? config.DOMAIN },
+      {
+        key: "records",
+        chip: t("shutdown.spaceship.target"),
+        label: states.spaceship?.detail ?? config.DOMAIN,
+      },
       { key: "what", label: t("shutdown.spaceship.what") },
     ],
   };
@@ -177,24 +252,37 @@ export function SiteShutdown() {
     setConfirming(null);
     if (!service) return;
     const outcome = await remove(service);
-    if (outcome?.status === "absent") toast.success(t("shutdown.toast.deleted"));
-    else if (outcome?.status === "error" && outcome.error) toast.error(outcome.error, { duration: 6000 });
+    if (outcome?.status === "absent")
+      toast.success(t("shutdown.toast.deleted"));
+    else if (outcome?.status === "error" && outcome.error)
+      toast.error(outcome.error, { duration: 6000 });
+    if (service === "scaleway" && (outcome?.detachedVolumes?.length ?? 0) > 0)
+      setVolumesDialogOpen(true);
   };
 
   const dnsLabels = {
     type: t("step4.dns.type"),
     host: t("step4.dns.host"),
     answer: t("step4.dns.answer"),
-    ttl: t("step4.dns.ttl"),
-    copy: t("btn.copy"),
-    copyRow: isEn ? "Copy the whole row" : "Copier la ligne entière",
-    copyCell: isEn ? "Copy" : "Copier",
-    copied: isEn ? "Copied" : "Copié",
-    priority: isEn ? "Priority" : "Priorité",
-    fullName: isEn ? "Full name" : "Nom complet",
   };
 
-  const anyChecking = Object.values(states).some(s => s?.status === "checking");
+  const anyChecking = Object.values(states).some(
+    (s) => s?.status === "checking",
+  );
+
+  /**
+   * A deletion the provider is still carrying out finishes without anyone
+   * pressing anything — so the page keeps asking until it has, rather than
+   * leaving the card waiting on a "Revérifier" nobody knows to press.
+   */
+  const anyPending = Object.values(states).some(
+    (s) => s?.status === "pending",
+  );
+  useEffect(() => {
+    if (!anyPending || automationLocked) return;
+    const timer = window.setInterval(() => void probe(), PENDING_RECHECK_MS);
+    return () => window.clearInterval(timer);
+  }, [anyPending, automationLocked, probe]);
 
   return (
     <WizardLayout
@@ -203,10 +291,6 @@ export function SiteShutdown() {
       helpContent={<SiteShutdownHelpContent />}
     >
       <div className="shutdown-toolbar">
-        <p className="shutdown-toolbar__order">
-          <AlertTriangle size={14} />
-          {t("shutdown.order")}
-        </p>
         <button
           type="button"
           className="btn btn-secondary"
@@ -219,7 +303,7 @@ export function SiteShutdown() {
         </button>
       </div>
 
-      <div className="service-account-grid">
+      <div className="service-account-grid shutdown-grid">
         {/* DNS first: records pointing at a released IPv4 would send the
             domain's visitors to whoever is handed that address next. */}
         {usesOtherDomainProvider ? (
@@ -230,21 +314,31 @@ export function SiteShutdown() {
             isComplete={gone.spaceship}
           >
             <div className="form-section">
-              <p className="shutdown-card__what">{t("shutdown.dns.otherWhat")}</p>
+              <p className="shutdown-card__what">
+                {t("shutdown.dns.otherWhat")}
+              </p>
               {config.DOMAIN ? (
                 <>
-                  <DnsTable records={dnsRecords} variant="generic" domain={config.DOMAIN} labels={dnsLabels} />
-                  <label className={`manual-check${manualDnsDone ? " manual-check--done" : ""}`}>
+                  <DnsRecordList records={dnsRecords} labels={dnsLabels} />
+                  <label
+                    className={`manual-check${manualDnsDone ? " manual-check--done" : ""}`}
+                  >
                     <input
                       type="checkbox"
                       checked={manualDnsDone}
-                      onChange={e => setManualCheck("shutdown-dns-manual", e.target.checked)}
+                      onChange={(e) =>
+                        setManualCheck("shutdown-dns-manual", e.target.checked)
+                      }
                     />
-                    <span className="manual-check__label">{t("shutdown.dns.otherCheck")}</span>
+                    <span className="manual-check__label">
+                      {t("shutdown.dns.otherCheck")}
+                    </span>
                   </label>
                 </>
               ) : (
-                <StatusBox tone="success" icon={<CheckCircle size={15} />}>{t("shutdown.status.nothing")}</StatusBox>
+                <StatusBox tone="success" icon={<CheckCircle size={15} />}>
+                  {t("shutdown.status.nothing")}
+                </StatusBox>
               )}
             </div>
           </ServiceAccountCard>
@@ -285,12 +379,47 @@ export function SiteShutdown() {
           what={t("shutdown.scaleway.what")}
           target={config.IPV4_INSTANCE || config.SCW_SERVER_ID}
           targetLabel={t("shutdown.scaleway.target")}
-          note={!config.SCW_SERVER_ID && config.IPV4_INSTANCE ? t("shutdown.scaleway.byIp") : undefined}
+          note={
+            !config.SCW_SERVER_ID && config.IPV4_INSTANCE
+              ? t("shutdown.scaleway.byIp")
+              : undefined
+          }
           requested={!!request.scaleway}
           state={states.scaleway}
           complete={gone.scaleway}
           locked={automationLocked}
+          busy={volumesDeleting}
           onDelete={() => setConfirming("scaleway")}
+          extra={
+            detachedVolumes.length > 0 && (
+              <div className="shutdown-card__warnings">
+                <span className="shutdown-card__target-label">
+                  {t("shutdown.volumes.left")}
+                </span>
+                <ul>
+                  {detachedVolumes.map((v) => (
+                    <li key={v.id}>{volumeLabel(v)}</li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => setVolumesDialogOpen(true)}
+                  disabled={automationLocked}
+                  id="btn-shutdown-scaleway-volumes"
+                >
+                  {volumesDeleting ? (
+                    <Loader size={14} className="service-config-block__spinner" />
+                  ) : (
+                    <Trash2 size={14} />
+                  )}
+                  {volumesDeleting
+                    ? t("shutdown.volumes.deleting")
+                    : t("shutdown.volumes.btn")}
+                </button>
+              </div>
+            )
+          }
         />
 
         {/* Last: it holds the participants' data, and nothing above needs it. */}
@@ -301,7 +430,11 @@ export function SiteShutdown() {
           what={t("shutdown.supabase.what")}
           target={config.SUPABASE_PROJECT_REF}
           targetLabel={t("shutdown.supabase.target")}
-          warning={supabaseAdopted && !!request.supabase ? t("shutdown.supabase.adoptedWarning") : undefined}
+          warning={
+            supabaseAdopted && !!request.supabase
+              ? t("shutdown.supabase.adoptedWarning")
+              : undefined
+          }
           requested={!!request.supabase}
           state={states.supabase}
           complete={gone.supabase}
@@ -328,159 +461,25 @@ export function SiteShutdown() {
           onProceed={() => void proceed()}
         />
       )}
+
+      {volumesDialogOpen && detachedVolumes.length > 0 && (
+        <WarningDialog
+          title={t("shutdown.volumes.title")}
+          intro={t("shutdown.volumes.intro")}
+          items={detachedVolumes.map((v) => ({
+            key: v.id,
+            chip: t("shutdown.volumes.chip"),
+            label: volumeLabel(v),
+          }))}
+          note={t("shutdown.volumes.note")}
+          cancelLabel={t("shutdown.volumes.keep")}
+          proceedLabel={t("shutdown.volumes.proceed")}
+          proceedIcon={<Trash2 size={14} />}
+          idPrefix="shutdown-scaleway-volumes"
+          onCancel={() => setVolumesDialogOpen(false)}
+          onProceed={() => void deleteVolumes()}
+        />
+      )}
     </WizardLayout>
-  );
-}
-
-// ─── Card ─────────────────────────────────────────────────────────────────────
-
-interface ShutdownCardProps {
-  service: TeardownService;
-  title: string;
-  icon: ReactNode;
-  /** What the deletion removes — and, by omission, what it keeps. */
-  what: string;
-  target: string;
-  targetLabel: string;
-  /** A caveat on how the target was found. */
-  note?: string;
-  /** Said before the button, in the warning colour. */
-  warning?: string;
-  /** The service has something to point at. */
-  requested: boolean;
-  state?: TeardownCardState;
-  complete: boolean;
-  /** Another deletion is running. */
-  locked: boolean;
-  onDelete: () => void;
-}
-
-function ShutdownCard({
-  service,
-  title,
-  icon,
-  what,
-  target,
-  targetLabel,
-  note,
-  warning,
-  requested,
-  state,
-  complete,
-  locked,
-  onDelete,
-}: ShutdownCardProps) {
-  const { t } = useApp();
-  const status = state?.status;
-  const deleting = status === "deleting";
-  // Only something the provider says is there can be deleted. "Unknown" does
-  // not qualify: the same missing key or unreachable API would fail the
-  // deletion too, and the box above already says why.
-  const canDelete = requested && (status === "present" || status === "error") && !locked;
-
-  return (
-    <ServiceAccountCard
-      serviceName={title}
-      serviceIcon={icon}
-      helpAnchor={`shutdown-${service}`}
-      isComplete={complete}
-      automationRunning={deleting}
-    >
-      <div className="form-section">
-        <p className="shutdown-card__what">{what}</p>
-
-        {requested && target && (
-          <div className="shutdown-card__target">
-            <span className="shutdown-card__target-label">{targetLabel}</span>
-            <code>{target}</code>
-          </div>
-        )}
-        {note && <p className="shutdown-card__note">{note}</p>}
-
-        <CardStatus requested={requested} state={state} />
-
-        {state?.warnings && state.warnings.length > 0 && (
-          <div className="shutdown-card__warnings">
-            <span className="shutdown-card__target-label">{t("shutdown.warnings")}</span>
-            <ul>
-              {state.warnings.map(w => <li key={w}>{w}</li>)}
-            </ul>
-          </div>
-        )}
-
-        {warning && !complete && (
-          <StatusBox tone="warning" icon={<AlertTriangle size={15} />}>{warning}</StatusBox>
-        )}
-
-        {requested && !complete && (
-          <button
-            type="button"
-            className="btn btn-danger"
-            onClick={onDelete}
-            disabled={!canDelete}
-            id={`btn-shutdown-${service}`}
-          >
-            {deleting ? <Loader size={14} className="service-config-block__spinner" /> : <Trash2 size={14} />}
-            {deleting ? t("shutdown.btn.deleting") : t("shutdown.btn.delete")}
-          </button>
-        )}
-      </div>
-    </ServiceAccountCard>
-  );
-}
-
-function CardStatus({ requested, state }: { requested: boolean; state?: TeardownCardState }) {
-  const { t } = useApp();
-
-  if (!requested) {
-    return <StatusBox tone="success" icon={<CheckCircle size={15} />}>{t("shutdown.status.nothing")}</StatusBox>;
-  }
-
-  switch (state?.status) {
-    case undefined:
-    case "checking":
-      return <StatusBox tone="running" icon={<Loader size={15} className="service-config-block__spinner" />}>{t("shutdown.status.checking")}</StatusBox>;
-    case "deleting":
-      return <StatusBox tone="running" icon={<Loader size={15} className="service-config-block__spinner" />}>{t("shutdown.status.deleting")}</StatusBox>;
-    case "absent":
-      return <StatusBox tone="success" icon={<CheckCircle size={15} />}>{t("shutdown.status.absent")}</StatusBox>;
-    case "present":
-      return (
-        <StatusBox tone="running" icon={<AlertTriangle size={15} />}>
-          {t("shutdown.status.present")}
-          {state.detail && <span className="shutdown-card__detail">{state.detail}</span>}
-        </StatusBox>
-      );
-    case "unknown":
-      return (
-        <StatusBox tone="error" icon={<AlertTriangle size={15} />}>
-          {t("shutdown.status.unknown")}
-          {state.error && <span className="shutdown-card__detail">{state.error}</span>}
-        </StatusBox>
-      );
-    case "error":
-      return (
-        <StatusBox tone="error" icon={<AlertTriangle size={15} />}>
-          {t("shutdown.status.error")}
-          {state.error && <span className="shutdown-card__detail">{state.error}</span>}
-        </StatusBox>
-      );
-  }
-}
-
-function StatusBox({
-  tone,
-  icon,
-  children,
-}: {
-  tone: "success" | "error" | "running" | "warning";
-  icon: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <div className={`service-config-block__info-box service-config-block__info-box--${tone} shutdown-card__status`}>
-      {icon}
-      <div className="shutdown-card__status-text">{children}</div>
-    </div>
   );
 }

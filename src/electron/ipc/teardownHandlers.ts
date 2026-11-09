@@ -1,6 +1,10 @@
 import { ipcMain } from 'electron'
 import { TeardownService } from '../services/TeardownService'
-import type { TeardownRequest, TeardownService as TeardownServiceName } from '../../types/teardown'
+import type {
+  BlockVolumeDeleteRequest,
+  TeardownRequest,
+  TeardownService as TeardownServiceName,
+} from '../../types/teardown'
 
 /**
  * IPC surface for "Arrêt du site".
@@ -24,6 +28,15 @@ export function registerTeardownHandlers(): void {
   ipcMain.handle('teardown:run', async (_event, service: TeardownServiceName, req: TeardownRequest) => {
     try {
       return { success: true, data: await teardown.run(service, req) }
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  /** The Block Storage volumes a deleted instance left detached — on request only. */
+  ipcMain.handle('teardown:delete-volumes', async (_event, req: BlockVolumeDeleteRequest) => {
+    try {
+      return { success: true, data: await teardown.deleteBlockVolumes(req) }
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : String(err) }
     }

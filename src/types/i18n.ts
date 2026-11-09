@@ -417,6 +417,7 @@ export type TranslationKeys = {
   'shutdown.status.deleting': string
   'shutdown.status.present': string
   'shutdown.status.absent': string
+  'shutdown.status.pending': string
   'shutdown.status.nothing': string
   'shutdown.status.unknown': string
   'shutdown.status.error': string
@@ -445,6 +446,17 @@ export type TranslationKeys = {
   'shutdown.dns.otherTitle': string
   'shutdown.dns.otherWhat': string
   'shutdown.dns.otherCheck': string
+  'shutdown.volumes.title': string
+  'shutdown.volumes.intro': string
+  'shutdown.volumes.chip': string
+  'shutdown.volumes.note': string
+  'shutdown.volumes.keep': string
+  'shutdown.volumes.proceed': string
+  'shutdown.volumes.left': string
+  'shutdown.volumes.btn': string
+  'shutdown.volumes.deleting': string
+  'shutdown.volumes.deleted': string
+  'shutdown.volumes.failed': string
 }
 
 export type Translations = {

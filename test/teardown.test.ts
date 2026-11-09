@@ -161,6 +161,42 @@ describe('TeardownService.probe', () => {
   })
 })
 
+describe('TeardownService.run — Supabase', () => {
+  const project = { id: '1', ref: 'abc', name: 'hk', status: 'ACTIVE_HEALTHY' }
+
+  it('reads errors after the deletion as "not finished yet", and ends green once gone', async () => {
+    let reads = 0
+    const { impl } = fakeFetch(call => {
+      if (call.method === 'DELETE') return { status: 200, body: project }
+      reads++
+      // Still listed, then failing reads while Supabase tears it down, then gone.
+      if (reads === 1) return { status: 200, body: project }
+      if (reads <= 3) return { status: 400, body: { message: 'Project is being removed' } }
+      return { status: 404 }
+    })
+
+    const result = await new TeardownService(impl, noSleep).run('supabase', {
+      supabase: { accessToken: 't', ref: 'abc' },
+    })
+
+    expect(result.state.presence).toBe('absent')
+    expect(reads).toBe(4)
+  })
+
+  it('hands over to "pending", never "unknown", when the deletion outlasts the wait', async () => {
+    const { impl } = fakeFetch(call =>
+      call.method === 'DELETE' ? { status: 200, body: project } : { status: 400, body: { message: 'busy' } },
+    )
+
+    const result = await new TeardownService(impl, noSleep).run('supabase', {
+      supabase: { accessToken: 't', ref: 'abc' },
+    })
+
+    expect(result.state.presence).toBe('pending')
+    expect(result.state.error).toBeUndefined()
+  })
+})
+
 describe('TeardownService.run — Scaleway', () => {
   const server = {
     id: 'srv',
@@ -220,12 +256,12 @@ describe('TeardownService.run — Scaleway', () => {
     expect(result.state.presence).toBe('absent')
   })
 
-  it('names what it leaves behind: Block Storage volumes and flexible IPs', async () => {
+  it('hands back the Block Storage volumes, and names the flexible IP it keeps', async () => {
     let terminated = false
     const withExtras = {
       ...server,
       public_ip: { id: 'ip1', address: '198.51.100.1', dynamic: false },
-      volumes: { ...server.volumes, '1': { id: 'v1', name: 'data', volume_type: 'sbs_volume' } },
+      volumes: { ...server.volumes, '1': { id: 'v1', name: 'data', volume_type: 'sbs_volume', size: 20e9 } },
     }
     const { impl } = fakeFetch(call => {
       if (call.method === 'POST') {
@@ -240,8 +276,62 @@ describe('TeardownService.run — Scaleway', () => {
       scaleway: { secretKey: 'k', serverId: 'srv', zone: 'fr-par-1' },
     })
 
-    expect(result.warnings).toHaveLength(2)
-    expect(result.warnings.join(' ')).toMatch(/data/)
-    expect(result.warnings.join(' ')).toMatch(/198\.51\.100\.1/)
+    expect(result.detachedVolumes).toEqual([{ id: 'v1', name: 'data', zone: 'fr-par-1', size: 20e9 }])
+    expect(result.warnings).toHaveLength(1)
+    expect(result.warnings[0]).toMatch(/198\.51\.100\.1/)
+  })
+})
+
+describe('TeardownService.deleteBlockVolumes', () => {
+  const volume = { id: 'v1', name: 'data', zone: 'fr-par-1' }
+  const volumeUrl = 'https://api.scaleway.com/block/v1/zones/fr-par-1/volumes/v1'
+
+  it('waits for a volume still in use to be released, then deletes it', async () => {
+    let reads = 0
+    let readsAtDelete = 0
+    let deleted = false
+    const { impl, calls } = fakeFetch(call => {
+      if (call.url !== volumeUrl) return undefined
+      if (call.method === 'DELETE') {
+        deleted = true
+        readsAtDelete = reads
+        return { status: 204 }
+      }
+      if (deleted) return { status: 404 }
+      reads++
+      return { status: 200, body: { id: 'v1', status: reads < 2 ? 'in_use' : 'available' } }
+    })
+
+    const result = await new TeardownService(impl, noSleep).deleteBlockVolumes({ secretKey: 'k', volumes: [volume] })
+
+    expect(result).toEqual({ deleted: ['v1'], failed: [] })
+    // Sent only once the volume read back as released, and only once.
+    expect(readsAtDelete).toBe(2)
+    expect(calls.filter(c => c.method === 'DELETE')).toHaveLength(1)
+  })
+
+  it('counts a volume already gone as deleted, without sending a DELETE', async () => {
+    const { impl, calls } = fakeFetch(() => ({ status: 404 }))
+    const result = await new TeardownService(impl, noSleep).deleteBlockVolumes({ secretKey: 'k', volumes: [volume] })
+    expect(result.deleted).toEqual(['v1'])
+    expect(calls.some(c => c.method === 'DELETE')).toBe(false)
+  })
+
+  it('keeps going after one failure, and reports it', async () => {
+    const other = { id: 'v2', name: 'logs', zone: 'fr-par-1' }
+    const { impl } = fakeFetch(call => {
+      if (call.url.endsWith('/volumes/v1')) return { status: 403, body: { message: 'denied' } }
+      return { status: 404 }
+    })
+
+    const result = await new TeardownService(impl, noSleep).deleteBlockVolumes({
+      secretKey: 'k',
+      volumes: [volume, other],
+    })
+
+    expect(result.deleted).toEqual(['v2'])
+    expect(result.failed).toHaveLength(1)
+    expect(result.failed[0]).toMatchObject({ id: 'v1', name: 'data' })
+    expect(result.failed[0].error).toMatch(/Access denied/)
   })
 })

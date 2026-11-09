@@ -21,7 +21,14 @@ import type {
   SupabaseSiteSetupRequest,
 } from './provision'
 import type { CredentialCheckRequest, CredentialCheckResult } from './credentials'
-import type { TeardownProbe, TeardownRequest, TeardownRunResult, TeardownService } from './teardown'
+import type {
+  BlockVolumeDeleteRequest,
+  BlockVolumeDeleteResult,
+  TeardownProbe,
+  TeardownRequest,
+  TeardownRunResult,
+  TeardownService,
+} from './teardown'
 
 export interface RecentConfig {
   name: string
@@ -115,6 +122,7 @@ export interface ElectronAPI {
   // Shutdown (Arrêt du site)
   probeTeardown: (req: TeardownRequest) => Promise<ProvisionQueryResult<TeardownProbe>>
   runTeardown: (service: TeardownService, req: TeardownRequest) => Promise<ProvisionQueryResult<TeardownRunResult>>
+  deleteBlockVolumes: (req: BlockVolumeDeleteRequest) => Promise<ProvisionQueryResult<BlockVolumeDeleteResult>>
 
   // Provisioning (Configuration par API)
   startSupabaseProvision: (req: SupabaseProvisionRequest) => Promise<void>

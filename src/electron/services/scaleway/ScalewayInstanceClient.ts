@@ -32,6 +32,21 @@ export interface ScalewayVolume {
   id: string
   name?: string
   volume_type?: string
+  /** Bytes. */
+  size?: number
+}
+
+/**
+ * Block Storage volume statuses that refuse a deletion for now but will settle
+ * on their own — `in_use` included: right after the instance goes, the volume
+ * takes a moment to be released.
+ */
+const BLOCK_VOLUME_BUSY = new Set(['in_use', 'creating', 'updating', 'resizing', 'snapshotting'])
+
+export interface ScalewayBlockVolumeInfo {
+  id: string
+  name?: string
+  status: string
 }
 
 export interface ScalewayServer {
@@ -184,6 +199,44 @@ export class ScalewayInstanceClient {
 
   async deleteVolume(zone: string, id: string): Promise<void> {
     await this.request('DELETE', `/instance/v1/zones/${zone}/volumes/${id}`)
+  }
+
+  // ── Block Storage (SBS) ─────────────────────────────────────────────────
+
+  /** The volume, or `null` once it no longer exists. */
+  async getBlockVolume(zone: string, id: string): Promise<ScalewayBlockVolumeInfo | null> {
+    const { data } = await this.request<ScalewayBlockVolumeInfo>('GET', `/block/v1/zones/${zone}/volumes/${id}`)
+    return data && data.status !== 'deleted' ? data : null
+  }
+
+  /**
+   * Deletes a Block Storage volume and waits until the API no longer lists it.
+   *
+   * The API refuses a volume still `in_use`, which is what one is for a few
+   * seconds after its instance is terminated — so this waits for it to be
+   * released first rather than failing on a race nobody can see.
+   */
+  async deleteBlockVolume(zone: string, id: string, timeoutMs = 120_000, intervalMs = 3_000): Promise<void> {
+    const deadline = Date.now() + timeoutMs
+
+    let volume = await this.getBlockVolume(zone, id)
+    while (volume && BLOCK_VOLUME_BUSY.has(volume.status)) {
+      if (Date.now() > deadline) {
+        throw new Error(`The volume is still "${volume.status}" — it can only be deleted once released.`)
+      }
+      await this.sleepImpl(intervalMs)
+      volume = await this.getBlockVolume(zone, id)
+    }
+    if (!volume) return
+
+    if (volume.status !== 'deleting') {
+      await this.request('DELETE', `/block/v1/zones/${zone}/volumes/${id}`)
+    }
+
+    while (await this.getBlockVolume(zone, id)) {
+      if (Date.now() > deadline) throw new Error('Scaleway accepted the deletion but still lists the volume.')
+      await this.sleepImpl(intervalMs)
+    }
   }
 
   /**
