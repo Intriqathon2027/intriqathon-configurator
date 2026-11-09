@@ -1,59 +1,71 @@
 #!/bin/bash
 
-echo "🚀 Démarrage de l'installation..."
+echo "🚀 Starting installation..."
 
-# 1. Installation de Docker
+# 1. Docker Installation
 if ! command -v docker &> /dev/null
 then
-    echo "📦 Installation de Docker..."
+    echo "📦 Installing Docker..."
     curl -fsSL https://get.docker.com -o get-docker.sh
     sh get-docker.sh
-    echo "✅ Docker installé."
+    echo "✅ Docker installed."
 else
-    echo "✅ Docker est déjà installé."
+    echo "✅ Docker is already installed."
 fi
 
-# 2. Configuration du Domaine (Lecture automatique du .env)
+# 2. Domain & SSL Configuration (Automatic reading from .env)
 echo ""
 echo "---------------------------------------------------"
-echo "🌍 CONFIGURATION DU DOMAINE"
+echo "🌍 DOMAIN AND SSL CONFIGURATION"
 echo "---------------------------------------------------"
 
-# On initialise la variable
+# Initialize variables
 DOMAIN_NAME=""
+SSL_MODE="production"
 
-# Vérifie si le fichier .env existe
+# Check if .env file exists
 if [ -f .env ]; then
-    # On cherche la ligne commençant par DOMAIN=, on prend ce qu'il y a après le =, et on enlève les guillemets éventuels
+    # Extract DOMAIN= value and strip quotes
     DOMAIN_NAME=$(grep "^DOMAIN=" .env | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+    PARSED_SSL_MODE=$(grep "^SSL_MODE=" .env | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+    if [ -n "$PARSED_SSL_MODE" ]; then
+        SSL_MODE="$PARSED_SSL_MODE"
+    fi
 fi
 
-# Si DOMAIN_NAME est vide (pas trouvé dans le .env), on demande à l'utilisateur
+# If DOMAIN_NAME is empty (not found in .env), prompt the user
 if [ -z "$DOMAIN_NAME" ]; then
-    echo "⚠️  Domaine introuvable dans le .env."
-    echo "Entrez le nom de domaine (ex: testing.mixup.my) :"
+    echo "⚠️  Domain not found in .env."
+    echo "Enter domain name (e.g. testing.mixup.my):"
     read DOMAIN_NAME
 else
-    echo "✅ Domaine récupéré depuis .env : $DOMAIN_NAME"
+    echo "✅ Domain loaded from .env: $DOMAIN_NAME"
 fi
 
-# Sécurité : Si toujours vide, fallback
+# Fallback if still empty
 if [ -z "$DOMAIN_NAME" ]; then
-  echo "⚠️  Aucun domaine défini. Passage en mode localhost (:80)"
+  echo "⚠️  No domain defined. Falling back to localhost mode (:80)"
   DOMAIN_NAME=":80"
 fi
 
+# 3. Dynamic Caddyfile Generation
+echo "📝 Configuring Caddy Proxy for: $DOMAIN_NAME (Mode: $SSL_MODE)"
 
-# 3. Génération dynamique du Caddyfile
-echo "📝 Configuration du Proxy Caddy pour : $DOMAIN_NAME"
-cat <<EOF > Caddyfile
+if [ "$DOMAIN_NAME" != ":80" ] && [ "$SSL_MODE" = "staging" ]; then
+    echo "🧪 SSL Mode: TEST / STAGING (Let's Encrypt Staging — quota: 30,000 certs/week)"
+    cat <<EOF > Caddyfile
+{
+    # Let's Encrypt Staging (test environment to avoid rate limits)
+    acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
 $DOMAIN_NAME {
-    # On gère l'API
+    # API routing
     handle /api/* {
         reverse_proxy hackathon-backend:3000
     }
 
-    # On gère tout le reste (Frontend)
+    # Frontend fallback
     handle {
         reverse_proxy hackathon-frontend:80
     }
@@ -63,19 +75,41 @@ config.$DOMAIN_NAME {
     reverse_proxy config-app:80
 }
 EOF
+else
+    if [ "$DOMAIN_NAME" != ":80" ]; then
+        echo "🔒 SSL Mode: PRODUCTION (Official Let's Encrypt certificates)"
+    fi
+    cat <<EOF > Caddyfile
+$DOMAIN_NAME {
+    # API routing
+    handle /api/* {
+        reverse_proxy hackathon-backend:3000
+    }
 
-# 4. Nettoyage et Lancement
-echo "🧹 Nettoyage des anciens conteneurs..."
+    # Frontend fallback
+    handle {
+        reverse_proxy hackathon-frontend:80
+    }
+}
+
+config.$DOMAIN_NAME {
+    reverse_proxy config-app:80
+}
+EOF
+fi
+
+# 4. Cleanup and Launch
+echo "🧹 Cleaning up old containers..."
 docker compose down --remove-orphans
 
-echo "🔥 Lancement de l'application..."
-# --build assure que les modifs du docker-compose sont prises en compte
+echo "🔥 Starting application..."
+# --build ensures docker-compose changes are taken into account
 docker compose up -d --build 
 
 echo "---------------------------------------------------"
-echo "✅ Installation terminée !"
-echo "🌐 Site accessible ici : https://$DOMAIN_NAME"
-# On utilise une commande plus universelle pour l'IP publique
+echo "✅ Installation completed!"
+echo "🌐 Website available at: https://$DOMAIN_NAME"
+# Fetch public IP
 PUBLIC_IP=$(curl -s https://api.ipify.org || curl -s ifconfig.me)
-echo "📊 Grafana reste sur : http://$PUBLIC_IP:3001"
+echo "📊 Grafana is available at: http://$PUBLIC_IP:3001"
 echo "---------------------------------------------------"

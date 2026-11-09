@@ -4,6 +4,7 @@ import { ensurePgBouncerFlag } from '../shared/pgbouncer'
 
 export function generateEnvContent(config: Record<string, string>): string {
   return `DOMAIN=${config.DOMAIN}
+SSL_MODE=${config.SSL_MODE || 'production'}
 
 # Supabase
 SUPABASE_URL=${config.SUPABASE_URL}

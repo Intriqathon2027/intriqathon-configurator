@@ -122,6 +122,10 @@ export interface Config {
   BOT_TOKEN: string
   DEV_SERVER_ID: string
   GUILD_ID: string
+
+  // Step 4 — Deployment
+  /** 'production' for official Let's Encrypt certificates, 'staging' for test CA without rate limits. */
+  SSL_MODE: string
 }
 
 const defaultConfig: Config = {
@@ -165,6 +169,7 @@ const defaultConfig: Config = {
   BOT_TOKEN: '',
   DEV_SERVER_ID: '',
   GUILD_ID: '',
+  SSL_MODE: 'production',
 }
 
 /** The sending subdomain a domain implies, before anyone edits it. */

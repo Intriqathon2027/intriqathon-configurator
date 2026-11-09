@@ -41,7 +41,7 @@ function getGlobalStatusIcon(status: DeploymentStatus) {
 }
 
 export function DeployAutoTab() {
-  const { t, config, selectedSshKey, state } = useApp()
+  const { t, config, setField, selectedSshKey, state } = useApp()
   const { isRunDone, markRunDone, isManualChecked, confirmManual } = useSession()
   const isEn = state.language === 'en'
   const sshSelectorRef = useRef<SshKeySelectorHandle>(null)
@@ -128,6 +128,35 @@ export function DeployAutoTab() {
         title={t('step6.auto.title')}
         className={automationFocused ? 'automation-focus' : ''}
       >
+        {/* SSL Mode selector (Let's Encrypt Staging vs Production) */}
+        <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
+          <label className="form-label">{t('step6.sslMode.label')}</label>
+          <div className="radio-row">
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="ssl-mode"
+                value="production"
+                checked={config.SSL_MODE !== 'staging'}
+                onChange={() => setField('SSL_MODE', 'production')}
+                disabled={isRunning}
+              />
+              <span>{t('step6.sslMode.production')}</span>
+            </label>
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="ssl-mode"
+                value="staging"
+                checked={config.SSL_MODE === 'staging'}
+                onChange={() => setField('SSL_MODE', 'staging')}
+                disabled={isRunning}
+              />
+              <span>{t('step6.sslMode.staging')}</span>
+            </label>
+          </div>
+        </div>
+
         {/* SSH key selector */}
         <SshKeySelector
           ref={sshSelectorRef}
