@@ -155,9 +155,6 @@ export function DeployAutoTab() {
               <span>{t('step6.sslMode.staging')}</span>
             </label>
           </div>
-          <p className="t-caption" style={{ marginTop: 'var(--space-1)', color: 'var(--color-text-secondary)' }}>
-            {config.SSL_MODE === 'staging' ? t('step6.sslMode.hintStaging') : t('step6.sslMode.hintProduction')}
-          </p>
         </div>
 
         {/* SSH key selector */}

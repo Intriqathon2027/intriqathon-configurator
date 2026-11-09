@@ -371,8 +371,6 @@ export type TranslationKeys = {
   'step6.sslMode.label': string
   'step6.sslMode.staging': string
   'step6.sslMode.production': string
-  'step6.sslMode.hintStaging': string
-  'step6.sslMode.hintProduction': string
   'step6.auto.title': string
   'step6.auto.pathLabel': string
   'step6.auto.btnStart': string
