@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     sshKeyName?: string
     zone?: string
     commercialType?: string
+    rootVolumeGb?: number
   }) => ipcRenderer.invoke('scaleway:create-instance', options),
   cancelScalewayInstance: () => ipcRenderer.invoke('scaleway:cancel'),
   onScalewayLog: (cb: (log: { message: string; status: 'info' | 'running' | 'done' | 'error'; progress?: number }) => void) => {

@@ -308,10 +308,7 @@ export type TranslationKeys = {
   'step4.subdomain': string
   'step4.warning': string
   'step1.specs.title': string
-  'step1.spec.cpu': string
-  'step1.spec.ram': string
   'step1.spec.os': string
-  'step1.spec.storage': string
   'step7.sql.title': string
   'step7.docker.title': string
   'step7.docker.desc': string

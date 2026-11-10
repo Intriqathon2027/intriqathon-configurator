@@ -29,6 +29,9 @@ export function useScalewayInstance() {
     projectId: string
     sshPublicKey: string
     sshKeyName?: string
+    zone?: string
+    commercialType?: string
+    rootVolumeGb?: number
   }): Promise<{ success: boolean; ipv4?: string; serverId?: string; zone?: string; error?: string }> => {
     if (!window.electronAPI?.createScalewayInstance) {
       return { success: false, error: 'Feature only available on Electron desktop application.' }

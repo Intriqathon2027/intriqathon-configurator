@@ -1035,6 +1035,66 @@ body {
 }
 
 /* =============================================
+   SCALEWAY SIZING PROFILE SELECTOR
+   Same box as the SSH key row — a native select inside it.
+   ============================================= */
+.scaleway-profile-selector {
+  min-width: 0;
+}
+
+.scaleway-profile-selector__box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-md);
+  background: var(--color-input-bg);
+  color: var(--color-input-text);
+}
+
+.scaleway-profile-selector__box:focus-within {
+  border-color: var(--color-primary);
+}
+
+.scaleway-profile-selector__select {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: var(--type-body);
+  text-overflow: ellipsis;
+  cursor: pointer;
+  outline: none;
+}
+
+.scaleway-profile-selector__select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.scaleway-profile-selector__select option {
+  background: var(--color-input-bg);
+  color: var(--color-input-text);
+}
+
+/* The SSH key and the sizing profile, one above the other */
+.service-config-block__extra-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Above the recommended specs, in the manual configuration */
+.scaleway-profile-selector--manual {
+  margin-bottom: var(--space-3);
+}
+
+/* =============================================
    SSH KEY SELECTOR
    ============================================= */
 .ssh-key-selector {

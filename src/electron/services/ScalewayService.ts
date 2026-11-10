@@ -7,6 +7,67 @@ export interface ScalewayCreateOptions {
   sshKeyName?: string
   zone?: string
   commercialType?: string
+  /** Root volume size in GB. Omitted: the image's own default size. */
+  rootVolumeGb?: number
+}
+
+/** Marketplace image flavours: local SSD (DEV1, GP1…) or block storage (POP2, PRO2…). */
+export type ScalewayImageType = 'instance_local' | 'instance_sbs'
+
+export interface ScalewayRootVolume {
+  /** Bytes — Scaleway counts 1 GB as 10^9 bytes. */
+  size: number
+  volume_type: 'l_ssd' | 'sbs_volume'
+}
+
+/**
+ * The root volume to ask for, given the image the type boots from. The volume
+ * type has to follow the image: an SBS-only type such as POP2 refuses a local
+ * volume, and the other way round. A local volume is also bounded by the
+ * offer's own constraint (DEV1-M cannot hold more than 40 GB locally), so the
+ * size is clamped into it rather than refused. `null` when nothing is known
+ * enough to ask for — the image's default volume is then used, as before.
+ */
+export function rootVolumeFor(
+  imageType: string | undefined,
+  sizeGb: number | undefined,
+  localConstraint?: { min_size?: number; max_size?: number },
+): ScalewayRootVolume | null {
+  if (!sizeGb || sizeGb <= 0) return null
+  const volume_type =
+    imageType === 'instance_sbs' ? 'sbs_volume' : imageType === 'instance_local' ? 'l_ssd' : null
+  if (!volume_type) return null
+
+  let size = Math.round(sizeGb * 1e9)
+  if (volume_type === 'l_ssd' && localConstraint) {
+    if (localConstraint.max_size && size > localConstraint.max_size) size = localConstraint.max_size
+    if (localConstraint.min_size && size < localConstraint.min_size) size = localConstraint.min_size
+  }
+  return { size, volume_type }
+}
+
+interface ServerOffer {
+  ncpus?: number
+  ram?: number
+  hourly_price?: number
+  monthly_price?: number
+  volumes_constraint?: { min_size?: number; max_size?: number }
+}
+
+interface LocalImage {
+  id?: string
+  type?: string
+  zone?: string
+  arch?: string
+  compatible_commercial_types?: string[]
+}
+
+interface OfferLookup {
+  /** False when Scaleway could not be asked — nothing is then known either way. */
+  checked: boolean
+  offer?: ServerOffer
+  /** 'available' | 'scarce' | 'shortage', when Scaleway reports it. */
+  availability?: string
 }
 
 export interface ScalewayLogEvent {
@@ -60,6 +121,12 @@ export class ScalewayService {
       }
     } catch {
       // keep rawBody
+    }
+
+    // A quota refusal comes back as a 403 too, but no key or IAM policy is at
+    // fault: the Organization has used up what its account level allows.
+    if (status === 403 && /quota/i.test(parsedMessage)) {
+      return `[ERROR 403] Scaleway quota reached while: ${context}. Your Organization has no quota left for this resource: delete an unused instance of the same type, choose a smaller sizing profile, or raise the quota (Scaleway console → Organization → Quotas; validating your identity or contacting Support raises it). Detail: "${parsedMessage}"`
     }
 
     if (status === 401 || status === 403) {
@@ -156,27 +223,74 @@ export class ScalewayService {
   }
 
   /**
-   * Resolve Ubuntu 24.04 local image ID for the given zone and commercial type
+   * Fetch every page of a Scaleway listing whose results are a map keyed by
+   * commercial type (`/products/servers`, `/products/servers/availability`),
+   * stopping as soon as `wanted` is found.
    */
-  private async resolveUbuntuNobleImage(zone: string, commercialType: string = 'DEV1-M'): Promise<string> {
-    const fallbackImageId = '91cb8918-98c0-46ed-8c80-02cbd00b6a66' // fr-par-1 instance_local x86_64
+  private async fetchServerMap<T>(url: string, secretKey: string, wanted: string): Promise<Record<string, T> | null> {
+    const merged: Record<string, T> = {}
+    for (let page = 1; page <= 10; page++) {
+      const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}per_page=100&page=${page}`, {
+        headers: { 'X-Auth-Token': secretKey, 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) return null
+      const data = await res.json()
+      const servers: Record<string, T> = data.servers || {}
+      Object.assign(merged, servers)
+      const total = Number(res.headers.get('x-total-count') || 0)
+      const keys = Object.keys(servers)
+      if (wanted in merged || keys.length === 0 || (total > 0 && Object.keys(merged).length >= total)) break
+    }
+    return merged
+  }
+
+  /**
+   * Whether the zone sells this type, and whether it has any in stock. A
+   * missing type or a shortage is reported before anything is created, with
+   * the profile named, rather than as a 400 halfway through the run.
+   */
+  private async lookupOffer(zone: string, commercialType: string, secretKey: string): Promise<OfferLookup> {
+    try {
+      const base = `https://api.scaleway.com/instance/v1/zones/${encodeURIComponent(zone)}/products/servers`
+      const offers = await this.fetchServerMap<ServerOffer>(base, secretKey, commercialType)
+      if (!offers) return { checked: false }
+      const availability = await this.fetchServerMap<{ availability?: string }>(`${base}/availability`, secretKey, commercialType).catch(() => null)
+      return {
+        checked: true,
+        offer: offers[commercialType],
+        availability: availability?.[commercialType]?.availability,
+      }
+    } catch {
+      return { checked: false }
+    }
+  }
+
+  /**
+   * Resolve the Ubuntu 24.04 image for the given zone and commercial type,
+   * with its flavour — which decides the root volume type.
+   */
+  private async resolveUbuntuNobleImage(zone: string, commercialType: string): Promise<{ id: string; type?: string }> {
+    const fallback = { id: '91cb8918-98c0-46ed-8c80-02cbd00b6a66', type: 'instance_local' } // fr-par-1 instance_local x86_64
     try {
       const res = await fetch(`https://api.scaleway.com/marketplace/v2/local-images?image_label=ubuntu_noble&zone=${encodeURIComponent(zone)}&per_page=100`)
       if (res.ok) {
         const data = await res.json()
-        const images = data.local_images || []
-        const matched = images.find((img: any) =>
+        const images: LocalImage[] = data.local_images || []
+        const compatible = images.filter(img =>
           Array.isArray(img.compatible_commercial_types) && img.compatible_commercial_types.includes(commercialType)
         )
-        if (matched?.id) return matched.id
+        // Local storage first where the type takes it: it comes with the
+        // instance, where a block volume is billed on top.
+        const matched = compatible.find(img => img.type === 'instance_local') ?? compatible[0]
+        if (matched?.id) return { id: matched.id, type: matched.type }
 
-        const matchedLocal = images.find((img: any) => img.zone === zone && img.arch === 'x86_64' && img.type === 'instance_local')
-        if (matchedLocal?.id) return matchedLocal.id
+        const matchedLocal = images.find(img => img.zone === zone && img.arch === 'x86_64' && img.type === 'instance_local')
+        if (matchedLocal?.id) return { id: matchedLocal.id, type: matchedLocal.type }
       }
     } catch {
       // fallback
     }
-    return fallbackImageId
+    return fallback
   }
 
   /**
@@ -194,20 +308,52 @@ export class ScalewayService {
       await this.ensureSshKey(options, win)
       if (this.isCancelled) throw new Error('Operation cancelled by user')
 
-      // 2. Resolve image
-      this.log(win, 'Looking up Ubuntu 24.04 LTS (Noble Numbat) system image...', 'running', 35)
-      const imageId = await this.resolveUbuntuNobleImage(zone, commercialType)
-      this.log(win, `Ubuntu 24.04 image identified: ${imageId}`, 'info', 40)
+      // 2. Check the type is sold, and in stock, in this zone
+      this.log(win, `Checking ${commercialType} availability in ${zone}...`, 'running', 32)
+      const lookup = await this.lookupOffer(zone, commercialType, options.secretKey)
+      // Logged here: the catch below only logs messages not already tagged [ERROR].
+      const offerError =
+        lookup.checked && !lookup.offer
+          ? `[ERROR] Instance type ${commercialType} is not offered in zone ${zone}. Choose another sizing profile.`
+          : lookup.availability === 'shortage'
+            ? `[ERROR] Instance type ${commercialType} is currently out of stock in zone ${zone}. Choose another sizing profile or retry later.`
+            : null
+      if (offerError) {
+        this.log(win, offerError, 'error')
+        throw new Error(offerError)
+      }
+      if (lookup.offer) {
+        const ramGb = lookup.offer.ram ? Math.round(lookup.offer.ram / 1024 ** 3) : undefined
+        // `monthly_price` comes back as 0 for some types: the hourly rate over
+        // a 730-hour month is the figure that holds, and no figure beats a 0.
+        const monthly = lookup.offer.monthly_price || (lookup.offer.hourly_price ?? 0) * 730
+        const price = monthly > 0 ? ` — ~${monthly.toFixed(2)} €/month` : ''
+        const stock = lookup.availability === 'scarce' ? ' (limited stock)' : ''
+        this.log(win, `${commercialType}: ${lookup.offer.ncpus ?? '?'} vCPU / ${ramGb ?? '?'} GB RAM${price}${stock}.`, 'info', 34)
+      } else {
+        this.log(win, 'Could not read the Scaleway offer list — continuing without checking it.', 'info', 34)
+      }
+      if (this.isCancelled) throw new Error('Operation cancelled by user')
 
-      // 3. Create server
-      this.log(win, `Creating instance (${commercialType})...`, 'running', 45)
+      // 3. Resolve image
+      this.log(win, 'Looking up Ubuntu 24.04 LTS (Noble Numbat) system image...', 'running', 35)
+      const image = await this.resolveUbuntuNobleImage(zone, commercialType)
+      this.log(win, `Ubuntu 24.04 image identified: ${image.id}${image.type ? ` (${image.type})` : ''}`, 'info', 40)
+      const rootVolume = rootVolumeFor(image.type, options.rootVolumeGb, lookup.offer?.volumes_constraint)
+
+      // 4. Create server
+      const volumeNote = rootVolume
+        ? `, ${Math.round(rootVolume.size / 1e9)} GB ${rootVolume.volume_type === 'sbs_volume' ? 'block' : 'local'} storage`
+        : ''
+      this.log(win, `Creating instance (${commercialType}${volumeNote})...`, 'running', 45)
 
       const createPayload = {
         name: `intriqathon-${Date.now().toString().slice(-4)}`,
         project: options.projectId,
         commercial_type: commercialType,
-        image: imageId,
+        image: image.id,
         dynamic_ip_required: true,
+        ...(rootVolume ? { volumes: { '0': rootVolume } } : {}),
       }
 
       let serverRes: Response
@@ -239,7 +385,7 @@ export class ScalewayService {
 
       this.log(win, `Instance created successfully (ID: ${serverId}, Name: ${server.name}).`, 'info', 55)
 
-      // 4. Power on server
+      // 5. Power on server
       this.log(win, 'Starting (poweron) instance...', 'running', 60)
 
       let actionRes: Response | null = null
@@ -261,7 +407,7 @@ export class ScalewayService {
         this.log(win, `Startup notification: ${errBody}`, 'info', 65)
       }
 
-      // 5. Poll for server status 'running' and IP
+      // 6. Poll for server status 'running' and IP
       this.log(win, 'Waiting for initialization and allocation of public IPv4...', 'running', 70)
 
       let ipv4 = server.public_ip?.address || ''

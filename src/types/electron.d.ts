@@ -101,6 +101,7 @@ export interface ElectronAPI {
     sshKeyName?: string
     zone?: string
     commercialType?: string
+    rootVolumeGb?: number
   }) => Promise<ScalewayCreateResult>
   cancelScalewayInstance: () => Promise<{ success: boolean }>
   onScalewayLog: (cb: (log: ScalewayLogEvent) => void) => () => void

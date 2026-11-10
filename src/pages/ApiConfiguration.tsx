@@ -42,6 +42,8 @@ import {
 import { isAccountComplete } from "../utils/serviceCompletion";
 import type { Config } from "../context/AppContext";
 import { ApiConfigurationHelpContent } from "../PagesHelpContent/ApiConfigurationHelpContent";
+import { ScalewayProfileSelector } from "../components/ui/ScalewayProfileSelector";
+import { scalewayProfileFor } from "../shared/scalewayProfiles";
 
 type Status = "idle" | "running" | "done" | "error";
 
@@ -127,18 +129,30 @@ export function ApiConfiguration() {
     fullName: isEn ? "Full name" : "Nom complet",
   };
 
+  /**
+   * The specs the manual configuration recommends — those of the sizing
+   * profile the run would create, so both routes launch the same machine.
+   */
+  const sizing = scalewayProfileFor(config.SCW_SIZING_PROFILE);
+  const gb = isEn ? "GB" : "Go";
   const specs: IconRowItem[] = [
+    {
+      key: "type",
+      icon: <Server size={15} />,
+      label: isEn ? "Instance type" : "Type d'instance",
+      text: sizing.commercialType,
+    },
     {
       key: "cpu",
       icon: <Cpu size={15} />,
       label: "CPU",
-      text: t("step1.spec.cpu"),
+      text: `${sizing.vcpu} vCPU`,
     },
     {
       key: "ram",
       icon: <MemoryStick size={15} />,
       label: "RAM",
-      text: t("step1.spec.ram"),
+      text: isEn ? `${sizing.ramGb} GB RAM` : `${sizing.ramGb} Go de RAM`,
     },
     {
       key: "os",
@@ -149,8 +163,10 @@ export function ApiConfiguration() {
     {
       key: "storage",
       icon: <HardDrive size={15} />,
-      label: "Stockage",
-      text: t("step1.spec.storage"),
+      label: isEn ? "Storage" : "Stockage",
+      text: isEn
+        ? `${sizing.storageGb} GB storage`
+        : `${sizing.storageGb} ${gb} de stockage`,
     },
   ];
 
@@ -463,6 +479,8 @@ export function ApiConfiguration() {
       projectId: config.SCW_DEFAULT_PROJECT_ID,
       sshPublicKey: keyToUse.publicKey,
       sshKeyName: keyToUse.name || "intriqathon-key",
+      commercialType: sizing.commercialType,
+      rootVolumeGb: sizing.storageGb,
     });
 
     if (res.success && res.ipv4) {
@@ -812,12 +830,19 @@ export function ApiConfiguration() {
           helpAnchor="svc-scaleway"
           helpHint={t("apiConfig.scaleway.helpHint")}
           extra={
-            <SshKeySelector
-              ref={sshSelectorRef}
-              label={
-                isEn ? "Authentication SSH key" : "Clé SSH d'authentification"
-              }
-            />
+            <div className="service-config-block__extra-stack">
+              <SshKeySelector
+                ref={sshSelectorRef}
+                label={
+                  isEn ? "Authentication SSH key" : "Clé SSH d'authentification"
+                }
+              />
+              <ScalewayProfileSelector
+                id="scaleway-profile-auto"
+                label={isEn ? "Instance sizing" : "Dimensionnement de l'instance"}
+                disabled={scalewayStatus === "running"}
+              />
+            </div>
           }
           manualLabel={t("apiConfig.manualConfig")}
         >
@@ -846,6 +871,13 @@ export function ApiConfiguration() {
             </div>
 
             <ManualSection title={t("step1.specs.title")}>
+              <ScalewayProfileSelector
+                id="scaleway-profile-manual"
+                className="scaleway-profile-selector--manual"
+                label={
+                  isEn ? "Expected participants" : "Participants attendus"
+                }
+              />
               <IconRowList items={specs} />
             </ManualSection>
           </div>
