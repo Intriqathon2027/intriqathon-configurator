@@ -768,6 +768,15 @@ body {
   margin-top: var(--space-3);
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Pushed to the left; "Learn more" keeps the right-hand corner. */
+.service-account-card__footer-action {
+  margin-right: auto;
+  display: flex;
+  gap: var(--space-2);
 }
 
 /* =============================================
@@ -917,6 +926,16 @@ body {
 
 .service-config-block__info-box--running svg {
   color: var(--color-primary-text);
+}
+
+.service-config-block__info-box--warning {
+  background: var(--color-warning-light, var(--color-bg));
+  color: var(--color-text);
+  border-color: var(--color-warning);
+}
+
+.service-config-block__info-box--warning svg {
+  color: var(--color-warning);
 }
 
 .service-config-block__spinner {
@@ -1432,6 +1451,158 @@ body {
   color: var(--color-text);
   border-color: var(--color-border-strong);
   padding: var(--space-2) var(--space-4);
+}
+
+/* Irreversible actions — "Arrêt du site". Outlined so it never reads as the
+   page's primary, expected next step. */
+.btn-danger {
+  background: transparent;
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  padding: var(--space-2) var(--space-4);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-light);
+  border-color: var(--color-danger-hover);
+  color: var(--color-danger-hover);
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =============================================
+   SITE SHUTDOWN
+   ============================================= */
+.shutdown-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.shutdown-toolbar__order {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  font: var(--type-body);
+  color: var(--color-text-secondary, var(--color-text));
+  flex: 1;
+  min-width: 0;
+}
+
+.shutdown-toolbar__order svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--color-warning);
+}
+
+/* Card titles in capitals on this page only — the text itself stays as
+   translated, so screen readers and the other pages are unaffected. */
+.shutdown-grid .service-account-card__name {
+  text-transform: uppercase;
+}
+
+.shutdown-card__what,
+.shutdown-card__note {
+  margin: 0;
+  font: var(--type-body);
+  color: var(--color-text);
+}
+
+.shutdown-card__note {
+  color: var(--color-text-secondary, var(--color-text));
+}
+
+.shutdown-card__target {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.shutdown-card__target code {
+  overflow-wrap: anywhere;
+}
+
+.shutdown-card__target-label {
+  font: var(--type-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary, var(--color-text));
+}
+
+/* Centre the icon on the first line of text rather than pinning it to the
+   top edge of the line box — the text is taller than the 15px icon. */
+.shutdown-card__status > svg {
+  margin-top: calc((1lh - 15px) / 2);
+}
+
+/* Records to remove at another registrar — a reminder, not a form. */
+.dns-record-list {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font: var(--type-body);
+}
+
+.dns-record-list th {
+  text-align: left;
+  font: var(--type-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary, var(--color-text));
+  padding: 0 var(--space-2) var(--space-1) 0;
+}
+
+.dns-record-list th:first-child {
+  width: 4.5em;
+}
+
+.dns-record-list td {
+  padding: var(--space-1) var(--space-2) var(--space-1) 0;
+  border-top: 1px solid var(--color-border);
+  vertical-align: top;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dns-record-list__type {
+  color: var(--color-primary-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.dns-record-list__answer {
+  color: var(--color-text-secondary, var(--color-text));
+}
+
+.shutdown-card__status-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.shutdown-card__detail {
+  font: var(--type-body);
+  overflow-wrap: anywhere;
+}
+
+.shutdown-card__warnings ul {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-4);
+  font: var(--type-body);
+}
+
+.form-section > .btn-danger {
+  align-self: flex-start;
 }
 
 .btn-secondary:hover:not(:disabled) {

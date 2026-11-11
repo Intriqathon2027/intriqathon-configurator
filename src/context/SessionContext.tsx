@@ -1,7 +1,19 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
-import { useApp } from './AppContext'
-import { forgetRefusal, rememberRefusal, wasRefused } from '../utils/credentialVerdicts'
-import type { CredentialService, CredentialState } from '../types/credentials'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { useApp } from "./AppContext";
+import {
+  forgetRefusal,
+  rememberRefusal,
+  wasRefused,
+} from "../utils/credentialVerdicts";
+import type { CredentialService, CredentialState } from "../types/credentials";
 
 /**
  * What has been *done* in this session, as opposed to what has been *filled in*.
@@ -28,60 +40,72 @@ import type { CredentialService, CredentialState } from '../types/credentials'
  */
 
 export type RunKey =
-  | 'api-supabase'
-  | 'api-scaleway'
-  | 'api-spaceship'
-  | 'api-resend'
-  | 'deploy'
-  | 'site-supabase'
-  | 'site-docker'
+  | "api-supabase"
+  | "api-scaleway"
+  | "api-spaceship"
+  | "api-resend"
+  | "deploy"
+  | "site-supabase"
+  | "site-docker"
+  | "shutdown-supabase"
+  | "shutdown-scaleway"
+  | "shutdown-resend"
+  | "shutdown-spaceship";
 
 export type ManualKey =
-  | 'supabase-buckets'
-  | 'scaleway-instance'
-  | 'spaceship-dns'
-  | 'resend-subdomain'
-  | 'deploy-manual'
+  | "supabase-buckets"
+  | "scaleway-instance"
+  | "spaceship-dns"
+  | "resend-subdomain"
+  | "deploy-manual"
   /** The grants SQL, pasted into the project's SQL editor. */
-  | 'site-supabase-sql'
+  | "site-supabase-sql"
   /** The four dashboard settings the API run applies by itself. */
-  | 'site-supabase-actions'
-  | 'docker-manual'
+  | "site-supabase-actions"
+  | "docker-manual"
+  /** The deployment's DNS records, removed by hand at another registrar. */
+  | "shutdown-dns-manual";
 
 interface SessionContextType {
   /** Automations that reported success since the app was launched. */
-  runs: Partial<Record<RunKey, boolean>>
-  isRunDone: (key: RunKey) => boolean
-  markRunDone: (key: RunKey) => void
-  clearRun: (key: RunKey) => void
-  manualChecks: Partial<Record<ManualKey, boolean>>
-  isManualChecked: (key: ManualKey) => boolean
-  setManualCheck: (key: ManualKey, checked: boolean) => void
+  runs: Partial<Record<RunKey, boolean>>;
+  isRunDone: (key: RunKey) => boolean;
+  markRunDone: (key: RunKey) => void;
+  clearRun: (key: RunKey) => void;
+  manualChecks: Partial<Record<ManualKey, boolean>>;
+  isManualChecked: (key: ManualKey) => boolean;
+  setManualCheck: (key: ManualKey, checked: boolean) => void;
   /** Ticks boxes on the reader's behalf — what a successful run just did. */
-  confirmManual: (...keys: ManualKey[]) => void
+  confirmManual: (...keys: ManualKey[]) => void;
   /**
    * What each provider answered about its key, the last time it was asked.
    * Held here rather than on the page that asks, because the sidebar's tick
    * and the steps downstream have to read the same verdict.
    */
-  recordCredentialState: (service: CredentialService, state: CredentialState) => void
+  recordCredentialState: (
+    service: CredentialService,
+    state: CredentialState,
+  ) => void;
   /** The provider has refused this key — as opposed to not having answered. */
-  isCredentialRefused: (service: CredentialService) => boolean
+  isCredentialRefused: (service: CredentialService) => boolean;
 }
 
-const SessionContext = createContext<SessionContextType | null>(null)
+const SessionContext = createContext<SessionContextType | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const { state } = useApp()
-  const [runs, setRuns] = useState<Partial<Record<RunKey, boolean>>>({})
-  const [manualChecks, setManualChecks] = useState<Partial<Record<ManualKey, boolean>>>({})
+  const { state } = useApp();
+  const [runs, setRuns] = useState<Partial<Record<RunKey, boolean>>>({});
+  const [manualChecks, setManualChecks] = useState<
+    Partial<Record<ManualKey, boolean>>
+  >({});
   /**
    * Only what a provider has actually answered. An entry is absent until one
    * has, which is what lets a refusal remembered from a previous run of the
    * app stand in the meantime instead of the cards reading as complete.
    */
-  const [credentialStates, setCredentialStates] =
-    useState<Partial<Record<CredentialService, CredentialState>>>({})
+  const [credentialStates, setCredentialStates] = useState<
+    Partial<Record<CredentialService, CredentialState>>
+  >({});
 
   /**
    * What this session's facts are about: the configuration being edited, and
@@ -89,33 +113,33 @@ export function SessionProvider({ children }: { children: ReactNode }) {
    * generation; picking or creating another project changes the reference —
    * either way, what was true a moment ago is no longer being talked about.
    */
-  const subject = `${state.configGeneration}:${state.config.SUPABASE_PROJECT_REF}`
-  const subjectRef = useRef(subject)
+  const subject = `${state.configGeneration}:${state.config.SUPABASE_PROJECT_REF}`;
+  const subjectRef = useRef(subject);
 
   useEffect(() => {
-    if (subjectRef.current === subject) return
-    subjectRef.current = subject
-    setRuns({})
-    setManualChecks({})
-    setCredentialStates({})
-  }, [subject])
+    if (subjectRef.current === subject) return;
+    subjectRef.current = subject;
+    setRuns({});
+    setManualChecks({});
+    setCredentialStates({});
+  }, [subject]);
 
   const markRunDone = useCallback((key: RunKey) => {
-    setRuns(prev => (prev[key] ? prev : { ...prev, [key]: true }))
-  }, [])
+    setRuns((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
+  }, []);
 
   const clearRun = useCallback((key: RunKey) => {
-    setRuns(prev => {
-      if (!prev[key]) return prev
-      const next = { ...prev }
-      delete next[key]
-      return next
-    })
-  }, [])
+    setRuns((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }, []);
 
   const setManualCheck = useCallback((key: ManualKey, checked: boolean) => {
-    setManualChecks(prev => ({ ...prev, [key]: checked }))
-  }, [])
+    setManualChecks((prev) => ({ ...prev, [key]: checked }));
+  }, []);
 
   /**
    * A run that creates the buckets, applies the settings or restarts the bot
@@ -123,13 +147,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
    * editable afterwards — the reader can still take one back.
    */
   const confirmManual = useCallback((...keys: ManualKey[]) => {
-    setManualChecks(prev => {
-      if (keys.every(key => prev[key])) return prev
-      const next = { ...prev }
-      for (const key of keys) next[key] = true
-      return next
-    })
-  }, [])
+    setManualChecks((prev) => {
+      if (keys.every((key) => prev[key])) return prev;
+      const next = { ...prev };
+      for (const key of keys) next[key] = true;
+      return next;
+    });
+  }, []);
 
   /**
    * A refusal outlives the session it was learned in; an acceptance does not.
@@ -139,14 +163,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
    */
   const recordCredentialState = useCallback(
     (service: CredentialService, credentialState: CredentialState) => {
-      setCredentialStates(prev =>
-        prev[service] === credentialState ? prev : { ...prev, [service]: credentialState },
-      )
-      if (credentialState === 'invalid') rememberRefusal(state.config, service)
-      if (credentialState === 'valid') forgetRefusal(service)
+      setCredentialStates((prev) =>
+        prev[service] === credentialState
+          ? prev
+          : { ...prev, [service]: credentialState },
+      );
+      if (credentialState === "invalid") rememberRefusal(state.config, service);
+      if (credentialState === "valid") forgetRefusal(service);
     },
     [state.config],
-  )
+  );
 
   /**
    * An answer in hand settles it. Without one — the first render after a
@@ -156,16 +182,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
    */
   const isCredentialRefused = useCallback(
     (service: CredentialService) => {
-      const answered = credentialStates[service]
-      if (answered === 'invalid') return true
-      if (answered === 'valid') return false
-      return wasRefused(state.config, service)
+      const answered = credentialStates[service];
+      if (answered === "invalid") return true;
+      if (answered === "valid") return false;
+      return wasRefused(state.config, service);
     },
     [credentialStates, state.config],
-  )
+  );
 
-  const isRunDone = useCallback((key: RunKey) => !!runs[key], [runs])
-  const isManualChecked = useCallback((key: ManualKey) => !!manualChecks[key], [manualChecks])
+  const isRunDone = useCallback((key: RunKey) => !!runs[key], [runs]);
+  const isManualChecked = useCallback(
+    (key: ManualKey) => !!manualChecks[key],
+    [manualChecks],
+  );
 
   return (
     <SessionContext.Provider
@@ -184,11 +213,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     >
       {children}
     </SessionContext.Provider>
-  )
+  );
 }
 
 export function useSession(): SessionContextType {
-  const ctx = useContext(SessionContext)
-  if (!ctx) throw new Error('useSession must be used within SessionProvider')
-  return ctx
+  const ctx = useContext(SessionContext);
+  if (!ctx) throw new Error("useSession must be used within SessionProvider");
+  return ctx;
 }

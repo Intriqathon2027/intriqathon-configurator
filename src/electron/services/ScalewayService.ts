@@ -182,7 +182,7 @@ export class ScalewayService {
   /**
    * Main method: creates an instance, powers it on, and retrieves the public IPv4
    */
-  public async createInstance(options: ScalewayCreateOptions, win: BrowserWindow | null): Promise<{ ipv4: string; serverId: string }> {
+  public async createInstance(options: ScalewayCreateOptions, win: BrowserWindow | null): Promise<{ ipv4: string; serverId: string; zone: string }> {
     this.isCancelled = false
     const zone = options.zone || 'fr-par-1'
     const commercialType = options.commercialType || 'DEV1-M'
@@ -306,7 +306,7 @@ export class ScalewayService {
       }
 
       this.log(win, `✓ Instance operational! Public IPv4 allocated: ${ipv4}`, 'done', 100)
-      return { ipv4, serverId }
+      return { ipv4, serverId, zone }
     } catch (err: any) {
       const msg = err.message || String(err)
       if (!msg.startsWith('[ERROR') && !msg.startsWith('[ERREUR')) {

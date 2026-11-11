@@ -1,4 +1,4 @@
-import { KeyRound, Settings2, ShieldCheck, Rocket, Globe } from 'lucide-react'
+import { KeyRound, Settings2, ShieldCheck, Rocket, Globe, Power } from 'lucide-react'
 import type { Config } from '../../context/AppContext'
 
 export interface Step {
@@ -47,4 +47,6 @@ export const steps: Step[] = [
   { labelKey: 'step4.label', Icon: Rocket, requiredFields: [] },
   // Validated by a successful Docker restart
   { labelKey: 'step5.label', Icon: Globe, requiredFields: [] },
+  // Validated by every provider confirming its resource is gone
+  { labelKey: 'shutdown.label', Icon: Power, requiredFields: [] },
 ]

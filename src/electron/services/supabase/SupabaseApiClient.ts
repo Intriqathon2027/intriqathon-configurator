@@ -202,6 +202,24 @@ export class SupabaseApiClient {
     return this.requireJson<SupabaseProject>('GET', `/v1/projects/${ref}`)
   }
 
+  /**
+   * The project, or `null` when the account no longer holds it. Used by the
+   * shutdown page, where a 404 is the answer it hopes for rather than a failure.
+   */
+  findProject(ref: string): Promise<SupabaseProject | null> {
+    return this.request<SupabaseProject>('GET', `/v1/projects/${ref}`, { tolerate: [404] })
+  }
+
+  /**
+   * Deletes the project and everything in it — database, storage, auth users.
+   * Irreversible. A 404 is tolerated: a project already gone is the outcome
+   * asked for, and a second click after a deletion that did go through must
+   * not be reported as a failure.
+   */
+  async deleteProject(ref: string): Promise<void> {
+    await this.request('DELETE', `/v1/projects/${ref}`, { tolerate: [404] })
+  }
+
   /** `region_selection` is optional — omitted, Supabase picks a default region. */
   createProject(body: {
     name: string

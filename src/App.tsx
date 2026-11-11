@@ -7,6 +7,7 @@ import { ApiConfiguration } from './pages/ApiConfiguration'
 import { OAuth2 } from './pages/OAuth2.tsx'
 import { Deploy } from './pages/Deploy.tsx'
 import { ConfigSite } from './pages/ConfigSite.tsx'
+import { SiteShutdown } from './pages/SiteShutdown.tsx'
 
 function StepRouter() {
   const { state } = useApp()
@@ -17,6 +18,7 @@ function StepRouter() {
     case 2: return <OAuth2 />
     case 3: return <Deploy />
     case 4: return <ConfigSite />
+    case 5: return <SiteShutdown />
     default: return <AccountCreation />
   }
 }

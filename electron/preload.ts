@@ -74,6 +74,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => { ipcRenderer.removeListener('deploy:error', handler) }
   },
 
+  // Shutdown (Arrêt du site)
+  probeTeardown: (req: any) => ipcRenderer.invoke('teardown:probe', req),
+  runTeardown: (service: string, req: any) => ipcRenderer.invoke('teardown:run', service, req),
+  deleteBlockVolumes: (req: any) => ipcRenderer.invoke('teardown:delete-volumes', req),
+
   // Provisioning (Configuration par API)
   startSupabaseProvision: (req: any) => ipcRenderer.invoke('provision:supabase:start', req),
   startSpaceshipProvision: (req: any) => ipcRenderer.invoke('provision:spaceship:start', req),
