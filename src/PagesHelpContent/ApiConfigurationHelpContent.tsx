@@ -1,5 +1,6 @@
 import { Database, Mail, Globe, Server } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import { scalewayProfileFor } from '../shared/scalewayProfiles'
 import { HelpFlow, type HelpFlowStep } from '../components/ui/HelpFlow'
 import { HelpService } from '../components/ui/HelpService'
 import { STORAGE_BUCKETS } from '../shared/supabaseBuckets'
@@ -12,6 +13,7 @@ import {
 export function ApiConfigurationHelpContent() {
   const { state, config } = useApp();
   const isEn = state.language === "en";
+  const sizing = scalewayProfileFor(config.SCW_SIZING_PROFILE);
   const domain = config.DOMAIN || "votredomaine.fr";
   const mailSubdomain = config.MAIL_SUBDOMAIN || `mail.${domain}`;
   /** What Spaceship's `Host` field takes: the subdomain without the domain. */
@@ -196,12 +198,16 @@ export function ApiConfigurationHelpContent() {
           </li>
           <li>
             <strong>{isEn ? "Specs" : "Ressources"} :</strong>{" "}
-            {isEn ? "at least" : "au minimum"} 4 vCPU / 16 {isEn ? "GB" : "Go"}{" "}
-            RAM
+            {sizing.commercialType} — {sizing.vcpu} vCPU / {sizing.ramGb}{" "}
+            {isEn ? "GB" : "Go"} RAM (
+            {isEn
+              ? `up to ${sizing.participants} participants`
+              : `jusqu'à ${sizing.participants} participants`}
+            )
           </li>
           <li>
-            <strong>{isEn ? "Storage" : "Stockage"} :</strong> block storage 10{" "}
-            {isEn ? "GB" : "Go"}+
+            <strong>{isEn ? "Storage" : "Stockage"} :</strong>{" "}
+            {sizing.storageGb} {isEn ? "GB" : "Go"}+
           </li>
           <li>
             <strong>{isEn ? "Network" : "Réseau"} :</strong>{" "}
