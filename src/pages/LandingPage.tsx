@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useApp, type ThemePreference } from "../context/AppContext";
 import { LanguageToggle } from "../components/layout/LanguageToggle";
+import { ParticlesBackground } from "../components/layout/ParticlesBackground";
 import { ImportPasswordModal } from "../components/vault/ImportPasswordModal";
 import type { RecentConfig } from "../types/electron";
 import logoConfigurator from "../assets/brand/logo_configurator.png";
@@ -214,6 +215,9 @@ export function LandingPage() {
 
   return (
     <div className="landing-container">
+      <ParticlesBackground />
+      <div className="landing-drag-strip" />
+
       {/* Top right controls */}
       <div className="landing-top-right">
         <LanguageToggle />
@@ -246,7 +250,6 @@ export function LandingPage() {
           />
         </div>
 
-        <p className="landing-subtitle">{t("landing.subtitle")}</p>
         {/* Recent Configurations */}
         {recentConfigs.length > 0 && (
           <div className="recent-configs-section">
