@@ -10,7 +10,7 @@ import { SupabaseProjectSetup } from "../components/provision/SupabaseProjectSet
 import { CredentialWarning } from "../components/ui/CredentialWarning";
 import { isAccountComplete } from "../utils/serviceCompletion";
 import type { CredentialState } from "../types/credentials";
-import { AccountCreationHelpContent } from "../PagesHelpContent/AccountCreationHelpContent";
+import { AccountCreationHelpContent } from "../page_help_content/AccountCreationHelpContent";
 
 export function AccountCreation() {
   const { t, config, setField, hasSavedConfig } = useApp();

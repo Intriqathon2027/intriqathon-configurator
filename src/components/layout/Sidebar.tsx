@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Check, Settings, Zap, PanelLeftClose, PanelLeft } from 'lucide-react'
+import { Check, Settings, PanelLeftClose, PanelLeft } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 import { useStepComplete } from '../../hooks/useStepComplete'
 import { useAutomationLocked } from '../../context/AutomationLockContext'
 import { steps } from './steps'
+import miniLogo from '../../assets/brand/mini_logo.png'
 
 interface SidebarProps {
   setSettingsOpen: (v: boolean) => void
@@ -111,9 +112,14 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
       <aside className="sidebar sidebar--collapsed" style={{ transition: 'width 0.3s ease' }}>
         {isMac && <div className="sidebar-drag-strip" />}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', paddingTop: isMac ? '4px' : '14px' }}>
-          <div className="sidebar-logo-icon" onClick={goHomeIfIdle} style={{ cursor: 'pointer' }}>
-            <Zap size={18} />
-          </div>
+          <img
+            src={miniLogo}
+            alt="Intriqathon"
+            className="sidebar-logo-image"
+            onClick={goHomeIfIdle}
+            style={{ cursor: 'pointer' }}
+            draggable={false}
+          />
           <button className="btn btn-icon btn-ghost" onClick={() => setIsCollapsed(false)} title="Ouvrir le menu">
             <PanelLeft size={18} />
           </button>
@@ -170,9 +176,7 @@ export function Sidebar({ setSettingsOpen, helpOpen }: SidebarProps) {
           style={{ cursor: 'pointer' }}
           onClick={goHomeIfIdle}
         >
-          <div className="sidebar-logo-icon">
-            <Zap size={18} />
-          </div>
+          <img src={miniLogo} alt="Intriqathon" className="sidebar-logo-image" draggable={false} />
           <div>
             <div className="sidebar-logo-text">{t('app.title')}</div>
             <div className="sidebar-logo-sub">{t('app.subtitle')}</div>
