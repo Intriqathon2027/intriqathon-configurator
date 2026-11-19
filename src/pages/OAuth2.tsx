@@ -4,7 +4,7 @@ import { FormField } from "../components/ui/FormField";
 import { ServiceAccountCard } from "../components/ui/ServiceAccountCard";
 import { CopyRow } from "../components/ui/CopyBlock";
 import { useApp } from "../context/AppContext";
-import { OAuth2HelpContent } from "../PagesHelpContent/OAuth2HelpContent";
+import { OAuth2HelpContent } from "../page_help_content/OAuth2HelpContent";
 
 export function OAuth2() {
   const { t, config, setField } = useApp();

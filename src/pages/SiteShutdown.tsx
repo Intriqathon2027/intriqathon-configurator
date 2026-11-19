@@ -29,7 +29,7 @@ import type {
   TeardownRequest,
   TeardownService,
 } from "../types/teardown";
-import { SiteShutdownHelpContent } from "../PagesHelpContent/SiteShutdownHelpContent";
+import { SiteShutdownHelpContent } from "../page_help_content/SiteShutdownHelpContent";
 
 /** How often a deletion still under way at the provider is checked again. */
 const PENDING_RECHECK_MS = 15_000;
