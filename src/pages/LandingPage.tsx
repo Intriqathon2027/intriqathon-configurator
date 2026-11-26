@@ -1,179 +1,223 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Zap, Play, RotateCcw, Upload, Download, Trash2, X, ExternalLink, Moon, Sun, Monitor } from 'lucide-react'
-import { useApp, type ThemePreference } from '../context/AppContext'
-import { LanguageToggle } from '../components/layout/LanguageToggle'
-import { ImportPasswordModal } from '../components/vault/ImportPasswordModal'
-import type { RecentConfig } from '../types/electron'
+import { useState, useEffect, useCallback } from "react";
+import {
+  Zap,
+  Play,
+  RotateCcw,
+  Upload,
+  Download,
+  Trash2,
+  X,
+  ExternalLink,
+  Moon,
+  Sun,
+  Monitor,
+  Lock,
+} from "lucide-react";
+import { useApp, type ThemePreference } from "../context/AppContext";
+import { LanguageToggle } from "../components/layout/LanguageToggle";
+import { ParticlesBackground } from "../components/layout/ParticlesBackground";
+import { ImportPasswordModal } from "../components/vault/ImportPasswordModal";
+import type { RecentConfig } from "../types/electron";
+import logoConfigurator from "../assets/brand/logo_configurator.png";
 
-const THEME_CYCLE: ThemePreference[] = ['light', 'system', 'dark']
+const THEME_CYCLE: ThemePreference[] = ["light", "system", "dark"];
 
 /** Cycles the top-right button through light ➔ system ➔ dark. */
 function nextTheme(current: ThemePreference): ThemePreference {
-  return THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length]
+  return THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
 }
 
 export function LandingPage() {
-  const { state, t, startConfig, hasSavedConfig, dispatch, setTheme } = useApp()
-  const themeIcons = { light: Sun, system: Monitor, dark: Moon }
-  const ThemeIcon = themeIcons[state.theme]
-  const [showPrompt, setShowPrompt] = useState(false)
-  const [errorDialog, setErrorDialog] = useState<string | null>(null)
-  const [recentConfigs, setRecentConfigs] = useState<RecentConfig[]>([])
+  const {
+    state,
+    t,
+    startConfig,
+    hasSavedConfig,
+    dispatch,
+    setTheme,
+    lockVault,
+  } = useApp();
+  const themeIcons = { light: Sun, system: Monitor, dark: Moon };
+  const ThemeIcon = themeIcons[state.theme];
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<string | null>(null);
+  const [recentConfigs, setRecentConfigs] = useState<RecentConfig[]>([]);
   const [importModal, setImportModal] = useState<{
-    isOpen: boolean
-    filePath: string
-    encryptedData: any
+    isOpen: boolean;
+    filePath: string;
+    encryptedData: any;
   }>({
     isOpen: false,
-    filePath: '',
+    filePath: "",
     encryptedData: null,
-  })
+  });
 
   // Load recent configs on mount
   const loadRecentConfigs = useCallback(async () => {
     if (window.electronAPI) {
-      const configs = await window.electronAPI.loadRecentConfigs()
-      setRecentConfigs(configs || [])
+      const configs = await window.electronAPI.loadRecentConfigs();
+      setRecentConfigs(configs || []);
     } else {
       // Fallback to localStorage for development
-      const saved = localStorage.getItem('intriqathon-recent-configs')
+      const saved = localStorage.getItem("intriqathon-recent-configs");
       if (saved) {
         try {
-          setRecentConfigs(JSON.parse(saved))
+          setRecentConfigs(JSON.parse(saved));
         } catch {}
       }
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    loadRecentConfigs()
-  }, [loadRecentConfigs])
+    loadRecentConfigs();
+  }, [loadRecentConfigs]);
 
   // Save recent configs helper
   const saveRecentConfigs = async (configs: RecentConfig[]) => {
-    setRecentConfigs(configs)
+    setRecentConfigs(configs);
     if (window.electronAPI) {
-      await window.electronAPI.saveRecentConfigs(configs)
+      await window.electronAPI.saveRecentConfigs(configs);
     } else {
-      localStorage.setItem('intriqathon-recent-configs', JSON.stringify(configs))
+      localStorage.setItem(
+        "intriqathon-recent-configs",
+        JSON.stringify(configs),
+      );
     }
-  }
+  };
 
   // Add a config to recent list
   const addToRecent = async (filePath: string) => {
-    const name = filePath.split('/').pop()?.replace('.json', '') || 'Configuration'
+    const name =
+      filePath.split("/").pop()?.replace(".json", "") || "Configuration";
     const newEntry: RecentConfig = {
       name,
       path: filePath,
       savedAt: new Date().toISOString(),
-    }
+    };
     // Remove duplicate if exists, then prepend
-    const filtered = recentConfigs.filter(c => c.path !== filePath)
-    const updated = [newEntry, ...filtered].slice(0, 20) // Keep max 20
-    await saveRecentConfigs(updated)
-  }
+    const filtered = recentConfigs.filter((c) => c.path !== filePath);
+    const updated = [newEntry, ...filtered].slice(0, 20); // Keep max 20
+    await saveRecentConfigs(updated);
+  };
 
   // Remove a config from recent list
   const removeFromRecent = async (filePath: string) => {
-    const updated = recentConfigs.filter(c => c.path !== filePath)
-    await saveRecentConfigs(updated)
-  }
+    const updated = recentConfigs.filter((c) => c.path !== filePath);
+    await saveRecentConfigs(updated);
+  };
 
-  const handleImportSuccess = async (data: Record<string, string>, filePath: string) => {
-    dispatch({ type: 'LOAD_SAVED', config: data as unknown as Partial<typeof state.config> })
+  const handleImportSuccess = async (
+    data: Record<string, string>,
+    filePath: string,
+  ) => {
+    dispatch({
+      type: "LOAD_SAVED",
+      config: data as unknown as Partial<typeof state.config>,
+    });
     if (window.electronAPI && window.electronAPI.vaultSave) {
-      await window.electronAPI.vaultSave(data)
+      await window.electronAPI.vaultSave(data);
     }
-    await addToRecent(filePath)
-    startConfig()
-  }
+    await addToRecent(filePath);
+    startConfig();
+  };
 
   // Launch a recent config
   const handleLaunchRecent = async (config: RecentConfig) => {
     if (window.electronAPI) {
-      const data = await window.electronAPI.readConfigFile(config.path)
+      const data = await window.electronAPI.readConfigFile(config.path);
       if (data) {
-        if ('requiresPassword' in data && data.requiresPassword) {
+        if ("requiresPassword" in data && data.requiresPassword) {
           setImportModal({
             isOpen: true,
             filePath: config.path,
             encryptedData: data.encryptedData,
-          })
-          return
+          });
+          return;
         }
-        const configData = data as Record<string, string>
-        dispatch({ type: 'LOAD_SAVED', config: configData as unknown as Partial<typeof state.config> })
+        const configData = data as Record<string, string>;
+        dispatch({
+          type: "LOAD_SAVED",
+          config: configData as unknown as Partial<typeof state.config>,
+        });
         if (window.electronAPI.vaultSave) {
-          await window.electronAPI.vaultSave(configData)
+          await window.electronAPI.vaultSave(configData);
         }
         // Move to top of recent configs list
-        const updated = [config, ...recentConfigs.filter(c => c.path !== config.path)]
-        await saveRecentConfigs(updated)
-        startConfig()
+        const updated = [
+          config,
+          ...recentConfigs.filter((c) => c.path !== config.path),
+        ];
+        await saveRecentConfigs(updated);
+        startConfig();
       } else {
         // File no longer exists, show error dialog and remove from recent
-        setErrorDialog(t('landing.recent.notFound'))
-        await removeFromRecent(config.path)
+        setErrorDialog(t("landing.recent.notFound"));
+        await removeFromRecent(config.path);
       }
     }
-  }
+  };
 
   const handleStartFresh = () => {
     if (hasSavedConfig) {
-      setShowPrompt(true)
+      setShowPrompt(true);
     } else {
-      startConfig()
+      startConfig();
     }
-  }
+  };
 
   const handleExportAndContinue = async () => {
     if (window.electronAPI) {
-      const result = await window.electronAPI.exportConfig(state.config as unknown as Record<string, string>)
+      const result = await window.electronAPI.exportConfig(
+        state.config as unknown as Record<string, string>,
+      );
       if (result.success && result.path) {
-        await addToRecent(result.path)
+        await addToRecent(result.path);
       }
     }
-    dispatch({ type: 'RESET_CONFIG' })
+    dispatch({ type: "RESET_CONFIG" });
     if (window.electronAPI && window.electronAPI.vaultSave) {
-      await window.electronAPI.vaultSave({})
+      await window.electronAPI.vaultSave({});
     }
-    setShowPrompt(false)
-    startConfig()
-  }
+    setShowPrompt(false);
+    startConfig();
+  };
 
   const handleDiscardAndContinue = async () => {
-    dispatch({ type: 'RESET_CONFIG' })
+    dispatch({ type: "RESET_CONFIG" });
     if (window.electronAPI && window.electronAPI.vaultSave) {
-      await window.electronAPI.vaultSave({})
+      await window.electronAPI.vaultSave({});
     }
-    setShowPrompt(false)
-    startConfig()
-  }
+    setShowPrompt(false);
+    startConfig();
+  };
 
   const handleImport = async () => {
     if (window.electronAPI) {
-      const result = await window.electronAPI.importConfig()
-      if (!result) return
+      const result = await window.electronAPI.importConfig();
+      if (!result) return;
 
       if (result.requiresPassword && result.encryptedData) {
         setImportModal({
           isOpen: true,
           filePath: result.path,
           encryptedData: result.encryptedData,
-        })
-        return
+        });
+        return;
       }
 
       if (result.data) {
-        await handleImportSuccess(result.data, result.path)
+        await handleImportSuccess(result.data, result.path);
       }
     } else {
-      alert('Not supported on the web')
+      alert("Not supported on the web");
     }
-  }
+  };
 
   return (
     <div className="landing-container">
+      <ParticlesBackground />
+      <div className="landing-drag-strip" />
+
       {/* Top right controls */}
       <div className="landing-top-right">
         <LanguageToggle />
@@ -185,23 +229,33 @@ export function LandingPage() {
         >
           <ThemeIcon size={16} />
         </button>
+        <button
+          className="btn btn-icon"
+          onClick={() => lockVault()}
+          title={t("vault.btn.lock")}
+          aria-label={t("vault.btn.lock")}
+          id="btn-lock-vault-landing"
+        >
+          <Lock size={16} />
+        </button>
       </div>
 
       <div className="landing-content">
         <div className="landing-logo-container">
-          <div className="landing-logo-icon">
-            <Zap size={48} color="white" />
-          </div>
+          <img
+            src={logoConfigurator}
+            alt="Intriqathon Configurator"
+            className="landing-logo-image"
+            draggable={false}
+          />
         </div>
-
-        <h1 className="landing-title">{t('landing.title')}</h1>
-        <p className="landing-subtitle">{t('landing.subtitle')}</p>
-        <div className="landing-team-badge">{t('landing.team')}</div>
 
         {/* Recent Configurations */}
         {recentConfigs.length > 0 && (
           <div className="recent-configs-section">
-            <h2 className="recent-configs-title">{t('landing.recent.title')}</h2>
+            <h2 className="recent-configs-title">
+              {t("landing.recent.title")}
+            </h2>
             <div className="recent-configs-card">
               <div className="recent-configs-list">
                 {recentConfigs.map((config) => (
@@ -214,7 +268,7 @@ export function LandingPage() {
                       <button
                         className="recent-config-remove"
                         onClick={() => removeFromRecent(config.path)}
-                        title={t('landing.recent.remove')}
+                        title={t("landing.recent.remove")}
                       >
                         <X size={14} />
                       </button>
@@ -223,7 +277,7 @@ export function LandingPage() {
                         onClick={() => handleLaunchRecent(config)}
                       >
                         <ExternalLink size={14} />
-                        {t('landing.recent.launch')}
+                        {t("landing.recent.launch")}
                       </button>
                     </div>
                   </div>
@@ -236,78 +290,112 @@ export function LandingPage() {
         <div className="landing-actions">
           {hasSavedConfig && (
             <div className="tooltip-wrapper">
-              <button className="btn btn-primary landing-btn" onClick={startConfig}>
+              <button
+                className="btn btn-primary landing-btn"
+                onClick={startConfig}
+              >
                 <Play size={18} />
-                {t('landing.btn.resume')}
+                {t("landing.btn.resume")}
               </button>
               <div className="tooltip-bottom">
-                {recentConfigs[0]?.name || 'Configuration en cours'}
+                {recentConfigs[0]?.name || "Configuration en cours"}
               </div>
             </div>
           )}
 
-          <button 
-            className={`btn ${hasSavedConfig ? 'btn-secondary' : 'btn-primary'} landing-btn`} 
+          <button
+            className={`btn ${hasSavedConfig ? "btn-secondary" : "btn-primary"} landing-btn`}
             onClick={handleStartFresh}
           >
             <RotateCcw size={18} />
-            {t('landing.btn.new')}
+            {t("landing.btn.new")}
           </button>
 
-          <button className="btn btn-secondary landing-btn" onClick={handleImport}>
+          <button
+            className="btn btn-secondary landing-btn"
+            onClick={handleImport}
+          >
             <Upload size={18} />
-            {t('landing.btn.import')}
+            {t("landing.btn.import")}
           </button>
         </div>
       </div>
 
       {/* Export Prompt Modal */}
       {showPrompt && (
-        <div className="modal-overlay" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-          <div className="modal" style={{ width: '480px', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-            <div className="modal-header" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+        <div
+          className="modal-overlay"
+          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+        >
+          <div
+            className="modal"
+            style={
+              {
+                width: "480px",
+                WebkitAppRegion: "no-drag",
+              } as React.CSSProperties
+            }
+          >
+            <div
+              className="modal-header"
+              style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+            >
               <div className="modal-title">
                 <Trash2 size={18} color="var(--color-danger)" />
-                {t('landing.prompt.title')}
+                {t("landing.prompt.title")}
               </div>
-              <button 
-                className="modal-close" 
+              <button
+                className="modal-close"
                 onClick={() => setShowPrompt(false)}
-                style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+                style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
               >
                 <X size={16} />
               </button>
             </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <p style={{ lineHeight: '1.5', color: 'var(--color-text)' }}>
-                {t('landing.prompt.desc')}
+            <div
+              className="modal-body"
+              style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+            >
+              <p style={{ lineHeight: "1.5", color: "var(--color-text)" }}>
+                {t("landing.prompt.desc")}
               </p>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <button 
-                  className="btn btn-primary" 
-                  style={{ justifyContent: 'center' }}
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                <button
+                  className="btn btn-primary"
+                  style={{ justifyContent: "center" }}
                   onClick={handleExportAndContinue}
                 >
                   <Download size={16} />
-                  {t('landing.prompt.export')}
+                  {t("landing.prompt.export")}
                 </button>
-                
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ justifyContent: 'center', color: 'var(--color-danger)', borderColor: 'var(--color-danger-light)', background: 'var(--color-danger-light)' }}
+
+                <button
+                  className="btn btn-secondary"
+                  style={{
+                    justifyContent: "center",
+                    color: "var(--color-danger)",
+                    borderColor: "var(--color-danger-light)",
+                    background: "var(--color-danger-light)",
+                  }}
                   onClick={handleDiscardAndContinue}
                 >
                   <Trash2 size={16} />
-                  {t('landing.prompt.discard')}
+                  {t("landing.prompt.discard")}
                 </button>
 
-                <button 
-                  className="btn btn-ghost" 
-                  style={{ justifyContent: 'center' }}
+                <button
+                  className="btn btn-ghost"
+                  style={{ justifyContent: "center" }}
                   onClick={() => setShowPrompt(false)}
                 >
-                  {t('landing.prompt.cancel')}
+                  {t("landing.prompt.cancel")}
                 </button>
               </div>
             </div>
@@ -317,29 +405,46 @@ export function LandingPage() {
 
       {/* Error Prompt Modal */}
       {errorDialog && (
-        <div className="modal-overlay" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-          <div className="modal" style={{ width: '400px', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-            <div className="modal-header" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+        <div
+          className="modal-overlay"
+          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+        >
+          <div
+            className="modal"
+            style={
+              {
+                width: "400px",
+                WebkitAppRegion: "no-drag",
+              } as React.CSSProperties
+            }
+          >
+            <div
+              className="modal-header"
+              style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+            >
               <div className="modal-title">
                 <Zap size={18} color="var(--color-danger)" />
                 Error
               </div>
-              <button 
-                className="modal-close" 
+              <button
+                className="modal-close"
                 onClick={() => setErrorDialog(null)}
-                style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+                style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
               >
                 <X size={16} />
               </button>
             </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <p style={{ lineHeight: '1.5', color: 'var(--color-text)' }}>
+            <div
+              className="modal-body"
+              style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+            >
+              <p style={{ lineHeight: "1.5", color: "var(--color-text)" }}>
                 {errorDialog}
               </p>
-              
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button 
-                  className="btn btn-primary" 
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  className="btn btn-primary"
                   onClick={() => setErrorDialog(null)}
                 >
                   OK
@@ -356,8 +461,8 @@ export function LandingPage() {
         filePath={importModal.filePath}
         encryptedData={importModal.encryptedData}
         onSuccess={handleImportSuccess}
-        onClose={() => setImportModal(prev => ({ ...prev, isOpen: false }))}
+        onClose={() => setImportModal((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
-  )
+  );
 }

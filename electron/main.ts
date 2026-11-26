@@ -37,7 +37,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    icon: path.join(process.env.VITE_PUBLIC, 'icon.png'),
   })
 
   win.webContents.on('did-finish-load', () => {
@@ -110,4 +110,11 @@ registerSshHandlers()
 registerScalewayHandlers(() => win)
 registerProvisionHandlers(() => win)
 registerTeardownHandlers()
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  // Packaged builds take the dock icon from the bundle (build/icon.png);
+  // this covers `electron .` in development, which would show Electron's.
+  if (process.platform === 'darwin' && !app.isPackaged) {
+    app.dock?.setIcon(path.join(process.env.VITE_PUBLIC!, 'icon.png'))
+  }
+  createWindow()
+})

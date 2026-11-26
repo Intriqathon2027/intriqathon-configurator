@@ -29,7 +29,8 @@
     "appId": "com.intriqathon.configurator",
     "productName": "Intriqathon Configurator",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "dist/**/*",
@@ -61,7 +62,8 @@
           ]
         }
       ],
-      "category": "public.app-category.developer-tools"
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png"
     },
     "win": {
       "target": [
@@ -71,7 +73,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "icon": "build/icon.png"
     },
     "linux": {
       "target": [
@@ -87,7 +90,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "icon": "build/icon.png"
     }
   },
   "dependencies": {

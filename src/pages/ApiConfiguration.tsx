@@ -41,7 +41,7 @@ import {
 } from "../shared/apiConfigLinks";
 import { isAccountComplete } from "../utils/serviceCompletion";
 import type { Config } from "../context/AppContext";
-import { ApiConfigurationHelpContent } from "../PagesHelpContent/ApiConfigurationHelpContent";
+import { ApiConfigurationHelpContent } from "../page_help_content/ApiConfigurationHelpContent";
 import { ScalewayProfileSelector } from "../components/ui/ScalewayProfileSelector";
 import { scalewayProfileFor } from "../shared/scalewayProfiles";
 
